@@ -363,68 +363,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const handleElementResize = (e: React.MouseEvent, elementId: string, direction: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const startX = e.clientX;
-    const startY = e.clientY;
-    
-    const element = templateData.content[activeView]?.elements?.find((el: DragElement) => el.id === elementId);
-    if (!element) return;
-
-    const startWidth = element.size.width;
-    const startHeight = element.size.height;
-    const startElementX = element.position.x;
-    const startElementY = element.position.y;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
-      
-      let newWidth = startWidth;
-      let newHeight = startHeight;
-      let newX = startElementX;
-      let newY = startElementY;
-
-      switch (direction) {
-        case 'se': // Southeast
-          newWidth = Math.max(50, startWidth + deltaX);
-          newHeight = Math.max(50, startHeight + deltaY);
-          break;
-        case 'sw': // Southwest
-          newWidth = Math.max(50, startWidth - deltaX);
-          newHeight = Math.max(50, startHeight + deltaY);
-          newX = Math.max(0, startElementX + deltaX);
-          break;
-        case 'ne': // Northeast
-          newWidth = Math.max(50, startWidth + deltaX);
-          newHeight = Math.max(50, startHeight - deltaY);
-          newY = Math.max(0, startElementY + deltaY);
-          break;
-        case 'nw': // Northwest
-          newWidth = Math.max(50, startWidth - deltaX);
-          newHeight = Math.max(50, startHeight - deltaY);
-          newX = Math.max(0, startElementX + deltaX);
-          newY = Math.max(0, startElementY + deltaY);
-          break;
-      }
-
-      updateElement(elementId, {
-        size: { width: newWidth, height: newHeight },
-        position: { x: newX, y: newY }
-      });
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
   const updateElement = (elementId: string, updates: Partial<DragElement>) => {
     setTemplateData(prev => ({
       ...prev,
@@ -496,7 +434,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         const result = await response.json();
         toast.success('Arquivo enviado com sucesso!');
         
-        // Se temos um elemento selecionado e é imagem/vídeo
         if (selectedElement && (templateData.content[activeView]?.elements?.find((e: DragElement) => e.id === selectedElement)?.type === 'image' || 'video')) {
           updateElement(selectedElement, {
             content: {
@@ -520,126 +457,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       'video/*': ['.mp4', '.webm', '.mov']
     }
   });
-
-  const generateHTML = () => {
-    const elements = templateData.content[activeView]?.elements || [];
-    const background = templateData.content[activeView]?.background || { type: 'color', value: '#667eea' };
-    
-    let html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${templateData.name}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Inter', sans-serif;
-      ${background.type === 'color' ? `background-color: ${background.value};` : ''}
-      ${background.type === 'image' ? `background-image: url('${background.image}'); background-size: cover; background-position: center;` : ''}
-      min-height: 100vh;
-      position: relative;
-    }
-    .container {
-      position: relative;
-      min-height: 100vh;
-    }
-    `;
-
-    elements.forEach((element: DragElement, index: number) => {
-      html += `
-    .element-${index} {
-      position: absolute;
-      left: ${element.position.x}px;
-      top: ${element.position.y}px;
-      width: ${element.size.width}px;
-      height: ${element.size.height}px;
-      z-index: ${index + 1};
-    }`;
-    });
-
-    html += `
-  </style>
-</head>
-<body>
-  <div class="container">`;
-
-    elements.forEach((element: DragElement, index: number) => {
-      switch (element.type) {
-        case 'text':
-          html += `
-    <div class="element-${index}" style="color: ${element.content.color}; font-size: ${element.content.fontSize}px; font-weight: ${element.content.fontWeight};">
-      ${element.content.text}
-    </div>`;
-          break;
-        case 'button':
-          html += `
-    <a href="${element.content.url}" class="element-${index}" style="background-color: ${element.content.backgroundColor}; color: ${element.content.color}; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">
-      ${element.content.text}
-    </a>`;
-          break;
-        case 'image':
-          html += `
-    <img src="${element.content.src}" alt="${element.content.alt}" class="element-${index}" style="width: 100%; height: 100%; object-fit: cover;">`;
-          break;
-        case 'video':
-          html += `
-    <video class="element-${index}" controls poster="${element.content.poster}" style="width: 100%; height: 100%; object-fit: cover;">
-      <source src="${element.content.src}" type="video/mp4">
-    </video>`;
-          break;
-        case 'container':
-          html += `
-    <div class="element-${index}" style="background-color: ${element.content.backgroundColor}; padding: ${element.content.padding}; border-radius: ${element.content.borderRadius}; border: ${element.content.border};">
-      Container
-    </div>`;
-          break;
-        case 'form':
-          html += `
-    <div class="element-${index}" style="background-color: ${element.content.backgroundColor}; padding: ${element.content.padding};">
-      <h3>${element.content.title}</h3>
-      ${element.content.fields.map((field: any) => `
-        <div>
-          <label>${field.label}</label>
-          <input type="${field.type}" placeholder="${field.placeholder}" />
-        </div>
-      `).join('')}
-      <button>${element.content.submitText}</button>
-    </div>`;
-          break;
-        case 'gallery':
-          html += `
-    <div class="element-${index}">
-      Galeria (${element.content.images.length} imagens)
-    </div>`;
-          break;
-        case 'card':
-          html += `
-    <div class="element-${index}" style="background-color: ${element.content.backgroundColor}; padding: ${element.content.padding}; border-radius: ${element.content.borderRadius}; box-shadow: ${element.content.boxShadow};">
-      ${element.content.image ? `<img src="${element.content.image}" alt="Card" />` : ''}
-      <h3>${element.content.title}</h3>
-      <p>${element.content.description}</p>
-    </div>`;
-          break;
-        case 'html':
-          html += `
-    <div class="element-${index}">
-      ${element.content.html}
-    </div>`;
-          break;
-      }
-    });
-
-    html += `
-  </div>
-</body>
-</html>`;
-
-    return html;
-  };
 
   const selectedElementData = templateData.content[activeView]?.elements?.find((e: DragElement) => e.id === selectedElement);
 
@@ -959,76 +776,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                       )}
                     </div>
                   )}
-
-                  {selectedElementData.type === 'button' && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Texto do Botão</label>
-                        <input
-                          type="text"
-                          value={selectedElementData.content.text}
-                          onChange={(e) => selectedElement && updateElement(selectedElement, { 
-                            content: { ...selectedElementData.content, text: e.target.value }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">URL</label>
-                        <input
-                          type="url"
-                          value={selectedElementData.content.url}
-                          onChange={(e) => selectedElement && updateElement(selectedElement, { 
-                            content: { ...selectedElementData.content, url: e.target.value }
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Cor de Fundo</label>
-                        <button
-                          onClick={() => setShowColorPicker(!showColorPicker)}
-                          className="w-full p-2 border border-gray-300 rounded-lg text-left"
-                          style={{ backgroundColor: selectedElementData.content.backgroundColor }}
-                        >
-                          {selectedElementData.content.backgroundColor}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {(selectedElementData.type === 'image' || selectedElementData.type === 'video') && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload de Arquivo</label>
-                        <div
-                          {...getRootProps()}
-                          className={`p-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
-                            isDragActive ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                          }`}
-                        >
-                          <input {...getInputProps()} />
-                          <Image className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                          <p className="text-sm text-gray-600">
-                            Arraste arquivos aqui ou clique para selecionar
-                          </p>
-                        </div>
-                      </div>
-                      {selectedElementData.content.src && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">URL Atual</label>
-                          <input
-                            type="url"
-                            value={selectedElementData.content.src}
-                            onChange={(e) => selectedElement && updateElement(selectedElement, { 
-                              content: { ...selectedElementData.content, src: e.target.value }
-                            })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -1037,7 +784,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Código HTML Gerado</h3>
                 <textarea
-                  value={generateHTML()}
+                  value="<div>Preview em desenvolvimento</div>"
                   readOnly
                   className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm bg-gray-50"
                 />
@@ -1137,7 +884,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                       <source src={element.content.src} type="video/mp4" />
                     </video>
                   )}
-                  
+
                   {element.type === 'container' && (
                     <div 
                       className="w-full h-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50"
@@ -1145,17 +892,12 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                         backgroundColor: element.content.backgroundColor,
                         padding: element.content.padding,
                         borderRadius: element.content.borderRadius,
-                        border: element.content.border,
-                        display: element.content.display,
-                        flexDirection: element.content.flexDirection,
-                        alignItems: element.content.alignItems,
-                        justifyContent: element.content.justifyContent
+                        border: element.content.border
                       }}
                     >
                       <div className="text-center text-gray-500">
                         <Move className="h-8 w-8 mx-auto mb-2" />
                         <p className="text-sm">Container</p>
-                        <p className="text-xs">Arraste elementos aqui</p>
                       </div>
                     </div>
                   )}
@@ -1225,7 +967,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                       <p className="text-sm text-gray-600">{element.content.description}</p>
                     </div>
                   )}
-
+                  
                   {element.type === 'html' && (
                     <div dangerouslySetInnerHTML={{ __html: element.content.html }} />
                   )}
@@ -1246,33 +988,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                         )}
                       </div>
                     </div>
-                  )}
-
-                  {/* Resize Handles */}
-                  {selectedElement === element.id && (
-                    <>
-                      {/* Corner handles */}
-                      <div
-                        className="absolute w-3 h-3 bg-red-500 border border-white cursor-nw-resize"
-                        style={{ top: -6, left: -6 }}
-                        onMouseDown={(e) => handleElementResize(e, element.id, 'nw')}
-                      />
-                      <div
-                        className="absolute w-3 h-3 bg-red-500 border border-white cursor-ne-resize"
-                        style={{ top: -6, right: -6 }}
-                        onMouseDown={(e) => handleElementResize(e, element.id, 'ne')}
-                      />
-                      <div
-                        className="absolute w-3 h-3 bg-red-500 border border-white cursor-sw-resize"
-                        style={{ bottom: -6, left: -6 }}
-                        onMouseDown={(e) => handleElementResize(e, element.id, 'sw')}
-                      />
-                      <div
-                        className="absolute w-3 h-3 bg-red-500 border border-white cursor-se-resize"
-                        style={{ bottom: -6, right: -6 }}
-                        onMouseDown={(e) => handleElementResize(e, element.id, 'se')}
-                      />
-                    </>
                   )}
                 </div>
               ))}
