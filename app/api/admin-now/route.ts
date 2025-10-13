@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor', 
-        details: error.message,
-        stack: error.stack
+        details: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );
