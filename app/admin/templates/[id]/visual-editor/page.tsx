@@ -591,6 +591,39 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       <source src="${element.content.src}" type="video/mp4">
     </video>`;
           break;
+        case 'container':
+          html += `
+    <div class="element-${index}" style="background-color: ${element.content.backgroundColor}; padding: ${element.content.padding}; border-radius: ${element.content.borderRadius}; border: ${element.content.border};">
+      Container
+    </div>`;
+          break;
+        case 'form':
+          html += `
+    <div class="element-${index}" style="background-color: ${element.content.backgroundColor}; padding: ${element.content.padding};">
+      <h3>${element.content.title}</h3>
+      ${element.content.fields.map((field: any) => `
+        <div>
+          <label>${field.label}</label>
+          <input type="${field.type}" placeholder="${field.placeholder}" />
+        </div>
+      `).join('')}
+      <button>${element.content.submitText}</button>
+    </div>`;
+          break;
+        case 'gallery':
+          html += `
+    <div class="element-${index}">
+      Galeria (${element.content.images.length} imagens)
+    </div>`;
+          break;
+        case 'card':
+          html += `
+    <div class="element-${index}" style="background-color: ${element.content.backgroundColor}; padding: ${element.content.padding}; border-radius: ${element.content.borderRadius}; box-shadow: ${element.content.boxShadow};">
+      ${element.content.image ? `<img src="${element.content.image}" alt="Card" />` : ''}
+      <h3>${element.content.title}</h3>
+      <p>${element.content.description}</p>
+    </div>`;
+          break;
         case 'html':
           html += `
     <div class="element-${index}">
