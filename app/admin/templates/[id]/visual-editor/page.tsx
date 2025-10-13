@@ -38,11 +38,16 @@ interface Template {
 
 interface DragElement {
   id: string;
-  type: 'text' | 'button' | 'image' | 'video' | 'background' | 'html';
+  type: 'text' | 'button' | 'image' | 'video' | 'background' | 'html' | 'container' | 'form' | 'gallery' | 'card';
   content: any;
   style: any;
   position: { x: number; y: number };
   size: { width: number; height: number };
+  responsive?: {
+    desktop: { position: { x: number; y: number }; size: { width: number; height: number } };
+    tablet: { position: { x: number; y: number }; size: { width: number; height: number } };
+    mobile: { position: { x: number; y: number }; size: { width: number; height: number } };
+  };
 }
 
 const ELEMENT_TYPES = [
@@ -51,42 +56,142 @@ const ELEMENT_TYPES = [
     name: 'Texto', 
     icon: Type, 
     description: 'Adicionar texto personalizado',
-    defaultContent: { text: 'Seu texto aqui', fontSize: 24, color: '#ffffff', fontWeight: 'bold' }
+    defaultContent: { 
+      text: 'Seu texto aqui', 
+      fontSize: 24, 
+      color: '#ffffff', 
+      fontWeight: 'bold',
+      textAlign: 'left',
+      fontFamily: 'Inter'
+    }
   },
   { 
     id: 'button', 
     name: 'Botão', 
     icon: MousePointer, 
     description: 'Botão de ação com link',
-    defaultContent: { text: 'Clique Aqui', url: '#', backgroundColor: '#ff6b6b', color: '#ffffff' }
+    defaultContent: { 
+      text: 'Clique Aqui', 
+      url: '#', 
+      backgroundColor: '#ff6b6b', 
+      color: '#ffffff',
+      borderRadius: '8px',
+      padding: '12px 24px',
+      fontSize: '16px',
+      fontWeight: '600',
+      boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
+      hoverEffect: 'scale'
+    }
   },
   { 
     id: 'image', 
     name: 'Imagem', 
     icon: Image, 
     description: 'Adicionar imagem',
-    defaultContent: { src: '', alt: 'Imagem', width: 300, height: 200 }
+    defaultContent: { 
+      src: '', 
+      alt: 'Imagem', 
+      width: 300, 
+      height: 200,
+      borderRadius: '8px',
+      objectFit: 'cover'
+    }
   },
   { 
     id: 'video', 
     name: 'Vídeo', 
     icon: Video, 
     description: 'Adicionar vídeo',
-    defaultContent: { src: '', poster: '', width: 400, height: 225 }
+    defaultContent: { 
+      src: '', 
+      poster: '', 
+      width: 400, 
+      height: 225,
+      borderRadius: '8px'
+    }
   },
   { 
     id: 'background', 
     name: 'Fundo', 
     icon: Palette, 
     description: 'Imagem ou cor de fundo',
-    defaultContent: { type: 'color', value: '#667eea', image: '' }
+    defaultContent: { 
+      type: 'color', 
+      value: '#667eea', 
+      image: '' 
+    }
+  },
+  { 
+    id: 'container', 
+    name: 'Container', 
+    icon: Move, 
+    description: 'Container para organizar elementos',
+    defaultContent: { 
+      backgroundColor: 'transparent',
+      padding: '20px',
+      borderRadius: '8px',
+      border: '1px dashed #ccc',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  },
+  { 
+    id: 'form', 
+    name: 'Formulário', 
+    icon: Settings, 
+    description: 'Formulário de contato',
+    defaultContent: { 
+      title: 'Entre em Contato',
+      fields: [
+        { type: 'text', label: 'Nome', placeholder: 'Seu nome', required: true },
+        { type: 'email', label: 'Email', placeholder: 'seu@email.com', required: true },
+        { type: 'textarea', label: 'Mensagem', placeholder: 'Sua mensagem...', required: true }
+      ],
+      submitText: 'Enviar Mensagem',
+      backgroundColor: '#ffffff',
+      padding: '30px'
+    }
+  },
+  { 
+    id: 'gallery', 
+    name: 'Galeria', 
+    icon: Image, 
+    description: 'Galeria de imagens',
+    defaultContent: { 
+      images: [],
+      columns: 3,
+      spacing: '10px',
+      borderRadius: '8px',
+      showCaptions: false,
+      lightbox: true
+    }
+  },
+  { 
+    id: 'card', 
+    name: 'Card', 
+    icon: Move, 
+    description: 'Card com conteúdo',
+    defaultContent: { 
+      title: 'Título do Card',
+      description: 'Descrição do card aqui...',
+      image: '',
+      backgroundColor: '#ffffff',
+      padding: '20px',
+      borderRadius: '12px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+      border: 'none'
+    }
   },
   { 
     id: 'html', 
     name: 'HTML', 
     icon: Code, 
     description: 'Código HTML personalizado',
-    defaultContent: { html: '<div>HTML personalizado</div>' }
+    defaultContent: { 
+      html: '<div>HTML personalizado</div>' 
+    }
   }
 ];
 
@@ -173,7 +278,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     }
   };
 
-  const addElement = (elementType: string) => {
+  const addElement = (elementType: string, position?: { x: number; y: number }) => {
     const elementConfig = ELEMENT_TYPES.find(e => e.id === elementType);
     if (!elementConfig) return;
 
@@ -185,7 +290,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         position: 'absolute',
         zIndex: 1
       },
-      position: { x: 50, y: 50 },
+      position: position || { x: 50, y: 50 },
       size: { width: 200, height: 50 }
     };
 
@@ -202,6 +307,122 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
 
     setSelectedElement(newElement.id);
     toast.success(`${elementConfig.name} adicionado!`);
+  };
+
+  const handleCanvasDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const elementType = e.dataTransfer.getData('elementType');
+    if (!elementType) return;
+
+    const canvasRect = canvasRef.current?.getBoundingClientRect();
+    if (!canvasRect) return;
+
+    const x = e.clientX - canvasRect.left;
+    const y = e.clientY - canvasRect.top;
+
+    addElement(elementType, { x, y });
+  };
+
+  const handleCanvasDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleElementDragStart = (elementType: string) => (e: React.DragEvent) => {
+    e.dataTransfer.setData('elementType', elementType);
+  };
+
+  const handleElementMove = (e: React.MouseEvent, elementId: string) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    
+    const element = templateData.content[activeView]?.elements?.find((el: DragElement) => el.id === elementId);
+    if (!element) return;
+
+    const startElementX = element.position.x;
+    const startElementY = element.position.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+      
+      const newX = Math.max(0, Math.min(startElementX + deltaX, 1200 - element.size.width));
+      const newY = Math.max(0, Math.min(startElementY + deltaY, 800 - element.size.height));
+
+      updateElement(elementId, {
+        position: { x: newX, y: newY }
+      });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleElementResize = (e: React.MouseEvent, elementId: string, direction: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    
+    const element = templateData.content[activeView]?.elements?.find((el: DragElement) => el.id === elementId);
+    if (!element) return;
+
+    const startWidth = element.size.width;
+    const startHeight = element.size.height;
+    const startElementX = element.position.x;
+    const startElementY = element.position.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+      
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newX = startElementX;
+      let newY = startElementY;
+
+      switch (direction) {
+        case 'se': // Southeast
+          newWidth = Math.max(50, startWidth + deltaX);
+          newHeight = Math.max(50, startHeight + deltaY);
+          break;
+        case 'sw': // Southwest
+          newWidth = Math.max(50, startWidth - deltaX);
+          newHeight = Math.max(50, startHeight + deltaY);
+          newX = Math.max(0, startElementX + deltaX);
+          break;
+        case 'ne': // Northeast
+          newWidth = Math.max(50, startWidth + deltaX);
+          newHeight = Math.max(50, startHeight - deltaY);
+          newY = Math.max(0, startElementY + deltaY);
+          break;
+        case 'nw': // Northwest
+          newWidth = Math.max(50, startWidth - deltaX);
+          newHeight = Math.max(50, startHeight - deltaY);
+          newX = Math.max(0, startElementX + deltaX);
+          newY = Math.max(0, startElementY + deltaY);
+          break;
+      }
+
+      updateElement(elementId, {
+        size: { width: newWidth, height: newHeight },
+        position: { x: newX, y: newY }
+      });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
   const updateElement = (elementId: string, updates: Partial<DragElement>) => {
@@ -479,16 +700,20 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Adicionar Elementos</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {ELEMENT_TYPES.map((element) => (
-                      <button
+                      <div
                         key={element.id}
-                        onClick={() => addElement(element.id)}
-                        className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-center group"
+                        draggable
+                        onDragStart={handleElementDragStart(element.id)}
+                        className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-center group cursor-grab active:cursor-grabbing"
                       >
                         <element.icon className="h-6 w-6 mx-auto mb-2 text-gray-400 group-hover:text-red-500" />
                         <div className="text-sm font-medium text-gray-700 group-hover:text-red-700">
                           {element.name}
                         </div>
-                      </button>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Arraste para o canvas
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -621,6 +846,87 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                     </div>
                   )}
 
+                  {selectedElementData.type === 'background' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Fundo</label>
+                        <select
+                          value={selectedElementData.content.type}
+                          onChange={(e) => selectedElement && updateElement(selectedElement, { 
+                            content: { ...selectedElementData.content, type: e.target.value }
+                          })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        >
+                          <option value="color">Cor Sólida</option>
+                          <option value="image">Imagem</option>
+                        </select>
+                      </div>
+                      
+                      {selectedElementData.content.type === 'color' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Cor de Fundo</label>
+                          <button
+                            onClick={() => setShowColorPicker(!showColorPicker)}
+                            className="w-full p-3 border border-gray-300 rounded-lg text-left flex items-center space-x-3"
+                            style={{ backgroundColor: selectedElementData.content.value }}
+                          >
+                            <div className="w-8 h-8 border border-gray-400 rounded" style={{ backgroundColor: selectedElementData.content.value }}></div>
+                            <span className="text-gray-700">{selectedElementData.content.value}</span>
+                          </button>
+                          {showColorPicker && (
+                            <div className="mt-2">
+                              <ChromePicker
+                                color={selectedElementData.content.value}
+                                onChange={(color) => selectedElement && updateElement(selectedElement, { 
+                                  content: { ...selectedElementData.content, value: color.hex }
+                                })}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {selectedElementData.content.type === 'image' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Imagem de Fundo</label>
+                          <div
+                            {...getRootProps()}
+                            className={`p-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
+                              isDragActive ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                          >
+                            <input {...getInputProps()} />
+                            <Image className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                            <p className="text-sm text-gray-600">
+                              Arraste uma imagem aqui ou clique para selecionar
+                            </p>
+                          </div>
+                          {selectedElementData.content.image && (
+                            <div className="mt-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem</label>
+                              <input
+                                type="url"
+                                value={selectedElementData.content.image}
+                                onChange={(e) => selectedElement && updateElement(selectedElement, { 
+                                  content: { ...selectedElementData.content, image: e.target.value }
+                                })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                placeholder="https://..."
+                              />
+                              <div className="mt-2">
+                                <img 
+                                  src={selectedElementData.content.image} 
+                                  alt="Preview" 
+                                  className="w-full h-32 object-cover rounded border"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {selectedElementData.type === 'button' && (
                     <div className="space-y-4">
                       <div>
@@ -720,24 +1026,27 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           </div>
 
           {/* Canvas Area */}
-          <div className="flex-1 p-8 overflow-auto">
-            <div 
-              ref={canvasRef}
-              className="relative mx-auto bg-white shadow-lg"
-              style={{
-                width: activeView === 'desktop' ? '1200px' : activeView === 'tablet' ? '768px' : '375px',
-                height: '600px',
-                minHeight: '600px',
-                backgroundColor: templateData.content[activeView]?.background?.type === 'color' 
-                  ? templateData.content[activeView]?.background?.value 
-                  : '#ffffff',
-                backgroundImage: templateData.content[activeView]?.background?.type === 'image' 
-                  ? `url('${templateData.content[activeView]?.background?.image}')` 
-                  : undefined,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }}
-            >
+          <div className="flex-1 p-8 overflow-auto bg-gray-100">
+            <div className="flex justify-center">
+              <div 
+                ref={canvasRef}
+                className="relative bg-white shadow-2xl rounded-lg overflow-hidden"
+                style={{
+                  width: activeView === 'desktop' ? '1200px' : activeView === 'tablet' ? '768px' : '375px',
+                  height: activeView === 'desktop' ? '800px' : activeView === 'tablet' ? '600px' : '667px',
+                  minHeight: activeView === 'desktop' ? '800px' : activeView === 'tablet' ? '600px' : '667px',
+                  backgroundColor: templateData.content[activeView]?.background?.type === 'color' 
+                    ? templateData.content[activeView]?.background?.value 
+                    : '#ffffff',
+                  backgroundImage: templateData.content[activeView]?.background?.type === 'image' 
+                    ? `url('${templateData.content[activeView]?.background?.image}')` 
+                    : undefined,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                }}
+                onDrop={handleCanvasDrop}
+                onDragOver={handleCanvasDragOver}
+              >
               {templateData.content[activeView]?.elements?.map((element: DragElement, index: number) => (
                 <div
                   key={element.id}
@@ -752,6 +1061,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                     zIndex: index + 1
                   }}
                   onClick={() => setSelectedElement(element.id)}
+                  onMouseDown={(e) => handleElementMove(e, element.id)}
                 >
                   {element.type === 'text' && (
                     <div 
@@ -795,6 +1105,94 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                     </video>
                   )}
                   
+                  {element.type === 'container' && (
+                    <div 
+                      className="w-full h-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50"
+                      style={{
+                        backgroundColor: element.content.backgroundColor,
+                        padding: element.content.padding,
+                        borderRadius: element.content.borderRadius,
+                        border: element.content.border,
+                        display: element.content.display,
+                        flexDirection: element.content.flexDirection,
+                        alignItems: element.content.alignItems,
+                        justifyContent: element.content.justifyContent
+                      }}
+                    >
+                      <div className="text-center text-gray-500">
+                        <Move className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-sm">Container</p>
+                        <p className="text-xs">Arraste elementos aqui</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {element.type === 'form' && (
+                    <div 
+                      className="w-full h-full p-4 bg-white rounded-lg border"
+                      style={{
+                        backgroundColor: element.content.backgroundColor,
+                        padding: element.content.padding
+                      }}
+                    >
+                      <h3 className="text-lg font-semibold mb-4">{element.content.title}</h3>
+                      {element.content.fields.map((field: any, index: number) => (
+                        <div key={index} className="mb-3">
+                          <label className="block text-sm font-medium mb-1">{field.label}</label>
+                          {field.type === 'textarea' ? (
+                            <textarea 
+                              className="w-full p-2 border rounded"
+                              placeholder={field.placeholder}
+                              rows={3}
+                            />
+                          ) : (
+                            <input 
+                              type={field.type}
+                              className="w-full p-2 border rounded"
+                              placeholder={field.placeholder}
+                            />
+                          )}
+                        </div>
+                      ))}
+                      <button className="w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">
+                        {element.content.submitText}
+                      </button>
+                    </div>
+                  )}
+
+                  {element.type === 'gallery' && (
+                    <div className="w-full h-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                      <div className="text-center text-gray-500">
+                        <Image className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-sm">Galeria</p>
+                        <p className="text-xs">{element.content.images.length} imagens</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {element.type === 'card' && (
+                    <div 
+                      className="w-full h-full p-4 rounded-lg border"
+                      style={{
+                        backgroundColor: element.content.backgroundColor,
+                        padding: element.content.padding,
+                        borderRadius: element.content.borderRadius,
+                        boxShadow: element.content.boxShadow,
+                        border: element.content.border
+                      }}
+                    >
+                      {element.content.image && (
+                        <img 
+                          src={element.content.image} 
+                          alt="Card" 
+                          className="w-full h-24 object-cover rounded mb-3"
+                        />
+                      )}
+                      <h3 className="text-lg font-semibold mb-2">{element.content.title}</h3>
+                      <p className="text-sm text-gray-600">{element.content.description}</p>
+                    </div>
+                  )}
+
                   {element.type === 'html' && (
                     <div dangerouslySetInnerHTML={{ __html: element.content.html }} />
                   )}
@@ -815,6 +1213,33 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                         )}
                       </div>
                     </div>
+                  )}
+
+                  {/* Resize Handles */}
+                  {selectedElement === element.id && (
+                    <>
+                      {/* Corner handles */}
+                      <div
+                        className="absolute w-3 h-3 bg-red-500 border border-white cursor-nw-resize"
+                        style={{ top: -6, left: -6 }}
+                        onMouseDown={(e) => handleElementResize(e, element.id, 'nw')}
+                      />
+                      <div
+                        className="absolute w-3 h-3 bg-red-500 border border-white cursor-ne-resize"
+                        style={{ top: -6, right: -6 }}
+                        onMouseDown={(e) => handleElementResize(e, element.id, 'ne')}
+                      />
+                      <div
+                        className="absolute w-3 h-3 bg-red-500 border border-white cursor-sw-resize"
+                        style={{ bottom: -6, left: -6 }}
+                        onMouseDown={(e) => handleElementResize(e, element.id, 'sw')}
+                      />
+                      <div
+                        className="absolute w-3 h-3 bg-red-500 border border-white cursor-se-resize"
+                        style={{ bottom: -6, right: -6 }}
+                        onMouseDown={(e) => handleElementResize(e, element.id, 'se')}
+                      />
+                    </>
                   )}
                 </div>
               ))}
