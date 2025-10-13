@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       description,
       userId,
       content: getDefaultContent(type),
-      isPublished: false,
+      isPublished: true, // Páginas ficam no ar automaticamente
     });
 
     await newPage.save();
