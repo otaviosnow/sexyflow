@@ -31,12 +31,8 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Email ou senha incorretos');
       } else {
-        const session = await getSession();
-        if (session?.user.role === 'ADMIN') {
-          router.push('/admin/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
+        // Todos os usuários vão para o dashboard principal
+        router.push('/dashboard');
       }
     } catch (error) {
       setError('Erro interno do servidor');
