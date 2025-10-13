@@ -94,7 +94,7 @@ export const mongoConfig = {
 // Função para criar índices automaticamente
 export async function createIndexes() {
   try {
-    const { User, Template, Page, FileUpload, Analytics, AuditLog } = await import('@/models');
+    const { User, Template, Page, FileUpload, Analytics, AuditLog } = await import('../models');
     
     // Criar índices para User
     for (const index of mongoConfig.indexes.user) {
@@ -150,7 +150,7 @@ export async function checkConnection() {
       console.log(`📚 Coleções encontradas: ${collections.length}`);
       
       // Estatísticas básicas
-      const { User, Template, Page, Analytics } = await import('@/models');
+      const { User, Template, Page, Analytics } = await import('../models');
       
       const userCount = await User.countDocuments();
       const templateCount = await Template.countDocuments();
@@ -177,7 +177,7 @@ export async function clearTestData() {
   }
   
   try {
-    const { User, Template, Page, FileUpload, Analytics, AuditLog } = await import('@/models');
+    const { User, Template, Page, FileUpload, Analytics, AuditLog } = await import('../models');
     
     await Promise.all([
       User.deleteMany({ email: { $ne: 'admin@sexyflow.com' } }),

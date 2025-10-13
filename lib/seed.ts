@@ -1,5 +1,5 @@
 import connectDB from './db';
-import { User, Template, SystemSettings } from '@/models';
+import { User, Template, SystemSettings } from '../models';
 
 async function seedDatabase() {
   try {
