@@ -176,6 +176,7 @@ export default function DashboardPage() {
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">{session.user?.name}</p>
                 <p className="text-xs text-gray-500">{session.user?.email}</p>
+                <p className="text-xs text-blue-600">Role: {session.user?.role || 'USER'}</p>
               </div>
               {session.user?.role === 'ADMIN' && (
                 <button
