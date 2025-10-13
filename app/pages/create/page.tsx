@@ -13,7 +13,6 @@ export default function CreatePage() {
     title: '',
     type: 'presell',
     slug: '',
-    description: '',
   });
 
   useEffect(() => {
@@ -41,7 +40,7 @@ export default function CreatePage() {
 
       if (response.ok) {
         const newPage = await response.json();
-        router.push(`/pages/${newPage._id}/edit`);
+        router.push(`/pages/${newPage._id}/editor`);
       } else {
         console.error('Erro ao criar página');
       }
@@ -170,20 +169,6 @@ export default function CreatePage() {
               </select>
             </div>
 
-            {/* Descrição */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                Descrição da Página
-              </label>
-              <textarea
-                id="description"
-                value={pageData.description}
-                onChange={(e) => setPageData({ ...pageData, description: e.target.value })}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                placeholder="Descreva brevemente o objetivo desta página..."
-              />
-            </div>
 
             {/* Botões */}
             <div className="flex justify-end space-x-4 pt-6">
@@ -204,7 +189,7 @@ export default function CreatePage() {
                 ) : (
                   <Plus className="h-5 w-5 mr-2" />
                 )}
-                {loading ? 'Criando...' : 'Criar Página'}
+                {loading ? 'Criando...' : 'Editar Página'}
               </button>
             </div>
           </form>

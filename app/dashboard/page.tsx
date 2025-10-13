@@ -321,7 +321,7 @@ export default function DashboardPage() {
                         </button>
                       )}
                       <Link
-                        href={`/pages/${page.id}/edit`}
+                        href={`/pages/${page.id}/editor`}
                         className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                         title="Editar página"
                       >
