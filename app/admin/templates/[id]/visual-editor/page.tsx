@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, 
   Save, 
@@ -36,7 +36,10 @@ import {
   Underline,
   Link,
   Maximize,
-  Minimize
+  Minimize,
+  Upload,
+  X,
+  Menu
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -54,41 +57,48 @@ interface Element {
   position: { x: number; y: number };
   size: { width: number; height: number };
   style?: any;
+  responsive?: {
+    desktop: { position: { x: number; y: number }; size: { width: number; height: number }; content?: any };
+    tablet: { position: { x: number; y: number }; size: { width: number; height: number }; content?: any };
+    mobile: { position: { x: number; y: number }; size: { width: number; height: number }; content?: any };
+  };
 }
 
-// Categorias de elementos inspiradas no Elementor
+// Categorias de elementos idênticas ao Elementor
 const ELEMENT_CATEGORIES = [
   {
     id: 'basic',
-    name: 'Básicos',
+    name: 'BÁSICOS',
     icon: Layout,
     elements: [
       { id: 'heading', name: 'Título', icon: Type, color: 'bg-blue-500', description: 'Títulos H1, H2, H3...' },
-      { id: 'text', name: 'Texto', icon: Type, color: 'bg-green-500', description: 'Parágrafo de texto' },
+      { id: 'text', name: 'Editor de Texto', icon: Type, color: 'bg-green-500', description: 'Parágrafo de texto' },
       { id: 'button', name: 'Botão', icon: MousePointer, color: 'bg-purple-500', description: 'Botão de ação' },
       { id: 'image', name: 'Imagem', icon: Image, color: 'bg-orange-500', description: 'Imagem com otimização' },
       { id: 'video', name: 'Vídeo', icon: Video, color: 'bg-red-500', description: 'Vídeo responsivo' },
+      { id: 'divider', name: 'Divisor', icon: Layout, color: 'bg-gray-500', description: 'Linha divisória' },
+      { id: 'spacer', name: 'Espaçador', icon: Layout, color: 'bg-slate-500', description: 'Espaço em branco' },
+      { id: 'icon', name: 'Ícone', icon: Type, color: 'bg-yellow-500', description: 'Ícones vetoriais' },
+      { id: 'maps', name: 'Google Maps', icon: Layout, color: 'bg-indigo-500', description: 'Mapas integrados' },
     ]
   },
   {
     id: 'layout',
-    name: 'Layout',
+    name: 'LAYOUT',
     icon: Grid,
     elements: [
-      { id: 'container', name: 'Container', icon: Layout, color: 'bg-indigo-500', description: 'Container flexível' },
+      { id: 'container', name: 'Seção Interna', icon: Layout, color: 'bg-indigo-500', description: 'Container flexível' },
       { id: 'column', name: 'Coluna', icon: Layout, color: 'bg-cyan-500', description: 'Coluna de conteúdo' },
       { id: 'section', name: 'Seção', icon: Layout, color: 'bg-teal-500', description: 'Seção completa' },
-      { id: 'spacer', name: 'Espaçador', icon: Layout, color: 'bg-gray-500', description: 'Espaço em branco' },
     ]
   },
   {
     id: 'advanced',
-    name: 'Avançados',
+    name: 'AVANÇADOS',
     icon: Code,
     elements: [
       { id: 'html', name: 'HTML', icon: Code, color: 'bg-gray-700', description: 'Código HTML customizado' },
       { id: 'background', name: 'Fundo', icon: Palette, color: 'bg-pink-500', description: 'Cor ou imagem de fundo' },
-      { id: 'divider', name: 'Divisor', icon: Layout, color: 'bg-slate-500', description: 'Linha divisória' },
     ]
   }
 ];
@@ -103,6 +113,8 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
   const [activeCategory, setActiveCategory] = useState('basic');
   const [searchQuery, setSearchQuery] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   
   const [templateData, setTemplateData] = useState<Template>({
     _id: '',
@@ -113,6 +125,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
 
   const [elements, setElements] = useState<Element[]>([]);
   const [background, setBackground] = useState({ type: 'color', value: '#ffffff', image: '' });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -189,9 +202,14 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       id: `element_${Date.now()}`,
       type: type,
       content: getDefaultContent(type),
-      position: { x: 50, y: 50 + (elements.length * 60) },
-      size: { width: getDefaultSize(type).width, height: getDefaultSize(type).height },
-      style: getDefaultStyle(type)
+      position: { x: getCenteredPosition(getDefaultSize(type).width), y: 50 + (elements.length * 60) },
+      size: getDefaultSize(type),
+      style: getDefaultStyle(type),
+      responsive: {
+        desktop: { position: { x: getCenteredPosition(getDefaultSize(type).width), y: 50 + (elements.length * 60) }, size: getDefaultSize(type) },
+        tablet: { position: { x: getCenteredPosition(getDefaultSize(type).width), y: 50 + (elements.length * 60) }, size: getDefaultSize(type) },
+        mobile: { position: { x: getCenteredPosition(getDefaultSize(type).width), y: 50 + (elements.length * 60) }, size: getDefaultSize(type) }
+      }
     };
 
     setElements([...elements, newElement]);
@@ -214,7 +232,12 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       content: getDefaultContent(elementType),
       position: { x: Math.max(0, x - 100), y: Math.max(0, y - 25) },
       size: getDefaultSize(elementType),
-      style: getDefaultStyle(elementType)
+      style: getDefaultStyle(elementType),
+      responsive: {
+        desktop: { position: { x: Math.max(0, x - 100), y: Math.max(0, y - 25) }, size: getDefaultSize(elementType) },
+        tablet: { position: { x: Math.max(0, x - 100), y: Math.max(0, y - 25) }, size: getDefaultSize(elementType) },
+        mobile: { position: { x: Math.max(0, x - 100), y: Math.max(0, y - 25) }, size: getDefaultSize(elementType) }
+      }
     };
 
     setElements([...elements, newElement]);
@@ -230,12 +253,46 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     e.dataTransfer.setData('elementType', elementType);
   };
 
+  const handleFileUpload = async (file: File) => {
+    setUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success('Arquivo enviado com sucesso!');
+        
+        if (selectedElement && elements.find(e => e.id === selectedElement)?.type === 'background') {
+          setBackground({ ...background, image: result.url });
+        } else if (selectedElement && elements.find(e => e.id === selectedElement)?.type === 'image') {
+          updateElement(selectedElement, {
+            content: { ...elements.find(e => e.id === selectedElement)?.content, src: result.url }
+          });
+        }
+        
+        setShowUpload(false);
+      } else {
+        toast.error('Erro ao enviar arquivo');
+      }
+    } catch (error) {
+      toast.error('Erro ao enviar arquivo');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const getDefaultContent = (type: string) => {
     switch (type) {
       case 'heading':
-        return { text: 'Título Principal', level: 'h1', fontSize: 48, color: '#1f2937', fontWeight: 'bold' };
+        return { text: 'Título Principal', level: 'h1', fontSize: 48, color: '#1f2937', fontWeight: 'bold', textAlign: 'center' };
       case 'text':
-        return { text: 'Este é um parágrafo de texto. Clique para editar o conteúdo.', fontSize: 16, color: '#374151', lineHeight: 1.6 };
+        return { text: 'Este é um parágrafo de texto. Clique para editar o conteúdo.', fontSize: 16, color: '#374151', lineHeight: 1.6, textAlign: 'left', fontWeight: 'normal' };
       case 'button':
         return { text: 'Clique Aqui', backgroundColor: '#3b82f6', color: '#ffffff', borderRadius: 8, padding: '12px 24px' };
       case 'image':
@@ -256,40 +313,55 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         return { type: 'color', value: '#667eea', image: '' };
       case 'divider':
         return { height: 2, backgroundColor: '#e5e7eb', style: 'solid' };
+      case 'icon':
+        return { icon: 'star', size: 24, color: '#3b82f6' };
+      case 'maps':
+        return { address: '', zoom: 15, height: 300 };
       default:
         return {};
     }
   };
 
   const getDefaultSize = (type: string) => {
+    const { width: canvasWidth } = getCanvasSize();
+    
     switch (type) {
       case 'heading':
-        return { width: 400, height: 60 };
+        return { width: Math.min(400, canvasWidth - 40), height: 60 };
       case 'text':
-        return { width: 300, height: 80 };
+        return { width: Math.min(300, canvasWidth - 40), height: 80 };
       case 'button':
         return { width: 150, height: 50 };
       case 'image':
-        return { width: 300, height: 200 };
+        return { width: Math.min(300, canvasWidth - 40), height: 200 };
       case 'video':
-        return { width: 400, height: 225 };
+        return { width: Math.min(400, canvasWidth - 40), height: 225 };
       case 'container':
-        return { width: 500, height: 200 };
+        return { width: Math.min(500, canvasWidth - 40), height: 200 };
       case 'column':
-        return { width: 250, height: 300 };
+        return { width: Math.min(250, canvasWidth - 40), height: 300 };
       case 'section':
-        return { width: 800, height: 300 };
+        return { width: Math.min(800, canvasWidth - 20), height: 300 };
       case 'spacer':
-        return { width: 100, height: 50 };
+        return { width: Math.min(100, canvasWidth - 40), height: 50 };
       case 'html':
-        return { width: 300, height: 100 };
+        return { width: Math.min(300, canvasWidth - 40), height: 100 };
       case 'background':
-        return { width: 200, height: 50 };
+        return { width: Math.min(200, canvasWidth - 40), height: 50 };
       case 'divider':
-        return { width: 400, height: 2 };
+        return { width: Math.min(400, canvasWidth - 40), height: 2 };
+      case 'icon':
+        return { width: 48, height: 48 };
+      case 'maps':
+        return { width: Math.min(400, canvasWidth - 40), height: 300 };
       default:
-        return { width: 200, height: 50 };
+        return { width: Math.min(200, canvasWidth - 40), height: 50 };
     }
+  };
+
+  const getCenteredPosition = (elementWidth: number) => {
+    const { width: canvasWidth } = getCanvasSize();
+    return (canvasWidth - elementWidth) / 2;
   };
 
   const getDefaultStyle = (type: string) => {
@@ -306,9 +378,26 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
   };
 
   const updateElement = (elementId: string, updates: Partial<Element>) => {
-    setElements(elements.map(element => 
-      element.id === elementId ? { ...element, ...updates } : element
-    ));
+    setElements(elements.map(element => {
+      if (element.id === elementId) {
+        const updatedElement = { ...element, ...updates };
+        
+        // Atualizar posição responsiva se necessário
+        if (updates.position || updates.size) {
+          updatedElement.responsive = {
+            ...updatedElement.responsive,
+            [activeView]: {
+              position: updates.position || updatedElement.responsive?.[activeView]?.position || updatedElement.position,
+              size: updates.size || updatedElement.responsive?.[activeView]?.size || updatedElement.size,
+              content: updates.content || updatedElement.responsive?.[activeView]?.content
+            }
+          };
+        }
+        
+        return updatedElement;
+      }
+      return element;
+    }));
   };
 
   const deleteElement = (elementId: string) => {
@@ -328,69 +417,83 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     }
   };
 
+  const getElementForViewport = (element: Element) => {
+    if (element.responsive?.[activeView]) {
+      return {
+        ...element,
+        position: element.responsive[activeView].position,
+        size: element.responsive[activeView].size,
+        content: element.responsive[activeView].content || element.content
+      };
+    }
+    return element;
+  };
+
   const renderElement = (element: Element) => {
-    switch (element.type) {
+    const viewportElement = getElementForViewport(element);
+    
+    switch (viewportElement.type) {
       case 'heading':
-        const HeadingTag = element.content.level || 'h1';
+        const HeadingTag = viewportElement.content.level || 'h1';
         return (
           <HeadingTag 
             style={{ 
-              color: element.content.color, 
-              fontSize: element.content.fontSize + 'px',
-              fontWeight: element.content.fontWeight,
+              color: viewportElement.content.color, 
+              fontSize: viewportElement.content.fontSize + 'px',
+              fontWeight: viewportElement.content.fontWeight,
               margin: 0,
               lineHeight: 1.2,
-              textAlign: element.content.textAlign || 'left',
-              marginTop: (element.content.marginTop || 0) + 'px',
-              marginBottom: (element.content.marginBottom || 0) + 'px'
+              textAlign: viewportElement.content.textAlign || 'center',
+              marginTop: (viewportElement.content.marginTop || 0) + 'px',
+              marginBottom: (viewportElement.content.marginBottom || 0) + 'px'
             }}
           >
-            {element.content.text}
+            {viewportElement.content.text}
           </HeadingTag>
         );
       case 'text':
         return (
           <p 
             style={{ 
-              color: element.content.color, 
-              fontSize: element.content.fontSize + 'px',
-              fontWeight: element.content.fontWeight || 'normal',
-              lineHeight: element.content.lineHeight,
+              color: viewportElement.content.color, 
+              fontSize: viewportElement.content.fontSize + 'px',
+              fontWeight: viewportElement.content.fontWeight || 'normal',
+              lineHeight: viewportElement.content.lineHeight,
               margin: 0,
-              textAlign: element.content.textAlign || 'left',
-              marginTop: (element.content.marginTop || 0) + 'px',
-              marginBottom: (element.content.marginBottom || 0) + 'px'
+              textAlign: viewportElement.content.textAlign || 'left',
+              marginTop: (viewportElement.content.marginTop || 0) + 'px',
+              marginBottom: (viewportElement.content.marginBottom || 0) + 'px'
             }}
           >
-            {element.content.text}
+            {viewportElement.content.text}
           </p>
         );
       case 'button':
         return (
           <button
             style={{
-              backgroundColor: element.content.backgroundColor,
-              color: element.content.color,
-              padding: element.content.padding,
-              borderRadius: element.content.borderRadius + 'px',
+              backgroundColor: viewportElement.content.backgroundColor,
+              color: viewportElement.content.color,
+              padding: viewportElement.content.padding,
+              borderRadius: viewportElement.content.borderRadius + 'px',
               border: 'none',
               cursor: 'pointer',
-              ...element.style
+              ...viewportElement.style
             }}
           >
-            {element.content.text}
+            {viewportElement.content.text}
           </button>
         );
       case 'image':
-        return element.content.src ? (
+        return viewportElement.content.src ? (
           <img
-            src={element.content.src}
-            alt={element.content.alt}
+            src={viewportElement.content.src}
+            alt={viewportElement.content.alt}
             style={{ 
               width: '100%', 
               height: '100%', 
-              objectFit: element.style?.objectFit || 'cover',
-              borderRadius: element.content.borderRadius + 'px'
+              objectFit: viewportElement.style?.objectFit || 'cover',
+              borderRadius: viewportElement.content.borderRadius + 'px'
             }}
           />
         ) : (
@@ -411,18 +514,18 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           </div>
         );
       case 'video':
-        return element.content.src ? (
+        return viewportElement.content.src ? (
           <video
             style={{ 
               width: '100%', 
               height: '100%', 
-              objectFit: element.style?.objectFit || 'cover',
-              borderRadius: element.content.borderRadius + 'px'
+              objectFit: viewportElement.style?.objectFit || 'cover',
+              borderRadius: viewportElement.content.borderRadius + 'px'
             }}
             controls
-            poster={element.content.poster}
+            poster={viewportElement.content.poster}
           >
-            <source src={element.content.src} type="video/mp4" />
+            <source src={viewportElement.content.src} type="video/mp4" />
           </video>
         ) : (
           <div style={{ 
@@ -447,10 +550,10 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             style={{
               width: '100%',
               height: '100%',
-              backgroundColor: element.content.backgroundColor,
-              padding: element.content.padding + 'px',
-              borderRadius: element.content.borderRadius + 'px',
-              border: element.content.border,
+              backgroundColor: viewportElement.content.backgroundColor,
+              padding: viewportElement.content.padding + 'px',
+              borderRadius: viewportElement.content.borderRadius + 'px',
+              border: viewportElement.content.border,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -468,10 +571,10 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             style={{
               width: '100%',
               height: '100%',
-              backgroundColor: element.content.backgroundColor,
-              padding: element.content.padding + 'px',
-              borderRadius: element.content.borderRadius + 'px',
-              border: element.content.border
+              backgroundColor: viewportElement.content.backgroundColor,
+              padding: viewportElement.content.padding + 'px',
+              borderRadius: viewportElement.content.borderRadius + 'px',
+              border: viewportElement.content.border
             }}
           >
             <div style={{ color: '#6b7280', textAlign: 'center', marginTop: '20px' }}>
@@ -485,23 +588,55 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           <div 
             style={{
               width: '100%',
-              height: element.content.height + 'px',
-              backgroundColor: element.content.backgroundColor
+              height: viewportElement.content.height + 'px',
+              backgroundColor: viewportElement.content.backgroundColor
             }}
           />
         );
       case 'html':
-        return <div dangerouslySetInnerHTML={{ __html: element.content.html }} />;
+        return <div dangerouslySetInnerHTML={{ __html: viewportElement.content.html }} />;
       case 'divider':
         return (
           <div 
             style={{
               width: '100%',
-              height: element.content.height + 'px',
-              backgroundColor: element.content.backgroundColor,
-              borderTop: `2px ${element.content.style} ${element.content.backgroundColor}`
+              height: viewportElement.content.height + 'px',
+              backgroundColor: viewportElement.content.backgroundColor,
+              borderTop: `2px ${viewportElement.content.style} ${viewportElement.content.backgroundColor}`
             }}
           />
+        );
+      case 'icon':
+        return (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            color: viewportElement.content.color,
+            fontSize: viewportElement.content.size + 'px'
+          }}>
+            ⭐
+          </div>
+        );
+      case 'maps':
+        return (
+          <div style={{ 
+            width: '100%', 
+            height: '100%', 
+            backgroundColor: '#f3f4f6', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            border: '2px dashed #d1d5db',
+            borderRadius: '8px'
+          }}>
+            <div style={{ textAlign: 'center', color: '#6b7280' }}>
+              <Layout className="h-8 w-8 mx-auto mb-2" style={{ display: 'block' }} />
+              <span>Google Maps</span>
+            </div>
+          </div>
         );
       default:
         return <div style={{ color: '#6b7280' }}>Elemento não suportado</div>;
@@ -541,7 +676,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header Toolbar */}
+      {/* Header Toolbar - Estilo Elementor */}
       <div className="bg-white shadow-sm border-b h-16 flex items-center px-4">
         <div className="flex items-center space-x-4">
           <button
@@ -557,7 +692,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         </div>
         
         <div className="flex-1 flex items-center justify-center space-x-2">
-          {/* Viewport Selector */}
+          {/* Viewport Selector - Estilo Elementor */}
           <div className="flex bg-gray-100 rounded-lg p-1">
             {[
               { id: 'desktop', label: 'Desktop', icon: Monitor },
@@ -604,7 +739,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Elements */}
+        {/* Left Sidebar - Estilo Elementor */}
         <div className="w-80 bg-white border-r flex flex-col">
           {/* Search */}
           <div className="p-4 border-b">
@@ -612,7 +747,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar elementos..."
+                placeholder="Buscar Widget..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
@@ -620,7 +755,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Categories */}
+          {/* Categories - Estilo Elementor */}
           <div className="flex border-b">
             {ELEMENT_CATEGORIES.map((category) => (
               <button
@@ -638,7 +773,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             ))}
           </div>
 
-          {/* Elements Grid */}
+          {/* Elements Grid - Estilo Elementor */}
           <div className="flex-1 p-4 overflow-y-auto">
             <div className="grid grid-cols-2 gap-3">
               {filteredElements.map((element) => (
@@ -677,24 +812,27 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 onDrop={handleCanvasDrop}
                 onDragOver={handleCanvasDragOver}
               >
-                {elements.map((element) => (
-                  <div
-                    key={element.id}
-                    className={`absolute cursor-pointer transition-all ${
-                      selectedElement === element.id ? 'ring-2 ring-red-500 ring-opacity-50' : ''
-                    }`}
-                    style={{
-                      left: element.position.x,
-                      top: element.position.y,
-                      width: element.size.width,
-                      height: element.size.height,
-                      zIndex: selectedElement === element.id ? 10 : 1
-                    }}
-                    onClick={() => setSelectedElement(element.id)}
-                  >
-                    {renderElement(element)}
-                  </div>
-                ))}
+                {elements.map((element) => {
+                  const viewportElement = getElementForViewport(element);
+                  return (
+                    <div
+                      key={element.id}
+                      className={`absolute cursor-pointer transition-all ${
+                        selectedElement === element.id ? 'ring-2 ring-red-500 ring-opacity-50' : ''
+                      }`}
+                      style={{
+                        left: viewportElement.position.x,
+                        top: viewportElement.position.y,
+                        width: viewportElement.size.width,
+                        height: viewportElement.size.height,
+                        zIndex: selectedElement === element.id ? 10 : 1
+                      }}
+                      onClick={() => setSelectedElement(element.id)}
+                    >
+                      {renderElement(element)}
+                    </div>
+                  );
+                })}
 
                 {elements.length === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center text-gray-400">
@@ -781,353 +919,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             </div>
 
             <div className="flex-1 p-4 overflow-y-auto">
-              {selectedElementData.type === 'heading' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Texto</label>
-                    <input
-                      type="text"
-                      value={selectedElementData.content.text}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, text: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nível</label>
-                    <select
-                      value={selectedElementData.content.level}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, level: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    >
-                      <option value="h1">H1 - Principal</option>
-                      <option value="h2">H2 - Secundário</option>
-                      <option value="h3">H3 - Terciário</option>
-                      <option value="h4">H4</option>
-                      <option value="h5">H5</option>
-                      <option value="h6">H6</option>
-                    </select>
-                  </div>
-
-                  {/* Alinhamento */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Alinhamento</label>
-                    <div className="flex space-x-2">
-                      {[
-                        { value: 'left', icon: AlignLeft, label: 'Esquerda' },
-                        { value: 'center', icon: AlignCenter, label: 'Centro' },
-                        { value: 'right', icon: AlignRight, label: 'Direita' },
-                        { value: 'justify', icon: AlignJustify, label: 'Justificado' }
-                      ].map(({ value, icon: Icon, label }) => (
-                        <button
-                          key={value}
-                          onClick={() => updateElement(selectedElementData.id, {
-                            content: { ...selectedElementData.content, textAlign: value }
-                          })}
-                          className={`p-2 border rounded-lg transition-colors ${
-                            selectedElementData.content.textAlign === value 
-                              ? 'bg-red-100 border-red-500 text-red-600' 
-                              : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
-                          }`}
-                          title={label}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tamanho da Fonte</label>
-                    <input
-                      type="range"
-                      min="12"
-                      max="72"
-                      value={selectedElementData.content.fontSize}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, fontSize: parseInt(e.target.value) }
-                      })}
-                      className="w-full"
-                    />
-                    <div className="text-sm text-gray-500 mt-1">{selectedElementData.content.fontSize}px</div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Peso da Fonte</label>
-                    <select
-                      value={selectedElementData.content.fontWeight}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, fontWeight: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    >
-                      <option value="normal">Normal</option>
-                      <option value="bold">Negrito</option>
-                      <option value="lighter">Mais Leve</option>
-                      <option value="bolder">Mais Pesado</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Cor</label>
-                    <input
-                      type="color"
-                      value={selectedElementData.content.color}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, color: e.target.value }
-                      })}
-                      className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    />
-                  </div>
-
-                  {/* Espaçamento */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Espaçamento</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Margem Superior</label>
-                        <input
-                          type="number"
-                          value={selectedElementData.content.marginTop || 0}
-                          onChange={(e) => updateElement(selectedElementData.id, {
-                            content: { ...selectedElementData.content, marginTop: parseInt(e.target.value) }
-                          })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
-                          placeholder="0"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Margem Inferior</label>
-                        <input
-                          type="number"
-                          value={selectedElementData.content.marginBottom || 0}
-                          onChange={(e) => updateElement(selectedElementData.id, {
-                            content: { ...selectedElementData.content, marginBottom: parseInt(e.target.value) }
-                          })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedElementData.type === 'text' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Texto</label>
-                    <textarea
-                      value={selectedElementData.content.text}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, text: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                      rows={4}
-                    />
-                  </div>
-
-                  {/* Alinhamento */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Alinhamento</label>
-                    <div className="flex space-x-2">
-                      {[
-                        { value: 'left', icon: AlignLeft, label: 'Esquerda' },
-                        { value: 'center', icon: AlignCenter, label: 'Centro' },
-                        { value: 'right', icon: AlignRight, label: 'Direita' },
-                        { value: 'justify', icon: AlignJustify, label: 'Justificado' }
-                      ].map(({ value, icon: Icon, label }) => (
-                        <button
-                          key={value}
-                          onClick={() => updateElement(selectedElementData.id, {
-                            content: { ...selectedElementData.content, textAlign: value }
-                          })}
-                          className={`p-2 border rounded-lg transition-colors ${
-                            selectedElementData.content.textAlign === value 
-                              ? 'bg-red-100 border-red-500 text-red-600' 
-                              : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
-                          }`}
-                          title={label}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tamanho da Fonte</label>
-                    <input
-                      type="range"
-                      min="10"
-                      max="32"
-                      value={selectedElementData.content.fontSize}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, fontSize: parseInt(e.target.value) }
-                      })}
-                      className="w-full"
-                    />
-                    <div className="text-sm text-gray-500 mt-1">{selectedElementData.content.fontSize}px</div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Peso da Fonte</label>
-                    <select
-                      value={selectedElementData.content.fontWeight || 'normal'}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, fontWeight: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    >
-                      <option value="normal">Normal</option>
-                      <option value="bold">Negrito</option>
-                      <option value="lighter">Mais Leve</option>
-                      <option value="bolder">Mais Pesado</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Cor</label>
-                    <input
-                      type="color"
-                      value={selectedElementData.content.color}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, color: e.target.value }
-                      })}
-                      className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    />
-                  </div>
-
-                  {/* Espaçamento */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Espaçamento</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Margem Superior</label>
-                        <input
-                          type="number"
-                          value={selectedElementData.content.marginTop || 0}
-                          onChange={(e) => updateElement(selectedElementData.id, {
-                            content: { ...selectedElementData.content, marginTop: parseInt(e.target.value) }
-                          })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
-                          placeholder="0"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Margem Inferior</label>
-                        <input
-                          type="number"
-                          value={selectedElementData.content.marginBottom || 0}
-                          onChange={(e) => updateElement(selectedElementData.id, {
-                            content: { ...selectedElementData.content, marginBottom: parseInt(e.target.value) }
-                          })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-500"
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedElementData.type === 'button' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Texto do Botão</label>
-                    <input
-                      type="text"
-                      value={selectedElementData.content.text}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, text: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Cor de Fundo</label>
-                    <input
-                      type="color"
-                      value={selectedElementData.content.backgroundColor}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, backgroundColor: e.target.value }
-                      })}
-                      className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Cor do Texto</label>
-                    <input
-                      type="color"
-                      value={selectedElementData.content.color}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, color: e.target.value }
-                      })}
-                      className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bordas Arredondadas</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="20"
-                      value={selectedElementData.content.borderRadius}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, borderRadius: parseInt(e.target.value) }
-                      })}
-                      className="w-full"
-                    />
-                    <div className="text-sm text-gray-500 mt-1">{selectedElementData.content.borderRadius}px</div>
-                  </div>
-                </div>
-              )}
-
-              {selectedElementData.type === 'image' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem</label>
-                    <input
-                      type="url"
-                      value={selectedElementData.content.src}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, src: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Texto Alternativo</label>
-                    <input
-                      type="text"
-                      value={selectedElementData.content.alt}
-                      onChange={(e) => updateElement(selectedElementData.id, {
-                        content: { ...selectedElementData.content, alt: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                      placeholder="Descrição da imagem"
-                    />
-                  </div>
-                  {selectedElementData.content.src && (
-                    <div className="mt-2">
-                      <img 
-                        src={selectedElementData.content.src} 
-                        alt="Preview" 
-                        className="w-full h-24 object-cover rounded border"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
               {selectedElementData.type === 'background' && (
                 <div className="space-y-4">
                   <div>
@@ -1159,14 +950,23 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                   
                   {background.type === 'image' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem de Fundo</label>
-                      <input
-                        type="url"
-                        value={background.image}
-                        onChange={(e) => setBackground({ ...background, image: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                        placeholder="https://..."
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Imagem de Fundo</label>
+                      <div className="space-y-2">
+                        <input
+                          type="url"
+                          value={background.image}
+                          onChange={(e) => setBackground({ ...background, image: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          placeholder="https://..."
+                        />
+                        <button
+                          onClick={() => setShowUpload(true)}
+                          className="w-full flex items-center justify-center space-x-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
+                        >
+                          <Upload className="h-4 w-4" />
+                          <span>Fazer Upload</span>
+                        </button>
+                      </div>
                       {background.image && (
                         <div className="mt-2">
                           <img 
@@ -1192,10 +992,109 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                   </button>
                 </div>
               )}
+
+              {selectedElementData.type === 'image' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Imagem</label>
+                    <div className="space-y-2">
+                      <input
+                        type="url"
+                        value={selectedElementData.content.src}
+                        onChange={(e) => updateElement(selectedElementData.id, {
+                          content: { ...selectedElementData.content, src: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        placeholder="https://..."
+                      />
+                      <button
+                        onClick={() => setShowUpload(true)}
+                        className="w-full flex items-center justify-center space-x-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <Upload className="h-4 w-4" />
+                        <span>Fazer Upload</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Texto Alternativo</label>
+                    <input
+                      type="text"
+                      value={selectedElementData.content.alt}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...selectedElementData.content, alt: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      placeholder="Descrição da imagem"
+                    />
+                  </div>
+                  {selectedElementData.content.src && (
+                    <div className="mt-2">
+                      <img 
+                        src={selectedElementData.content.src} 
+                        alt="Preview" 
+                        className="w-full h-24 object-cover rounded border"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Modal de Upload */}
+      {showUpload && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Fazer Upload</h3>
+              <button
+                onClick={() => setShowUpload(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleFileUpload(file);
+                  }
+                }}
+                className="hidden"
+              />
+              
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFile}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                {uploadingFile ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+                ) : (
+                  <Upload className="h-5 w-5" />
+                )}
+                <span>{uploadingFile ? 'Enviando...' : 'Selecionar Arquivo'}</span>
+              </button>
+              
+              <p className="text-sm text-gray-500 text-center">
+                Formatos suportados: JPG, PNG, GIF, WebP, MP4, WebM
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
