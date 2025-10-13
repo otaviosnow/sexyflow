@@ -1,7 +1,7 @@
-export { default as User, IUser } from './User';
-export { default as Template, ITemplate } from './Template';
-export { default as Page, IPage } from './Page';
-export { default as FileUpload, IFileUpload } from './FileUpload';
-export { default as Analytics, IAnalytics } from './Analytics';
-export { default as AuditLog, IAuditLog } from './AuditLog';
-export { default as SystemSettings, ISystemSettings } from './SystemSettings';
+export { default as User } from './User';
+export { default as Template } from './Template';
+export { default as Page } from './Page';
+export { default as FileUpload } from './FileUpload';
+export { default as Analytics } from './Analytics';
+export { default as AuditLog } from './AuditLog';
+export { default as SystemSettings } from './SystemSettings';

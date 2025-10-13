@@ -1,6 +1,8 @@
-import { User, Page, Template, FileUpload, Analytics, AuditLog, PlanType, PageType, TemplateType, UserRole } from '@prisma/client';
-
-export type { User, Page, Template, FileUpload, Analytics, AuditLog, PlanType, PageType, TemplateType, UserRole };
+// Tipos básicos do sistema
+export type PlanType = 'MONTHLY' | 'YEARLY';
+export type PageType = 'PRESELL' | 'PREVIEW' | 'POST_SALE_X' | 'DELIVERY' | 'POST_SALE_Y';
+export type TemplateType = 'PRESELL' | 'PREVIEW' | 'POST_SALE_X' | 'DELIVERY' | 'POST_SALE_Y';
+export type UserRole = 'USER' | 'ADMIN';
 
 export interface PageContent {
   headline?: string;
@@ -41,7 +43,12 @@ export interface TemplateContent extends PageContent {
   defaultContent: PageContent;
 }
 
-export interface UserWithPlan extends User {
+export interface UserWithPlan {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  planType?: PlanType;
   planInfo?: {
     type: PlanType;
     pageLimit: number;
@@ -50,9 +57,19 @@ export interface UserWithPlan extends User {
   };
 }
 
-export interface PageWithTemplate extends Page {
-  template: Template;
-  user: User;
+export interface PageWithTemplate {
+  id: string;
+  title: string;
+  slug: string;
+  type: PageType;
+  content: PageContent;
+  isPublished: boolean;
+  userId: string;
+  templateId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  template: any;
+  user: any;
 }
 
 export interface AnalyticsData {
