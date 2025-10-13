@@ -16,12 +16,15 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    const body = await request.json();
-    const { planName, paymentMethod, customerData } = body;
+        const body = await request.json();
+        const { planName, paymentMethod, customerData } = body;
 
-    if (!planName || !['monthly', 'annual'].includes(planName)) {
-      return NextResponse.json({ error: 'Plano inválido' }, { status: 400 });
-    }
+        if (!planName || !['monthly', 'annual'].includes(planName)) {
+          return NextResponse.json({ error: 'Plano inválido' }, { status: 400 });
+        }
+
+        // Garantir que planName seja uma chave válida
+        const validPlanName = planName as 'monthly' | 'annual';
 
     if (!paymentMethod || !customerData) {
       return NextResponse.json({ error: 'Dados de pagamento e cliente são obrigatórios' }, { status: 400 });
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Criar plano na Cakto (se não existir)
-      const planData = CAKTO_PLANS[planName];
+      const planData = CAKTO_PLANS[validPlanName];
       let caktoPlan;
       try {
         // Tentar criar o plano (pode já existir)
@@ -71,11 +74,11 @@ export async function POST(request: NextRequest) {
         payment_method: paymentMethod
       });
 
-      // Salvar assinatura no nosso banco
-      const subscription = new Subscription({
-        userId: user._id,
-        planId: planName,
-        planName: planName,
+          // Salvar assinatura no nosso banco
+          const subscription = new Subscription({
+            userId: user._id,
+            planId: validPlanName,
+            planName: validPlanName,
         status: caktoSubscription.status,
         currentPeriodStart: new Date(caktoSubscription.current_period_start),
         currentPeriodEnd: new Date(caktoSubscription.current_period_end),
@@ -86,9 +89,9 @@ export async function POST(request: NextRequest) {
 
       await subscription.save();
 
-      // Atualizar usuário
-      await User.findByIdAndUpdate(user._id, {
-        planType: planName === 'monthly' ? 'MONTHLY' : 'YEARLY',
+          // Atualizar usuário
+          await User.findByIdAndUpdate(user._id, {
+            planType: validPlanName === 'monthly' ? 'MONTHLY' : 'YEARLY',
         planStartDate: new Date(caktoSubscription.current_period_start),
         planEndDate: new Date(caktoSubscription.current_period_end)
       });
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
         success: true,
         subscription,
         caktoSubscription,
-        message: `Assinatura ${planName === 'monthly' ? 'mensal' : 'anual'} criada com sucesso!`
+            message: `Assinatura ${validPlanName === 'monthly' ? 'mensal' : 'anual'} criada com sucesso!`
       });
 
     } catch (caktoError: any) {
