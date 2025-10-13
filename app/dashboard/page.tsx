@@ -59,39 +59,59 @@ export default function DashboardPage() {
     }
   }, [status, router]);
 
+  const handleDeletePage = async (pageId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta página? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/pages/${pageId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Recarregar dados do dashboard
+        fetchDashboardData();
+      } else {
+        console.error('Erro ao excluir página');
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+
   const fetchDashboardData = async () => {
     try {
-      // Simular dados por enquanto
-      const mockPages: Page[] = [
-        {
-          id: '1',
-          title: 'Página de Presell - Produto X',
-          slug: 'presell-produto-x',
-          type: 'PRESELL',
-          isPublished: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          title: 'Página de Prévia - Produto Y',
-          slug: 'preview-produto-y',
-          type: 'PREVIEW',
-          isPublished: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
+      const response = await fetch('/api/pages');
+      if (response.ok) {
+        const userPages = await response.json();
+        
+        // Converter dados da API para o formato esperado
+        const formattedPages: Page[] = userPages.map((page: any) => ({
+          id: page._id,
+          title: page.title,
+          slug: page.slug,
+          type: page.type.toUpperCase(),
+          isPublished: page.isPublished,
+          createdAt: page.createdAt,
+          updatedAt: page.updatedAt
+        }));
 
-      const mockStats: DashboardStats = {
-        totalPages: mockPages.length,
-        publishedPages: mockPages.filter(p => p.isPublished).length,
-        totalViews: 1250,
-        totalClicks: 89
-      };
+        const publishedPages = formattedPages.filter(p => p.isPublished).length;
+        
+        // TODO: Implementar analytics reais
+        const mockStats: DashboardStats = {
+          totalPages: formattedPages.length,
+          publishedPages,
+          totalViews: 0, // Será implementado com analytics
+          totalClicks: 0  // Será implementado com analytics
+        };
 
-      setPages(mockPages);
-      setStats(mockStats);
+        setPages(formattedPages);
+        setStats(mockStats);
+      } else {
+        console.error('Erro ao carregar páginas');
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -292,14 +312,26 @@ export default function DashboardPage() {
                     
                     <div className="flex items-center space-x-2">
                       {page.isPublished && (
-                        <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                        <button 
+                          onClick={() => window.open(`/${page.slug}`, '_blank')}
+                          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Visualizar página"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
                       )}
-                      <button className="p-2 text-gray-400 hover:text-green-600 transition-colors">
+                      <Link
+                        href={`/pages/${page.id}/edit`}
+                        className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                        title="Editar página"
+                      >
                         <Edit className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                      </Link>
+                      <button 
+                        onClick={() => handleDeletePage(page.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        title="Excluir página"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
