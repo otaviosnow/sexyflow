@@ -1,7 +1,8 @@
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, unlink } from 'fs/promises';
 import { join } from 'path';
 import { NextRequest } from 'next/server';
-import { prisma } from './db';
+import connectDB from './db';
+import { FileUpload } from '@/models';
 
 export interface UploadResult {
   success: boolean;
@@ -53,16 +54,15 @@ export async function uploadFile(
     await writeFile(filePath, buffer);
 
     // Salvar informações no banco de dados
+    await connectDB();
     const fileUrl = `/uploads/${userId}/${fileName}`;
-    const uploadedFile = await prisma.fileUpload.create({
-      data: {
-        filename: fileName,
-        originalName: file.name,
-        mimetype: file.type,
-        size: buffer.length,
-        url: fileUrl,
-        userId: userId,
-      }
+    const uploadedFile = await FileUpload.create({
+      filename: fileName,
+      originalName: file.name,
+      mimetype: file.type,
+      size: buffer.length,
+      url: fileUrl,
+      userId: userId,
     });
 
     return {
@@ -81,11 +81,10 @@ export async function uploadFile(
 
 export async function deleteFile(fileId: string, userId: string): Promise<boolean> {
   try {
-    const file = await prisma.fileUpload.findFirst({
-      where: {
-        id: fileId,
-        userId: userId
-      }
+    await connectDB();
+    const file = await FileUpload.findOne({
+      _id: fileId,
+      userId: userId
     });
 
     if (!file) {
@@ -97,11 +96,7 @@ export async function deleteFile(fileId: string, userId: string): Promise<boolea
     await unlink(filePath).catch(() => {}); // Ignorar erro se arquivo não existir
 
     // Remover do banco de dados
-    await prisma.fileUpload.delete({
-      where: {
-        id: fileId
-      }
-    });
+    await FileUpload.findByIdAndDelete(fileId);
 
     return true;
   } catch (error) {

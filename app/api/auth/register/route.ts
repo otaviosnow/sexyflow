@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import connectDB from '../../../lib/db';
-import { User } from '../../../models';
-import { emailService } from '../../../lib/email';
-import { validateEmail, validatePassword, generateSubdomain } from '../../../lib/utils';
+import connectDB from '@/lib/db';
+import { User } from '@/models';
+import { emailService } from '@/lib/email';
+import { validateEmail, validatePassword, generateSubdomain } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {

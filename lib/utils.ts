@@ -1,10 +1,4 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwindcss-merge';
-import { PlanType, PageType } from '@prisma/client';
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { PlanType, PageType } from '@/types';
 
 export function generateSlug(text: string): string {
   return text

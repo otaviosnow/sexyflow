@@ -4,6 +4,13 @@ const nextConfig = {
     domains: ['localhost', 'sexyflow.com'],
     unoptimized: true,
   },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname),
+    };
+    return config;
+  },
   async rewrites() {
     return [
       {
