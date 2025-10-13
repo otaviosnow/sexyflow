@@ -177,6 +177,15 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-gray-900">{session.user?.name}</p>
                 <p className="text-xs text-gray-500">{session.user?.email}</p>
               </div>
+              {session.user?.role === 'ADMIN' && (
+                <button
+                  onClick={() => router.push('/admin')}
+                  className="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all text-sm"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Painel Admin</span>
+                </button>
+              )}
               <button
                 onClick={() => router.push('/api/auth/signout')}
                 className="flex items-center space-x-2 text-gray-600 hover:text-red-600 transition-colors"
