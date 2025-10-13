@@ -580,7 +580,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Texto</label>
                         <textarea
                           value={selectedElementData.content.text}
-                          onChange={(e) => updateElement(selectedElement, { 
+                          onChange={(e) => selectedElement && updateElement(selectedElement, { 
                             content: { ...selectedElementData.content, text: e.target.value }
                           })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
@@ -592,7 +592,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                         <input
                           type="number"
                           value={selectedElementData.content.fontSize}
-                          onChange={(e) => updateElement(selectedElement, { 
+                          onChange={(e) => selectedElement && updateElement(selectedElement, { 
                             content: { ...selectedElementData.content, fontSize: parseInt(e.target.value) }
                           })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
@@ -611,7 +611,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                           <div className="mt-2">
                             <ChromePicker
                               color={selectedElementData.content.color}
-                              onChange={(color) => updateElement(selectedElement, { 
+                              onChange={(color) => selectedElement && updateElement(selectedElement, { 
                                 content: { ...selectedElementData.content, color: color.hex }
                               })}
                             />
@@ -628,7 +628,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                         <input
                           type="text"
                           value={selectedElementData.content.text}
-                          onChange={(e) => updateElement(selectedElement, { 
+                          onChange={(e) => selectedElement && updateElement(selectedElement, { 
                             content: { ...selectedElementData.content, text: e.target.value }
                           })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
@@ -639,7 +639,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                         <input
                           type="url"
                           value={selectedElementData.content.url}
-                          onChange={(e) => updateElement(selectedElement, { 
+                          onChange={(e) => selectedElement && updateElement(selectedElement, { 
                             content: { ...selectedElementData.content, url: e.target.value }
                           })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
@@ -681,7 +681,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                           <input
                             type="url"
                             value={selectedElementData.content.src}
-                            onChange={(e) => updateElement(selectedElement, { 
+                            onChange={(e) => selectedElement && updateElement(selectedElement, { 
                               content: { ...selectedElementData.content, src: e.target.value }
                             })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
