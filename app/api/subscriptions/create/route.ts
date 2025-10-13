@@ -4,11 +4,7 @@ import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
 import Subscription from '@/models/Subscription';
-
-// Configuração do Stripe (você precisará configurar as variáveis de ambiente)
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_PRICE_MONTHLY = process.env.STRIPE_PRICE_MONTHLY;
-const STRIPE_PRICE_ANNUAL = process.env.STRIPE_PRICE_ANNUAL;
+import { caktoService, CAKTO_PLANS } from '@/lib/cakto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,10 +17,14 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { planName, paymentMethodId } = body;
+    const { planName, paymentMethod, customerData } = body;
 
     if (!planName || !['monthly', 'annual'].includes(planName)) {
       return NextResponse.json({ error: 'Plano inválido' }, { status: 400 });
+    }
+
+    if (!paymentMethod || !customerData) {
+      return NextResponse.json({ error: 'Dados de pagamento e cliente são obrigatórios' }, { status: 400 });
     }
 
     const user = await User.findById(session.user.id);
@@ -45,41 +45,69 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Para desenvolvimento, vamos simular uma assinatura ativa
-    // Em produção, aqui você integraria com Stripe/PagSeguro
-    const now = new Date();
-    const periodEnd = new Date();
-    
-    if (planName === 'monthly') {
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
-    } else {
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    try {
+      // Criar cliente na Cakto
+      const caktoCustomer = await caktoService.createCustomer({
+        name: customerData.name,
+        email: customerData.email,
+        document: customerData.document // CPF
+      });
+
+      // Criar plano na Cakto (se não existir)
+      const planData = CAKTO_PLANS[planName];
+      let caktoPlan;
+      try {
+        // Tentar criar o plano (pode já existir)
+        caktoPlan = await caktoService.createPlan(planData);
+      } catch (error) {
+        // Se falhar, assumir que o plano já existe
+        console.log('Plano pode já existir na Cakto');
+      }
+
+      // Criar assinatura na Cakto
+      const caktoSubscription = await caktoService.createSubscription({
+        customer_id: caktoCustomer.id,
+        plan_id: planData.name, // Usar nome do plano
+        payment_method: paymentMethod
+      });
+
+      // Salvar assinatura no nosso banco
+      const subscription = new Subscription({
+        userId: user._id,
+        planId: planName,
+        planName: planName,
+        status: caktoSubscription.status,
+        currentPeriodStart: new Date(caktoSubscription.current_period_start),
+        currentPeriodEnd: new Date(caktoSubscription.current_period_end),
+        cancelAtPeriodEnd: caktoSubscription.cancel_at_period_end,
+        stripeSubscriptionId: caktoSubscription.id, // Reutilizando campo
+        stripeCustomerId: caktoCustomer.id // Reutilizando campo
+      });
+
+      await subscription.save();
+
+      // Atualizar usuário
+      await User.findByIdAndUpdate(user._id, {
+        planType: planName === 'monthly' ? 'MONTHLY' : 'YEARLY',
+        planStartDate: new Date(caktoSubscription.current_period_start),
+        planEndDate: new Date(caktoSubscription.current_period_end)
+      });
+
+      return NextResponse.json({
+        success: true,
+        subscription,
+        caktoSubscription,
+        message: `Assinatura ${planName === 'monthly' ? 'mensal' : 'anual'} criada com sucesso!`
+      });
+
+    } catch (caktoError: any) {
+      console.error('Erro na integração com Cakto:', caktoError);
+      
+      return NextResponse.json({
+        error: 'Erro ao processar pagamento',
+        details: caktoError.message
+      }, { status: 400 });
     }
-
-    const subscription = new Subscription({
-      userId: user._id,
-      planId: planName,
-      planName: planName,
-      status: 'active',
-      currentPeriodStart: now,
-      currentPeriodEnd: periodEnd,
-      cancelAtPeriodEnd: false
-    });
-
-    await subscription.save();
-
-    // Atualizar usuário
-    await User.findByIdAndUpdate(user._id, {
-      planType: planName === 'monthly' ? 'MONTHLY' : 'YEARLY',
-      planStartDate: now,
-      planEndDate: periodEnd
-    });
-
-    return NextResponse.json({
-      success: true,
-      subscription,
-      message: `Assinatura ${planName === 'monthly' ? 'mensal' : 'anual'} criada com sucesso!`
-    });
 
   } catch (error) {
     console.error('Erro ao criar assinatura:', error);
