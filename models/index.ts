@@ -1,6 +1,8 @@
 export { default as User } from './User';
 export { default as Template } from './Template';
 export { default as Page } from './Page';
+export { default as Project } from './Project';
+export { default as Subscription } from './Subscription';
 export { default as FileUpload } from './FileUpload';
 export { default as UserMedia } from './UserMedia';
 export { default as Analytics } from './Analytics';
