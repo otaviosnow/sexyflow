@@ -274,9 +274,16 @@ export default function AdminPanel() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <button
+                          onClick={() => router.push(`/admin/templates/${template._id}/visual-editor`)}
+                          className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                          title="Editor Visual"
+                        >
+                          <Palette className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => router.push(`/admin/templates/${template._id}/edit`)}
                           className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                          title="Editar"
+                          title="Editar Código"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
