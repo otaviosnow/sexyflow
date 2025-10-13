@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
+import { SessionProvider } from 'next-auth/react';
 import './globals.css';
 
 const inter = Inter({ 
@@ -63,7 +64,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#dc2626" />
       </head>
       <body className={`${inter.className} antialiased`}>
-        {children}
+        <SessionProvider>
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );

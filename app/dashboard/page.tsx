@@ -36,7 +36,8 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  const sessionResult = useSession();
+  const { data: session, status } = sessionResult || {};
   const router = useRouter();
   const [pages, setPages] = useState<Page[]>([]);
   const [stats, setStats] = useState<DashboardStats>({

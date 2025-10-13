@@ -10,7 +10,6 @@ const SystemSettingsSchema = new Schema<ISystemSettings>({
   key: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
   },
   value: {

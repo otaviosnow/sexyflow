@@ -24,7 +24,6 @@ const UserSchema = new Schema<IUser>({
   email: {
     type: String,
     required: true,
-    unique: true,
     lowercase: true,
     trim: true,
   },
@@ -53,7 +52,6 @@ const UserSchema = new Schema<IUser>({
   },
   subdomain: {
     type: String,
-    unique: true,
     sparse: true,
     trim: true,
   },

@@ -45,7 +45,6 @@ const TemplateSchema = new Schema<ITemplate>({
     type: String,
     enum: ['PRESELL', 'PREVIEW', 'POST_SALE_X', 'DELIVERY', 'POST_SALE_Y'],
     required: true,
-    unique: true,
   },
   name: {
     type: String,
