@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, 
   Save, 
-  Eye,
   Monitor,
   Tablet,
   Smartphone,
@@ -21,9 +20,6 @@ import {
   Palette,
   Code
 } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { ChromePicker } from 'react-color';
-import { useDropzone } from 'react-dropzone';
 import toast from 'react-hot-toast';
 
 interface Template {
@@ -43,11 +39,6 @@ interface DragElement {
   style: any;
   position: { x: number; y: number };
   size: { width: number; height: number };
-  responsive?: {
-    desktop: { position: { x: number; y: number }; size: { width: number; height: number } };
-    tablet: { position: { x: number; y: number }; size: { width: number; height: number } };
-    mobile: { position: { x: number; y: number }; size: { width: number; height: number } };
-  };
 }
 
 const ELEMENT_TYPES = [
@@ -78,9 +69,7 @@ const ELEMENT_TYPES = [
       borderRadius: '8px',
       padding: '12px 24px',
       fontSize: '16px',
-      fontWeight: '600',
-      boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
-      hoverEffect: 'scale'
+      fontWeight: '600'
     }
   },
   { 
@@ -92,9 +81,7 @@ const ELEMENT_TYPES = [
       src: '', 
       alt: 'Imagem', 
       width: 300, 
-      height: 200,
-      borderRadius: '8px',
-      objectFit: 'cover'
+      height: 200
     }
   },
   { 
@@ -106,8 +93,7 @@ const ELEMENT_TYPES = [
       src: '', 
       poster: '', 
       width: 400, 
-      height: 225,
-      borderRadius: '8px'
+      height: 225
     }
   },
   { 
@@ -129,68 +115,7 @@ const ELEMENT_TYPES = [
     defaultContent: { 
       backgroundColor: 'transparent',
       padding: '20px',
-      borderRadius: '8px',
-      border: '1px dashed #ccc',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }
-  },
-  { 
-    id: 'form', 
-    name: 'Formulário', 
-    icon: Settings, 
-    description: 'Formulário de contato',
-    defaultContent: { 
-      title: 'Entre em Contato',
-      fields: [
-        { type: 'text', label: 'Nome', placeholder: 'Seu nome', required: true },
-        { type: 'email', label: 'Email', placeholder: 'seu@email.com', required: true },
-        { type: 'textarea', label: 'Mensagem', placeholder: 'Sua mensagem...', required: true }
-      ],
-      submitText: 'Enviar Mensagem',
-      backgroundColor: '#ffffff',
-      padding: '30px'
-    }
-  },
-  { 
-    id: 'gallery', 
-    name: 'Galeria', 
-    icon: Image, 
-    description: 'Galeria de imagens',
-    defaultContent: { 
-      images: [],
-      columns: 3,
-      spacing: '10px',
-      borderRadius: '8px',
-      showCaptions: false,
-      lightbox: true
-    }
-  },
-  { 
-    id: 'card', 
-    name: 'Card', 
-    icon: Move, 
-    description: 'Card com conteúdo',
-    defaultContent: { 
-      title: 'Título do Card',
-      description: 'Descrição do card aqui...',
-      image: '',
-      backgroundColor: '#ffffff',
-      padding: '20px',
-      borderRadius: '12px',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-      border: 'none'
-    }
-  },
-  { 
-    id: 'html', 
-    name: 'HTML', 
-    icon: Code, 
-    description: 'Código HTML personalizado',
-    defaultContent: { 
-      html: '<div>HTML personalizado</div>' 
+      borderRadius: '8px'
     }
   }
 ];
@@ -202,8 +127,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
   const [saving, setSaving] = useState(false);
   const [activeView, setActiveView] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showFileUpload, setShowFileUpload] = useState(false);
   const [activeTab, setActiveTab] = useState<'elements' | 'properties' | 'code'>('elements');
   
   const [templateData, setTemplateData] = useState<Template>({
@@ -331,38 +254,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     e.dataTransfer.setData('elementType', elementType);
   };
 
-  const handleElementMove = (e: React.MouseEvent, elementId: string) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    
-    const element = templateData.content[activeView]?.elements?.find((el: DragElement) => el.id === elementId);
-    if (!element) return;
-
-    const startElementX = element.position.x;
-    const startElementY = element.position.y;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
-      
-      const newX = Math.max(0, Math.min(startElementX + deltaX, 1200 - element.size.width));
-      const newY = Math.max(0, Math.min(startElementY + deltaY, 800 - element.size.height));
-
-      updateElement(elementId, {
-        position: { x: newX, y: newY }
-      });
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
   const updateElement = (elementId: string, updates: Partial<DragElement>) => {
     setTemplateData(prev => ({
       ...prev,
@@ -397,66 +288,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     }
     toast.success('Elemento removido!');
   };
-
-  const onDragEnd = (result: any) => {
-    if (!result.destination) return;
-
-    const items = Array.from(templateData.content[activeView]?.elements || []);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setTemplateData(prev => ({
-      ...prev,
-      content: {
-        ...prev.content,
-        [activeView]: {
-          ...prev.content[activeView],
-          elements: items
-        }
-      }
-    }));
-  };
-
-  const onFileUpload = async (files: File[]) => {
-    const file = files[0];
-    if (!file) return;
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success('Arquivo enviado com sucesso!');
-        
-        if (selectedElement && (templateData.content[activeView]?.elements?.find((e: DragElement) => e.id === selectedElement)?.type === 'image' || 'video')) {
-          updateElement(selectedElement, {
-            content: {
-              ...templateData.content[activeView]?.elements?.find((e: DragElement) => e.id === selectedElement)?.content,
-              src: result.url
-            }
-          });
-        }
-      } else {
-        toast.error('Erro ao enviar arquivo');
-      }
-    } catch (error) {
-      toast.error('Erro ao enviar arquivo');
-    }
-  };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: onFileUpload,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
-      'video/*': ['.mp4', '.webm', '.mov']
-    }
-  });
 
   const selectedElementData = templateData.content[activeView]?.elements?.find((e: DragElement) => e.id === selectedElement);
 
@@ -594,50 +425,37 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Elementos na Página</h3>
-                  <DragDropContext onDragEnd={onDragEnd}>
-                    <Droppable droppableId="elements">
-                      {(provided) => (
-                        <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                          {templateData.content[activeView]?.elements?.map((element: DragElement, index: number) => (
-                            <Draggable key={element.id} draggableId={element.id} index={index}>
-                              {(provided) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className={`p-3 border rounded-lg cursor-move transition-colors ${
-                                    selectedElement === element.id 
-                                      ? 'border-red-500 bg-red-50' 
-                                      : 'border-gray-200 hover:border-gray-300'
-                                  }`}
-                                  onClick={() => setSelectedElement(element.id)}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                      <Move className="h-4 w-4 text-gray-400" />
-                                      <span className="text-sm font-medium">
-                                        {ELEMENT_TYPES.find(e => e.id === element.type)?.name}
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteElement(element.id);
-                                      }}
-                                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
+                  <div className="space-y-2">
+                    {templateData.content[activeView]?.elements?.map((element: DragElement, index: number) => (
+                      <div
+                        key={element.id}
+                        className={`p-3 border rounded-lg cursor-move transition-colors ${
+                          selectedElement === element.id 
+                            ? 'border-red-500 bg-red-50' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => setSelectedElement(element.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Move className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm font-medium">
+                              {ELEMENT_TYPES.find(e => e.id === element.type)?.name}
+                            </span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteElement(element.id);
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </div>
-                      )}
-                    </Droppable>
-                  </DragDropContext>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -675,23 +493,14 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Cor</label>
-                        <button
-                          onClick={() => setShowColorPicker(!showColorPicker)}
-                          className="w-full p-2 border border-gray-300 rounded-lg text-left"
-                          style={{ backgroundColor: selectedElementData.content.color }}
-                        >
-                          {selectedElementData.content.color}
-                        </button>
-                        {showColorPicker && (
-                          <div className="mt-2">
-                            <ChromePicker
-                              color={selectedElementData.content.color}
-                              onChange={(color) => selectedElement && updateElement(selectedElement, { 
-                                content: { ...selectedElementData.content, color: color.hex }
-                              })}
-                            />
-                          </div>
-                        )}
+                        <input
+                          type="color"
+                          value={selectedElementData.content.color}
+                          onChange={(e) => selectedElement && updateElement(selectedElement, { 
+                            content: { ...selectedElementData.content, color: e.target.value }
+                          })}
+                          className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        />
                       </div>
                     </div>
                   )}
@@ -715,63 +524,29 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                       {selectedElementData.content.type === 'color' && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Cor de Fundo</label>
-                          <button
-                            onClick={() => setShowColorPicker(!showColorPicker)}
-                            className="w-full p-3 border border-gray-300 rounded-lg text-left flex items-center space-x-3"
-                            style={{ backgroundColor: selectedElementData.content.value }}
-                          >
-                            <div className="w-8 h-8 border border-gray-400 rounded" style={{ backgroundColor: selectedElementData.content.value }}></div>
-                            <span className="text-gray-700">{selectedElementData.content.value}</span>
-                          </button>
-                          {showColorPicker && (
-                            <div className="mt-2">
-                              <ChromePicker
-                                color={selectedElementData.content.value}
-                                onChange={(color) => selectedElement && updateElement(selectedElement, { 
-                                  content: { ...selectedElementData.content, value: color.hex }
-                                })}
-                              />
-                            </div>
-                          )}
+                          <input
+                            type="color"
+                            value={selectedElementData.content.value}
+                            onChange={(e) => selectedElement && updateElement(selectedElement, { 
+                              content: { ...selectedElementData.content, value: e.target.value }
+                            })}
+                            className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          />
                         </div>
                       )}
                       
                       {selectedElementData.content.type === 'image' && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Imagem de Fundo</label>
-                          <div
-                            {...getRootProps()}
-                            className={`p-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
-                              isDragActive ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                            }`}
-                          >
-                            <input {...getInputProps()} />
-                            <Image className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                            <p className="text-sm text-gray-600">
-                              Arraste uma imagem aqui ou clique para selecionar
-                            </p>
-                          </div>
-                          {selectedElementData.content.image && (
-                            <div className="mt-3">
-                              <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem</label>
-                              <input
-                                type="url"
-                                value={selectedElementData.content.image}
-                                onChange={(e) => selectedElement && updateElement(selectedElement, { 
-                                  content: { ...selectedElementData.content, image: e.target.value }
-                                })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                                placeholder="https://..."
-                              />
-                              <div className="mt-2">
-                                <img 
-                                  src={selectedElementData.content.image} 
-                                  alt="Preview" 
-                                  className="w-full h-32 object-cover rounded border"
-                                />
-                              </div>
-                            </div>
-                          )}
+                          <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem</label>
+                          <input
+                            type="url"
+                            value={selectedElementData.content.image}
+                            onChange={(e) => selectedElement && updateElement(selectedElement, { 
+                              content: { ...selectedElementData.content, image: e.target.value }
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            placeholder="https://..."
+                          />
                         </div>
                       )}
                     </div>
@@ -841,7 +616,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                     zIndex: index + 1
                   }}
                   onClick={() => setSelectedElement(element.id)}
-                  onMouseDown={(e) => handleElementMove(e, element.id)}
                 >
                   {element.type === 'text' && (
                     <div 
@@ -891,8 +665,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                       style={{
                         backgroundColor: element.content.backgroundColor,
                         padding: element.content.padding,
-                        borderRadius: element.content.borderRadius,
-                        border: element.content.border
+                        borderRadius: element.content.borderRadius
                       }}
                     >
                       <div className="text-center text-gray-500">
@@ -900,76 +673,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                         <p className="text-sm">Container</p>
                       </div>
                     </div>
-                  )}
-
-                  {element.type === 'form' && (
-                    <div 
-                      className="w-full h-full p-4 bg-white rounded-lg border"
-                      style={{
-                        backgroundColor: element.content.backgroundColor,
-                        padding: element.content.padding
-                      }}
-                    >
-                      <h3 className="text-lg font-semibold mb-4">{element.content.title}</h3>
-                      {element.content.fields.map((field: any, index: number) => (
-                        <div key={index} className="mb-3">
-                          <label className="block text-sm font-medium mb-1">{field.label}</label>
-                          {field.type === 'textarea' ? (
-                            <textarea 
-                              className="w-full p-2 border rounded"
-                              placeholder={field.placeholder}
-                              rows={3}
-                            />
-                          ) : (
-                            <input 
-                              type={field.type}
-                              className="w-full p-2 border rounded"
-                              placeholder={field.placeholder}
-                            />
-                          )}
-                        </div>
-                      ))}
-                      <button className="w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">
-                        {element.content.submitText}
-                      </button>
-                    </div>
-                  )}
-
-                  {element.type === 'gallery' && (
-                    <div className="w-full h-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                      <div className="text-center text-gray-500">
-                        <Image className="h-8 w-8 mx-auto mb-2" />
-                        <p className="text-sm">Galeria</p>
-                        <p className="text-xs">{element.content.images.length} imagens</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {element.type === 'card' && (
-                    <div 
-                      className="w-full h-full p-4 rounded-lg border"
-                      style={{
-                        backgroundColor: element.content.backgroundColor,
-                        padding: element.content.padding,
-                        borderRadius: element.content.borderRadius,
-                        boxShadow: element.content.boxShadow,
-                        border: element.content.border
-                      }}
-                    >
-                      {element.content.image && (
-                        <img 
-                          src={element.content.image} 
-                          alt="Card" 
-                          className="w-full h-24 object-cover rounded mb-3"
-                        />
-                      )}
-                      <h3 className="text-lg font-semibold mb-2">{element.content.title}</h3>
-                      <p className="text-sm text-gray-600">{element.content.description}</p>
-                    </div>
-                  )}
-                  
-                  {element.type === 'html' && (
-                    <div dangerouslySetInnerHTML={{ __html: element.content.html }} />
                   )}
 
                   {!element.content.src && (element.type === 'image' || element.type === 'video') && (
