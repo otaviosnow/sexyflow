@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IPage extends Document {
   title: string;
   slug: string;
-  type: 'PRESELL' | 'PREVIEW' | 'POST_SALE_X' | 'DELIVERY' | 'POST_SALE_Y';
+  type: 'presell' | 'preview' | 'post-sale-x' | 'delivery' | 'post-sale-y';
   content: {
     headline?: string;
     subheadline?: string;
@@ -55,7 +55,7 @@ const PageSchema = new Schema<IPage>({
   },
   type: {
     type: String,
-    enum: ['PRESELL', 'PREVIEW', 'POST_SALE_X', 'DELIVERY', 'POST_SALE_Y'],
+    enum: ['presell', 'preview', 'post-sale-x', 'delivery', 'post-sale-y'],
     required: true,
   },
   content: {
@@ -74,7 +74,6 @@ const PageSchema = new Schema<IPage>({
   templateId: {
     type: Schema.Types.ObjectId,
     ref: 'Template',
-    required: true,
   },
 }, {
   timestamps: true,

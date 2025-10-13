@@ -91,7 +91,7 @@ export default function DashboardPage() {
           id: page._id,
           title: page.title,
           slug: page.slug,
-          type: page.type.toUpperCase(),
+          type: page.type,
           isPublished: page.isPublished,
           createdAt: page.createdAt,
           updatedAt: page.updatedAt
@@ -121,22 +121,22 @@ export default function DashboardPage() {
 
   const getPageTypeLabel = (type: string) => {
     const types: { [key: string]: string } = {
-      PRESELL: 'Presell',
-      PREVIEW: 'Prévia',
-      POST_SALE_X: 'Pós-venda X',
-      DELIVERY: 'Entrega',
-      POST_SALE_Y: 'Pós-venda Y'
+      presell: 'Presell',
+      preview: 'Prévia',
+      'post-sale-x': 'Pós-venda X',
+      delivery: 'Entrega',
+      'post-sale-y': 'Pós-venda Y'
     };
     return types[type] || type;
   };
 
   const getPageTypeColor = (type: string) => {
     const colors: { [key: string]: string } = {
-      PRESELL: 'bg-red-100 text-red-800',
-      PREVIEW: 'bg-blue-100 text-blue-800',
-      POST_SALE_X: 'bg-green-100 text-green-800',
-      DELIVERY: 'bg-yellow-100 text-yellow-800',
-      POST_SALE_Y: 'bg-purple-100 text-purple-800'
+      presell: 'bg-red-100 text-red-800',
+      preview: 'bg-blue-100 text-blue-800',
+      'post-sale-x': 'bg-green-100 text-green-800',
+      delivery: 'bg-yellow-100 text-yellow-800',
+      'post-sale-y': 'bg-purple-100 text-purple-800'
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
