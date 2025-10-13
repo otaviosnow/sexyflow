@@ -25,7 +25,7 @@ export async function checkConnection() {
     
     console.log(`📊 Status da conexão MongoDB: ${states[state as keyof typeof states]}`);
     
-    if (state === 1) {
+    if (state === 1 && mongoose.connection.db) {
       const collections = await mongoose.connection.db.listCollections().toArray();
       console.log(`📚 Coleções encontradas: ${collections.length}`);
       
