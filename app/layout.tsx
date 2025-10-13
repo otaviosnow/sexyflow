@@ -1,6 +1,6 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
-import { SessionProvider } from 'next-auth/react';
+import Providers from '@/components/Providers';
 import './globals.css';
 
 const inter = Inter({ 
@@ -44,11 +44,12 @@ export const metadata: Metadata = {
     title: 'SexyFlow - Automatize suas vendas no nicho hot',
     description: 'SaaS completo para criação automatizada de páginas de vendas no nicho hot/adulto',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -64,9 +65,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#dc2626" />
       </head>
       <body className={`${inter.className} antialiased`}>
-        <SessionProvider>
+        <Providers>
           {children}
-        </SessionProvider>
+        </Providers>
       </body>
     </html>
   );

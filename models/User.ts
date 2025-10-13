@@ -64,8 +64,8 @@ const UserSchema = new Schema<IUser>({
 });
 
 // Indexes
-UserSchema.index({ email: 1 });
-UserSchema.index({ subdomain: 1 });
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ subdomain: 1 }, { sparse: true, unique: true });
 UserSchema.index({ isActive: 1 });
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
