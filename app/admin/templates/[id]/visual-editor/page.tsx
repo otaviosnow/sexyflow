@@ -1459,8 +1459,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     );
   }
 
-  const { width, height } = getCanvasSize();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
       {/* Header Toolbar - Design Profissional */}
@@ -1926,7 +1924,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                   <button
                     onClick={() => {
                       updateElement(selectedElementData.id, {
-                        position: { x: (width - selectedElementData.size.width) / 2, y: selectedElementData.position.y }
+                        position: { x: (getCanvasSize().width - selectedElementData.size.width) / 2, y: selectedElementData.position.y }
                       });
                       toast.success('Elemento centralizado!');
                     }}
@@ -1938,7 +1936,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                   <button
                     onClick={() => {
                       updateElement(selectedElementData.id, {
-                        position: { x: width - selectedElementData.size.width, y: selectedElementData.position.y }
+                        position: { x: getCanvasSize().width - selectedElementData.size.width, y: selectedElementData.position.y }
                       });
                       toast.success('Elemento alinhado à direita!');
                     }}
