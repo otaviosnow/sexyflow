@@ -1430,6 +1430,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     }
   };
 
+  // Dados do elemento selecionado e elementos filtrados
   const selectedElementData = elements.find(e => e.id === selectedElement);
   const filteredElements = ELEMENT_CATEGORIES
     .find(cat => cat.id === activeCategory)
@@ -1437,6 +1438,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       element.name.toLowerCase().includes(searchQuery.toLowerCase())
     ) || [];
 
+  // Renderizações condicionais
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
