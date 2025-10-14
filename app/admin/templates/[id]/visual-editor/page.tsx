@@ -384,12 +384,18 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         
         // Atualizar posição responsiva se necessário
         if (updates.position || updates.size) {
+          const currentResponsive = updatedElement.responsive || {
+            desktop: { position: updatedElement.position, size: updatedElement.size },
+            tablet: { position: updatedElement.position, size: updatedElement.size },
+            mobile: { position: updatedElement.position, size: updatedElement.size }
+          };
+          
           updatedElement.responsive = {
-            ...updatedElement.responsive,
+            ...currentResponsive,
             [activeView]: {
-              position: updates.position || updatedElement.responsive?.[activeView]?.position || updatedElement.position,
-              size: updates.size || updatedElement.responsive?.[activeView]?.size || updatedElement.size,
-              content: updates.content || updatedElement.responsive?.[activeView]?.content
+              position: updates.position || currentResponsive[activeView]?.position || updatedElement.position,
+              size: updates.size || currentResponsive[activeView]?.size || updatedElement.size,
+              content: updates.content || currentResponsive[activeView]?.content
             }
           };
         }
