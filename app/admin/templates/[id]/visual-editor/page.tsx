@@ -146,6 +146,11 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['basic']));
   const [history, setHistory] = useState<any[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [showOutline, setShowOutline] = useState(false);
+  const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
   
   const [templateData, setTemplateData] = useState<Template>({
     _id: '',
@@ -178,6 +183,15 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     console.log('📊 Elements count:', elements.length);
   }, [elements]);
 
+  // Monitorar mudanças no background para debug
+  useEffect(() => {
+    console.log('🎨 Background state changed:', background);
+    if (background.type === 'image' && background.image) {
+      console.log('🖼️ Background image URL:', background.image);
+      console.log('🔗 Full URL:', `url('${background.image}')`);
+    }
+  }, [background]);
+
   // Auto-save periódico para evitar perda de dados
   useEffect(() => {
     if (elements.length > 0 && !loading) {
@@ -189,6 +203,31 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       return () => clearTimeout(autoSaveTimer);
     }
   }, [elements, loading]);
+
+  // Eventos globais para drag & drop
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        handleElementMouseMove(e as any);
+      }
+    };
+
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      if (isDragging) {
+        handleElementMouseUp(e as any);
+      }
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDragging, draggedElementId, dragStartY]);
 
   const fetchTemplate = async () => {
     try {
@@ -290,7 +329,14 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     const centeredX = getCenteredPosition(defaultSize.width);
     console.log('📍 Centered X position:', centeredX);
     
-    const elementY = 50 + (elements.length * 60);
+    // Calcular posição Y baseada na posição do último elemento + seu tamanho + margem
+    let elementY = 50; // Margem inicial do topo
+    if (elements.length > 0) {
+      const lastElement = elements[elements.length - 1];
+      const lastElementViewport = getElementForViewport(lastElement);
+      elementY = lastElementViewport.position.y + lastElementViewport.size.height + 20; // 20px de margem
+    }
+    
     console.log('📍 Element Y position:', elementY);
     
     const newElement: Element = {
@@ -328,31 +374,32 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       return;
     }
 
-    const canvasRect = e.currentTarget.getBoundingClientRect();
-    console.log('📐 Canvas rect:', canvasRect);
-    
-    const x = e.clientX - canvasRect.left;
-    const y = e.clientY - canvasRect.top;
-    console.log('📍 Drop position (canvas):', { x, y });
-
     const defaultSize = getDefaultSize(elementType);
     console.log('📏 Default size for drag:', defaultSize);
     
-    const centeredX = Math.max(0, x - (defaultSize.width / 2));
-    const centeredY = Math.max(0, y - (defaultSize.height / 2));
-    console.log('📍 Centered drop position:', { centeredX, centeredY });
+    const centeredX = getCenteredPosition(defaultSize.width);
+    
+    // Calcular posição Y baseada na posição do último elemento + seu tamanho + margem
+    let elementY = 50; // Margem inicial do topo
+    if (elements.length > 0) {
+      const lastElement = elements[elements.length - 1];
+      const lastElementViewport = getElementForViewport(lastElement);
+      elementY = lastElementViewport.position.y + lastElementViewport.size.height + 20; // 20px de margem
+    }
+    
+    console.log('📍 Sequential position:', { centeredX, elementY });
 
     const newElement: Element = {
       id: `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: elementType,
       content: getDefaultContent(elementType),
-      position: { x: centeredX, y: centeredY },
+      position: { x: centeredX, y: elementY },
       size: defaultSize,
       style: getDefaultStyle(elementType),
       responsive: {
-        desktop: { position: { x: centeredX, y: centeredY }, size: defaultSize },
-        tablet: { position: { x: centeredX, y: centeredY }, size: defaultSize },
-        mobile: { position: { x: centeredX, y: centeredY }, size: defaultSize }
+        desktop: { position: { x: centeredX, y: elementY }, size: defaultSize },
+        tablet: { position: { x: centeredX, y: elementY }, size: defaultSize },
+        mobile: { position: { x: centeredX, y: elementY }, size: defaultSize }
       }
     };
 
@@ -369,6 +416,112 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     e.preventDefault();
   };
 
+  // Funções para drag & drop de reordenação
+  const handleElementMouseDown = (e: React.MouseEvent, elementId: string) => {
+    // Só ativa o drag se não estiver no modo de edição
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+      return;
+    }
+    
+    setIsDragging(true);
+    setDraggedElementId(elementId);
+    setDragStartY(e.clientY);
+    setDragOffset(0);
+    
+    e.preventDefault();
+  };
+
+  const handleElementMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !draggedElementId) return;
+    
+    const currentY = e.clientY;
+    const offset = currentY - dragStartY;
+    setDragOffset(offset);
+  };
+
+  const handleElementMouseUp = (e: React.MouseEvent) => {
+    if (!isDragging || !draggedElementId) return;
+    
+    const currentY = e.clientY;
+    const offset = currentY - dragStartY;
+    
+    // Calcular qual elemento deve trocar de posição
+    const draggedElement = elements.find(el => el.id === draggedElementId);
+    if (!draggedElement) {
+      resetDrag();
+      return;
+    }
+
+    const draggedIndex = elements.indexOf(draggedElement);
+    const draggedViewport = getElementForViewport(draggedElement);
+    const draggedCenterY = draggedViewport.position.y + (draggedViewport.size.height / 2);
+    
+    // Encontrar o elemento mais próximo
+    let targetIndex = -1;
+    let minDistance = Infinity;
+    
+    elements.forEach((element, index) => {
+      if (index === draggedIndex) return;
+      
+      const elementViewport = getElementForViewport(element);
+      const elementCenterY = elementViewport.position.y + (elementViewport.size.height / 2);
+      const distance = Math.abs((draggedCenterY + offset) - elementCenterY);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        targetIndex = index;
+      }
+    });
+    
+    // Reordenar elementos se encontrou um alvo válido
+    if (targetIndex !== -1 && targetIndex !== draggedIndex) {
+      reorderElements(draggedIndex, targetIndex);
+    }
+    
+    resetDrag();
+  };
+
+  const resetDrag = () => {
+    setIsDragging(false);
+    setDraggedElementId(null);
+    setDragStartY(0);
+    setDragOffset(0);
+  };
+
+  const reorderElements = (fromIndex: number, toIndex: number) => {
+    const newElements = [...elements];
+    const [draggedElement] = newElements.splice(fromIndex, 1);
+    newElements.splice(toIndex, 0, draggedElement);
+    
+    // Recalcular posições Y para todos os elementos
+    const reorderedElements = newElements.map((element, index) => {
+      const viewportData = getElementForViewport(element);
+      let newY = 50; // Margem inicial
+      
+      // Calcular Y baseado na posição do elemento anterior
+      for (let i = 0; i < index; i++) {
+        const prevElement = newElements[i];
+        const prevViewport = getElementForViewport(prevElement);
+        newY = prevViewport.position.y + prevViewport.size.height + 20;
+      }
+      
+      return {
+        ...element,
+        position: { ...viewportData.position, y: newY },
+        responsive: {
+          ...element.responsive,
+          desktop: { ...viewportData, position: { ...viewportData.position, y: newY } },
+          tablet: { ...element.responsive.tablet, position: { ...element.responsive.tablet.position, y: newY } },
+          mobile: { ...element.responsive.mobile, position: { ...element.responsive.mobile.position, y: newY } }
+        }
+      };
+    });
+    
+    setElements(reorderedElements);
+    saveToHistory(reorderedElements);
+    toast.success('Elementos reordenados!');
+  };
+
   const handleElementDragStart = (elementType: string) => (e: React.DragEvent) => {
     e.dataTransfer.setData('elementType', elementType);
   };
@@ -379,32 +532,40 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/user-media', {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
         const result = await response.json();
+        console.log('📤 Upload result:', result);
         toast.success('Arquivo enviado com sucesso!');
+        
+        // Usar a URL completa da imagem
+        const imageUrl = result.url || result.path || result.filename;
+        console.log('🖼️ Image URL to use:', imageUrl);
         
         if (selectedElement && elements.find(e => e.id === selectedElement)?.type === 'background') {
           updateElement(selectedElement, {
-            content: { ...elements.find(e => e.id === selectedElement)?.content, image: result.url }
+            content: { ...elements.find(e => e.id === selectedElement)?.content, image: imageUrl }
           });
         } else if (selectedElement && elements.find(e => e.id === selectedElement)?.type === 'image') {
           updateElement(selectedElement, {
-            content: { ...elements.find(e => e.id === selectedElement)?.content, src: result.url }
+            content: { ...elements.find(e => e.id === selectedElement)?.content, src: imageUrl }
           });
         } else {
-          setBackground({ ...background, image: result.url });
+          setBackground({ ...background, image: imageUrl });
         }
         
         setShowUpload(false);
       } else {
+        const errorText = await response.text();
+        console.error('❌ Upload error:', errorText);
         toast.error('Erro ao enviar arquivo');
       }
     } catch (error) {
+      console.error('❌ Upload error:', error);
       toast.error('Erro ao enviar arquivo');
     } finally {
       setUploadingFile(false);
@@ -799,6 +960,56 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     setExpandedCategories(newExpanded);
   };
 
+  // Ordenar elementos por posição Y (de cima para baixo)
+  const getSortedElements = () => {
+    return [...elements].sort((a, b) => {
+      const aY = getElementForViewport(a).position.y;
+      const bY = getElementForViewport(b).position.y;
+      return aY - bY;
+    });
+  };
+
+  // Obter nome do elemento para exibição
+  const getElementDisplayName = (element: Element) => {
+    const viewportElement = getElementForViewport(element);
+    switch (viewportElement.type) {
+      case 'heading':
+        return `Título: ${viewportElement.content.text || 'Sem texto'}`;
+      case 'text':
+        return `Texto: ${viewportElement.content.text?.substring(0, 30) || 'Sem texto'}...`;
+      case 'button':
+        return `Botão: ${viewportElement.content.text || 'Sem texto'}`;
+      case 'image':
+        return viewportElement.content.src ? 'Imagem' : 'Imagem (sem arquivo)';
+      case 'video':
+        return viewportElement.content.src ? 'Vídeo' : 'Vídeo (sem arquivo)';
+      case 'html':
+        return 'HTML Personalizado';
+      case 'container':
+        return 'Container';
+      case 'column':
+        return 'Coluna';
+      case 'section':
+        return 'Seção';
+      case 'spacer':
+        return 'Espaçador';
+      case 'divider':
+        return 'Divisor';
+      case 'icon':
+        return 'Ícone';
+      case 'progress':
+        return 'Barra de Progresso';
+      case 'testimonial':
+        return `Depoimento: ${viewportElement.content.author || 'Sem autor'}`;
+      case 'accordion':
+        return 'Accordion';
+      case 'tabs':
+        return 'Abas';
+      default:
+        return `${viewportElement.type.charAt(0).toUpperCase() + viewportElement.type.slice(1)}`;
+    }
+  };
+
   const renderElement = (element: Element) => {
     const viewportElement = getElementForViewport(element);
     
@@ -1069,6 +1280,20 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           />
         );
       case 'icon':
+        const getIconEmoji = (iconType: string) => {
+          switch (iconType) {
+            case 'star': return '⭐';
+            case 'heart': return '❤️';
+            case 'check': return '✅';
+            case 'arrow': return '➡️';
+            case 'phone': return '📞';
+            case 'mail': return '✉️';
+            case 'location': return '📍';
+            case 'calendar': return '📅';
+            default: return '⭐';
+          }
+        };
+        
         return (
           <div style={{ 
             display: 'flex', 
@@ -1084,7 +1309,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             cursor: viewportElement.style?.cursor,
             transition: viewportElement.style?.transition
           }}>
-            ⭐
+            {getIconEmoji(viewportElement.content.icon)}
           </div>
         );
       case 'progress':
@@ -1237,37 +1462,41 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
   const { width, height } = getCanvasSize();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header Toolbar - Estilo Elementor */}
-      <div className="bg-white shadow-sm border-b h-16 flex items-center px-4">
-        <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
+      {/* Header Toolbar - Design Profissional */}
+      <div className="bg-white shadow-lg border-b border-slate-200 h-16 flex items-center px-6 backdrop-blur-sm bg-white/95">
+        <div className="flex items-center space-x-6">
           <button
             onClick={() => router.push('/admin')}
-            className="flex items-center text-gray-600 hover:text-red-600 transition-colors"
+            className="flex items-center px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-200"
           >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            Voltar
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            <span className="font-medium">Voltar</span>
           </button>
-          <h1 className="text-lg font-semibold text-gray-900">
-            {templateData.name}
-          </h1>
+          <div className="h-6 w-px bg-slate-200"></div>
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">
+              {templateData.name}
+            </h1>
+            <p className="text-xs text-slate-500">Editor Visual</p>
+          </div>
         </div>
         
-        <div className="flex-1 flex items-center justify-center space-x-2">
-          {/* Viewport Selector - Estilo Elementor */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+        <div className="flex-1 flex items-center justify-center">
+          {/* Viewport Selector - Design Profissional */}
+          <div className="flex bg-slate-100 rounded-xl p-1 shadow-inner">
             {[
-              { id: 'desktop', label: 'Desktop', icon: Monitor },
-              { id: 'tablet', label: 'Tablet', icon: Tablet },
-              { id: 'mobile', label: 'Mobile', icon: Smartphone }
-            ].map(({ id, label, icon: Icon }) => (
+              { id: 'desktop', label: 'Desktop', icon: Monitor, color: 'bg-blue-500' },
+              { id: 'tablet', label: 'Tablet', icon: Tablet, color: 'bg-purple-500' },
+              { id: 'mobile', label: 'Mobile', icon: Smartphone, color: 'bg-green-500' }
+            ].map(({ id, label, icon: Icon, color }) => (
               <button
                 key={id}
                 onClick={() => setActiveView(id as any)}
-                className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm transition-colors ${
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   activeView === id 
-                    ? 'bg-white text-red-600 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? `${color} text-white shadow-lg transform scale-105` 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -1277,52 +1506,67 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
+          {/* Outline/Estrutura */}
+          <button
+            onClick={() => setShowOutline(!showOutline)}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+              showOutline 
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Layers className="h-4 w-4" />
+            <span>Estrutura</span>
+          </button>
+          
           {/* Configuração do Fundo da Página */}
-          <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setSelectedElement(null)}
+            className="flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl font-medium transition-all duration-200"
+          >
+            <Palette className="h-4 w-4" />
+            <span>Fundo</span>
+          </button>
+          
+          {/* Undo/Redo */}
+          <div className="flex items-center space-x-1 bg-slate-100 rounded-xl p-1">
             <button
-              onClick={() => setSelectedElement(null)}
-              className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={() => {
+                if (historyIndex > 0) {
+                  setHistoryIndex(historyIndex - 1);
+                  setElements(history[historyIndex - 1]);
+                  toast.success('Desfeito!');
+                }
+              }}
+              disabled={historyIndex <= 0}
+              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              title="Desfazer"
             >
-              <Palette className="h-4 w-4" />
-              <span>Fundo da Página</span>
+              <Undo className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => {
+                if (historyIndex < history.length - 1) {
+                  setHistoryIndex(historyIndex + 1);
+                  setElements(history[historyIndex + 1]);
+                  toast.success('Refeito!');
+                }
+              }}
+              disabled={historyIndex >= history.length - 1}
+              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              title="Refazer"
+            >
+              <Redo className="h-4 w-4" />
             </button>
           </div>
           
-          {/* Undo/Redo */}
-          <button
-            onClick={() => {
-              if (historyIndex > 0) {
-                setHistoryIndex(historyIndex - 1);
-                setElements(history[historyIndex - 1]);
-                toast.success('Desfeito!');
-              }
-            }}
-            disabled={historyIndex <= 0}
-            className="p-2 text-gray-600 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Undo className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => {
-              if (historyIndex < history.length - 1) {
-                setHistoryIndex(historyIndex + 1);
-                setElements(history[historyIndex + 1]);
-                toast.success('Refeito!');
-              }
-            }}
-            disabled={historyIndex >= history.length - 1}
-            className="p-2 text-gray-600 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Redo className="h-4 w-4" />
-          </button>
-          
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
               showPreview 
-                ? 'bg-red-600 text-white' 
-                : 'text-gray-600 hover:text-red-600 hover:bg-gray-100'
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg transform scale-105' 
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Eye className="h-4 w-4" />
@@ -1331,7 +1575,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-xl font-medium hover:from-red-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             {saving ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -1344,39 +1588,166 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Estilo Elementor */}
-        <div className="w-80 bg-white border-r flex flex-col">
+        {/* Outline Panel - Estrutura dos Elementos */}
+        {showOutline && (
+          <div className="w-80 bg-white/95 backdrop-blur-sm border-r border-slate-200 flex flex-col shadow-xl">
+            <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Estrutura da Página</h3>
+                  <p className="text-sm text-slate-600 mt-1">
+                    {elements.length} elemento{elements.length !== 1 ? 's' : ''} na página
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowOutline(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-all duration-200"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {elements.length === 0 ? (
+                <div className="p-4 text-center text-gray-500">
+                  <Layers className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p>Nenhum elemento na página</p>
+                  <p className="text-sm">Adicione elementos para vê-los aqui</p>
+                </div>
+              ) : (
+                <div className="p-2">
+                  {getSortedElements().map((element, index) => {
+                    const viewportElement = getElementForViewport(element);
+                    const isSelected = selectedElement === element.id;
+                    
+                    return (
+                      <div
+                        key={element.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('elementId', element.id);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const draggedId = e.dataTransfer.getData('elementId');
+                          if (draggedId && draggedId !== element.id) {
+                            const draggedIndex = elements.findIndex(el => el.id === draggedId);
+                            const targetIndex = elements.findIndex(el => el.id === element.id);
+                            if (draggedIndex !== -1 && targetIndex !== -1) {
+                              reorderElements(draggedIndex, targetIndex);
+                            }
+                          }
+                        }}
+                        onClick={() => {
+                          setSelectedElement(element.id);
+                          setShowOutline(false);
+                        }}
+                        className={`p-4 mb-3 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md ${
+                          isSelected 
+                            ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg transform scale-105' 
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0 flex items-center space-x-2">
+                            <Move className="h-4 w-4 text-slate-400 hover:text-slate-600 cursor-grab" />
+                            <div className={`w-8 h-8 rounded flex items-center justify-center text-white text-xs font-medium ${
+                              ELEMENT_CATEGORIES
+                                .flatMap(cat => cat.elements)
+                                .find(el => el.id === element.type)?.color || 'bg-gray-500'
+                            }`}>
+                              {index + 1}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm font-medium text-gray-900 truncate">
+                                {getElementDisplayName(element)}
+                              </span>
+                              {isSelected && (
+                                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className="text-xs text-gray-500">
+                                {viewportElement.type.charAt(0).toUpperCase() + viewportElement.type.slice(1)}
+                              </span>
+                              <span className="text-xs text-gray-400">•</span>
+                              <span className="text-xs text-gray-500">
+                                {viewportElement.position.x}px, {viewportElement.position.y}px
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 flex items-center space-x-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                duplicateElement(element.id);
+                              }}
+                              className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                              title="Duplicar"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteElement(element.id);
+                              }}
+                              className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Left Sidebar - Design Profissional */}
+        {!showOutline && (
+          <div className="w-80 bg-white/95 backdrop-blur-sm border-r border-slate-200 flex flex-col shadow-xl">
           {/* Search */}
-          <div className="p-4 border-b">
+          <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Buscar Widget..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200"
               />
             </div>
           </div>
 
-          {/* Categories - Estilo Elementor */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Categories - Design Profissional */}
+          <div className="flex-1 overflow-y-auto p-2">
             {ELEMENT_CATEGORIES.map((category) => (
-              <div key={category.id} className="border-b">
+              <div key={category.id} className="mb-2">
                 <button
                   onClick={() => {
                     setActiveCategory(category.id);
                     toggleCategory(category.id);
                   }}
-                  className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors ${
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-all duration-200 rounded-xl ${
                     activeCategory === category.id 
-                      ? 'bg-red-50 text-red-600' 
-                      : 'text-gray-600 hover:text-red-600 hover:bg-gray-50'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg' 
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
-                  <div className="flex items-center space-x-2">
-                    <category.icon className="h-4 w-4" />
+                  <div className="flex items-center space-x-3">
+                    <category.icon className="h-5 w-5" />
                     <span>{category.name}</span>
                   </div>
                   {expandedCategories.has(category.id) ? (
@@ -1395,11 +1766,11 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                           onClick={() => addElement(element.id)}
                           draggable
                           onDragStart={handleElementDragStart(element.id)}
-                          className={`aspect-square rounded-lg text-white flex flex-col items-center justify-center space-y-2 hover:opacity-90 transition-all cursor-grab active:cursor-grabbing ${element.color} hover:scale-105`}
+                          className={`aspect-square rounded-xl text-white flex flex-col items-center justify-center space-y-2 hover:opacity-90 transition-all duration-200 cursor-grab active:cursor-grabbing ${element.color} hover:scale-105 hover:shadow-lg transform hover:rotate-1`}
                           title={element.description}
                         >
                           <element.icon className="h-6 w-6" />
-                          <span className="text-xs font-medium text-center leading-tight">{element.name}</span>
+                          <span className="text-xs font-semibold text-center leading-tight">{element.name}</span>
                         </button>
                       ))}
                     </div>
@@ -1408,21 +1779,21 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
               </div>
             ))}
           </div>
-        </div>
+        )}
 
         {/* Canvas Area */}
         <div className="flex-1 flex flex-col">
           {/* Canvas */}
-          <div className="flex-1 p-8 overflow-auto bg-gray-100">
+          <div className="flex-1 p-8 overflow-auto bg-gradient-to-br from-slate-100 to-slate-200">
             <div className="flex justify-center">
               <div 
-                className="relative bg-white shadow-2xl rounded-lg overflow-hidden"
+                className="relative bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200"
                 style={{ 
                   width: '100%', 
                   height: '100%',
                   minHeight: '100vh',
                   backgroundColor: background.type === 'color' ? background.value : '#ffffff',
-                  backgroundImage: background.type === 'image' ? `url('${background.image}')` : undefined,
+                  backgroundImage: background.type === 'image' && background.image ? `url('${background.image.startsWith('http') ? background.image : `${window.location.origin}${background.image}`}')` : undefined,
                   backgroundSize: background.type === 'image' ? 'cover' : 'auto',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat'
@@ -1430,34 +1801,89 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 onDrop={handleCanvasDrop}
                 onDragOver={handleCanvasDragOver}
               >
-                {elements.map((element) => {
+                {elements.map((element, index) => {
                   const viewportElement = getElementForViewport(element);
+                  const isDragged = draggedElementId === element.id;
+                  const dragStyle = isDragged ? {
+                    transform: `translateY(${dragOffset}px)`,
+                    zIndex: 1000,
+                    opacity: 0.8
+                  } : {};
+                  
+                  // Calcular se deve mostrar indicador de drop
+                  const shouldShowDropIndicator = isDragging && !isDragged && draggedElementId;
+                  const draggedElement = elements.find(el => el.id === draggedElementId);
+                  const draggedIndex = draggedElement ? elements.indexOf(draggedElement) : -1;
+                  
+                  // Mostrar indicador se o elemento atual está na posição de destino
+                  const isDropTarget = shouldShowDropIndicator && (
+                    (draggedIndex < index && dragOffset > 0) ||
+                    (draggedIndex > index && dragOffset < 0)
+                  );
+                  
                   return (
-                    <div
-                      key={element.id}
-                      className={`absolute cursor-pointer transition-all ${
-                        selectedElement === element.id ? 'ring-2 ring-red-500 ring-opacity-50' : ''
-                      }`}
-                      style={{
-                        left: viewportElement.position.x,
-                        top: viewportElement.position.y,
-                        width: viewportElement.size.width,
-                        height: viewportElement.size.height,
-                        zIndex: selectedElement === element.id ? 10 : 1
-                      }}
-                      onClick={() => setSelectedElement(element.id)}
-                    >
-                      {renderElement(element)}
+                    <div key={element.id}>
+                      {/* Drop Indicator */}
+                      {isDropTarget && (
+                        <div 
+                          className="absolute left-0 right-0 h-1 bg-blue-500 rounded-full shadow-lg"
+                          style={{
+                            top: viewportElement.position.y - 10,
+                            zIndex: 999
+                          }}
+                        />
+                      )}
+                      
+                      <div
+                        className={`absolute transition-all duration-200 hover:shadow-lg ${
+                          selectedElement === element.id 
+                            ? 'ring-4 ring-blue-500 ring-opacity-60 shadow-2xl transform scale-105' 
+                            : 'hover:shadow-md'
+                        } ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
+                        style={{
+                          left: viewportElement.position.x,
+                          top: viewportElement.position.y,
+                          width: viewportElement.size.width,
+                          height: viewportElement.size.height,
+                          zIndex: selectedElement === element.id ? 10 : 1,
+                          ...dragStyle
+                        }}
+                        onMouseDown={(e) => handleElementMouseDown(e, element.id)}
+                        onMouseMove={handleElementMouseMove}
+                        onMouseUp={handleElementMouseUp}
+                        onMouseLeave={() => {
+                          if (isDragging && draggedElementId === element.id) {
+                            resetDrag();
+                          }
+                        }}
+                        onClick={() => {
+                          if (!isDragging) {
+                            setSelectedElement(element.id);
+                          }
+                        }}
+                      >
+                        {/* Drag Handle */}
+                        {selectedElement === element.id && (
+                          <div className="absolute -top-8 left-0 flex items-center space-x-1 bg-blue-500 text-white px-2 py-1 rounded-lg text-xs font-medium shadow-lg">
+                            <Move className="h-3 w-3" />
+                            <span>Arrastar</span>
+                          </div>
+                        )}
+                        
+                        {renderElement(element)}
+                      </div>
                     </div>
                   );
                 })}
 
                 {elements.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                    <div className="text-center">
-                      <Plus className="h-12 w-12 mx-auto mb-4" />
-                      <p className="text-lg font-medium">Comece criando sua página</p>
-                      <p className="text-sm">Arraste elementos do painel lateral para o canvas</p>
+                  <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                    <div className="text-center p-8 bg-white/80 rounded-2xl shadow-lg border border-slate-200">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                        <Plus className="h-8 w-8 text-white" />
+                      </div>
+                      <p className="text-lg font-semibold text-slate-700 mb-2">Comece criando sua página</p>
+                      <p className="text-sm text-slate-500">Arraste elementos do painel lateral para o canvas</p>
                     </div>
                   </div>
                 )}
@@ -1467,23 +1893,26 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         </div>
 
         {/* Right Sidebar - Properties */}
-        <div className="w-80 bg-white border-l flex flex-col">
+        <div className="w-80 bg-white/95 backdrop-blur-sm border-l border-slate-200 flex flex-col shadow-xl">
           {selectedElementData ? (
             <>
-              <div className="p-4 border-b">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">Propriedades</h3>
+              <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Propriedades</h3>
+                  <p className="text-sm text-slate-600">{selectedElementData.type.charAt(0).toUpperCase() + selectedElementData.type.slice(1)}</p>
+                </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => duplicateElement(selectedElementData.id)}
-                    className="p-2 text-gray-400 hover:text-blue-500 transition-colors"
+                    className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
                     title="Duplicar"
                   >
                     <Copy className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => deleteElement(selectedElementData.id)}
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
                     title="Excluir"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -1492,63 +1921,76 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
               </div>
               
               {/* Toolbar de ações rápidas */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => {
-                    updateElement(selectedElementData.id, {
-                      position: { x: (width - selectedElementData.size.width) / 2, y: selectedElementData.position.y }
-                    });
-                    toast.success('Elemento centralizado!');
-                  }}
-                  className="p-2 text-gray-400 hover:text-green-500 transition-colors"
-                  title="Centralizar"
-                >
-                  <AlignCenter className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    updateElement(selectedElementData.id, {
-                      position: { x: width - selectedElementData.size.width, y: selectedElementData.position.y }
-                    });
-                    toast.success('Elemento alinhado à direita!');
-                  }}
-                  className="p-2 text-gray-400 hover:text-purple-500 transition-colors"
-                  title="Alinhar à direita"
-                >
-                  <AlignRight className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    updateElement(selectedElementData.id, {
-                      position: { x: 0, y: selectedElementData.position.y }
-                    });
-                    toast.success('Elemento alinhado à esquerda!');
-                  }}
-                  className="p-2 text-gray-400 hover:text-orange-500 transition-colors"
-                  title="Alinhar à esquerda"
-                >
-                  <AlignLeft className="h-4 w-4" />
-                </button>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2 bg-slate-100 rounded-xl p-2">
+                  <button
+                    onClick={() => {
+                      updateElement(selectedElementData.id, {
+                        position: { x: (width - selectedElementData.size.width) / 2, y: selectedElementData.position.y }
+                      });
+                      toast.success('Elemento centralizado!');
+                    }}
+                    className="p-2 text-slate-400 hover:text-green-500 hover:bg-white rounded-lg transition-all duration-200"
+                    title="Centralizar"
+                  >
+                    <AlignCenter className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      updateElement(selectedElementData.id, {
+                        position: { x: width - selectedElementData.size.width, y: selectedElementData.position.y }
+                      });
+                      toast.success('Elemento alinhado à direita!');
+                    }}
+                    className="p-2 text-slate-400 hover:text-purple-500 hover:bg-white rounded-lg transition-all duration-200"
+                    title="Alinhar à direita"
+                  >
+                    <AlignRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      updateElement(selectedElementData.id, {
+                        position: { x: 0, y: selectedElementData.position.y }
+                      });
+                      toast.success('Elemento alinhado à esquerda!');
+                    }}
+                    className="p-2 text-slate-400 hover:text-orange-500 hover:bg-white rounded-lg transition-all duration-200"
+                    title="Alinhar à esquerda"
+                  >
+                    <AlignLeft className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                {/* Dica de Drag & Drop */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                  <div className="flex items-center space-x-2">
+                    <Move className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium text-blue-700">Reordenar</span>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Clique e arraste o elemento para reordenar na página
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 p-4 overflow-y-auto">
+            <div className="flex-1 p-6 overflow-y-auto">
               {/* Controles de Responsividade */}
-              <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Responsividade</h4>
+              <div className="mb-6 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                <h4 className="text-sm font-semibold text-slate-700 mb-3">Responsividade</h4>
                 <div className="flex space-x-2">
                   {[
-                    { id: 'desktop', label: 'Desktop', icon: Monitor },
-                    { id: 'tablet', label: 'Tablet', icon: Tablet },
-                    { id: 'mobile', label: 'Mobile', icon: Smartphone }
-                  ].map(({ id, label, icon: Icon }) => (
+                    { id: 'desktop', label: 'Desktop', icon: Monitor, color: 'bg-blue-500' },
+                    { id: 'tablet', label: 'Tablet', icon: Tablet, color: 'bg-purple-500' },
+                    { id: 'mobile', label: 'Mobile', icon: Smartphone, color: 'bg-green-500' }
+                  ].map(({ id, label, icon: Icon, color }) => (
                     <button
                       key={id}
                       onClick={() => setActiveView(id as any)}
-                      className={`flex-1 flex items-center justify-center space-x-1 px-2 py-2 rounded-md text-xs transition-colors ${
+                      className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                         activeView === id
-                          ? 'bg-red-600 text-white'
-                          : 'bg-white text-gray-600 border border-gray-300 hover:border-red-500'
+                          ? `${color} text-white shadow-lg transform scale-105`
+                          : 'bg-white text-slate-600 border border-slate-300 hover:border-slate-400 hover:bg-slate-50'
                       }`}
                     >
                       <Icon className="h-3 w-3" />
@@ -1556,14 +1998,14 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-slate-500 mt-3">
                   Edite as propriedades para cada dispositivo individualmente
                 </p>
               </div>
 
               {/* Propriedades de Posição e Tamanho */}
-              <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">
+              <div className="mb-6 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                <h4 className="text-sm font-semibold text-slate-700 mb-4">
                   Posição e Tamanho - {activeView.charAt(0).toUpperCase() + activeView.slice(1)}
                 </h4>
                 {(() => {
@@ -1571,47 +2013,47 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                   return (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">X</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-2">X</label>
                         <input
                           type="number"
                           value={viewportData.position.x}
                           onChange={(e) => updateElement(selectedElementData.id, {
                             position: { ...viewportData.position, x: parseInt(e.target.value) || 0 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Y</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-2">Y</label>
                         <input
                           type="number"
                           value={viewportData.position.y}
                           onChange={(e) => updateElement(selectedElementData.id, {
                             position: { ...viewportData.position, y: parseInt(e.target.value) || 0 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Largura</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-2">Largura</label>
                         <input
                           type="number"
                           value={viewportData.size.width}
                           onChange={(e) => updateElement(selectedElementData.id, {
                             size: { ...viewportData.size, width: parseInt(e.target.value) || 100 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Altura</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-2">Altura</label>
                         <input
                           type="number"
                           value={viewportData.size.height}
                           onChange={(e) => updateElement(selectedElementData.id, {
                             size: { ...viewportData.size, height: parseInt(e.target.value) || 100 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
                         />
                       </div>
                     </div>
@@ -1988,6 +2430,240 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 </div>
               )}
 
+              {/* Propriedades do Divisor */}
+              {selectedElementData.type === 'divider' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Altura da Linha</label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.height}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, height: parseInt(e.target.value) }
+                      })}
+                      className="w-full"
+                    />
+                    <div className="text-sm text-gray-600">
+                      {getElementDataForCurrentViewport(selectedElementData).content.height}px
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Cor da Linha</label>
+                    <input
+                      type="color"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.backgroundColor}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, backgroundColor: e.target.value }
+                      })}
+                      className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Estilo da Linha</label>
+                    <select
+                      value={getElementDataForCurrentViewport(selectedElementData).content.style}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, style: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                      <option value="solid">Sólida</option>
+                      <option value="dashed">Tracejada</option>
+                      <option value="dotted">Pontilhada</option>
+                      <option value="double">Dupla</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Margem Superior</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.marginTop}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, marginTop: parseInt(e.target.value) }
+                      })}
+                      className="w-full"
+                    />
+                    <div className="text-sm text-gray-600">
+                      {getElementDataForCurrentViewport(selectedElementData).content.marginTop}px
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Margem Inferior</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.marginBottom}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, marginBottom: parseInt(e.target.value) }
+                      })}
+                      className="w-full"
+                    />
+                    <div className="text-sm text-gray-600">
+                      {getElementDataForCurrentViewport(selectedElementData).content.marginBottom}px
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Propriedades do Espaçador */}
+              {selectedElementData.type === 'spacer' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Altura do Espaço</label>
+                    <input
+                      type="range"
+                      min="10"
+                      max="200"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.height}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, height: parseInt(e.target.value) }
+                      })}
+                      className="w-full"
+                    />
+                    <div className="text-sm text-gray-600">
+                      {getElementDataForCurrentViewport(selectedElementData).content.height}px
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Cor de Fundo (Opcional)</label>
+                    <input
+                      type="color"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.backgroundColor}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, backgroundColor: e.target.value }
+                      })}
+                      className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      Deixe transparente para um espaçador invisível
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Propriedades do Ícone */}
+              {selectedElementData.type === 'icon' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ícone</label>
+                    <select
+                      value={getElementDataForCurrentViewport(selectedElementData).content.icon}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, icon: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                      <option value="star">⭐ Estrela</option>
+                      <option value="heart">❤️ Coração</option>
+                      <option value="check">✅ Check</option>
+                      <option value="arrow">➡️ Seta</option>
+                      <option value="phone">📞 Telefone</option>
+                      <option value="mail">✉️ Email</option>
+                      <option value="location">📍 Localização</option>
+                      <option value="calendar">📅 Calendário</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tamanho do Ícone</label>
+                    <input
+                      type="range"
+                      min="16"
+                      max="64"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.size}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, size: parseInt(e.target.value) }
+                      })}
+                      className="w-full"
+                    />
+                    <div className="text-sm text-gray-600">
+                      {getElementDataForCurrentViewport(selectedElementData).content.size}px
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Cor do Ícone</label>
+                    <input
+                      type="color"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.color}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, color: e.target.value }
+                      })}
+                      className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Cor de Fundo</label>
+                    <input
+                      type="color"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.backgroundColor}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, backgroundColor: e.target.value }
+                      })}
+                      className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Padding</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="20"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.padding}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, padding: parseInt(e.target.value) }
+                      })}
+                      className="w-full"
+                    />
+                    <div className="text-sm text-gray-600">
+                      {getElementDataForCurrentViewport(selectedElementData).content.padding}px
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Borda Arredondada</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="20"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.borderRadius}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, borderRadius: parseInt(e.target.value) }
+                      })}
+                      className="w-full"
+                    />
+                    <div className="text-sm text-gray-600">
+                      {getElementDataForCurrentViewport(selectedElementData).content.borderRadius}px
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Link (Opcional)</label>
+                    <input
+                      type="url"
+                      value={getElementDataForCurrentViewport(selectedElementData).content.link}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, link: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Propriedades do Fundo */}
               {selectedElementData.type === 'background' && (
                 <div className="space-y-4">
@@ -2064,16 +2740,19 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           ) : (
             /* Painel de Configuração do Fundo da Página */
             <div>
-              <div className="p-4 border-b">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-900">Fundo da Página</h3>
+              <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Fundo da Página</h3>
+                    <p className="text-sm text-slate-600">Configure o fundo global da página</p>
+                  </div>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => {
                         setBackground({ type: 'color', value: '#ffffff', image: '' });
                         toast.success('Fundo resetado!');
                       }}
-                      className="p-2 text-gray-400 hover:text-blue-500 transition-colors"
+                      className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
                       title="Resetar"
                     >
                       <RotateCw className="h-4 w-4" />
@@ -2082,14 +2761,14 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-              <div className="flex-1 p-4 overflow-y-auto">
-                <div className="space-y-4">
+              <div className="flex-1 p-6 overflow-y-auto">
+                <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Fundo</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">Tipo de Fundo</label>
                     <select
                       value={background.type}
                       onChange={(e) => setBackground({ ...background, type: e.target.value as 'color' | 'image' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
                     >
                       <option value="color">Cor Sólida</option>
                       <option value="image">Imagem</option>
@@ -2098,46 +2777,50 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                   
                   {background.type === 'color' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Cor de Fundo</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-3">Cor de Fundo</label>
                       <input
                         type="color"
                         value={background.value}
                         onChange={(e) => setBackground({ ...background, value: e.target.value })}
-                        className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        className="w-full h-12 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
                       />
-                      <div className="mt-2 text-sm text-gray-600">
-                        Cor atual: {background.value}
+                      <div className="mt-3 text-sm text-slate-600 bg-slate-100 px-3 py-2 rounded-lg">
+                        <strong>Cor atual:</strong> {background.value}
                       </div>
                     </div>
                   )}
                   
                   {background.type === 'image' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Imagem de Fundo</label>
-                      <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-3">Imagem de Fundo</label>
+                      <div className="space-y-3">
                         <input
                           type="url"
                           value={background.image}
                           onChange={(e) => setBackground({ ...background, image: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
                           placeholder="https://..."
                         />
                         <button
                           onClick={() => setShowUpload(true)}
-                          className="w-full flex items-center justify-center space-x-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
+                          className="w-full flex items-center justify-center space-x-3 px-6 py-4 border-2 border-dashed border-slate-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-slate-600 hover:text-blue-600"
                         >
-                          <Upload className="h-4 w-4" />
-                          <span>Fazer Upload</span>
+                          <Upload className="h-5 w-5" />
+                          <span className="font-medium">Fazer Upload</span>
                         </button>
                       </div>
                       {background.image && (
-                        <div className="mt-2">
+                        <div className="mt-4">
                           <img 
-                            src={background.image} 
+                            src={background.image.startsWith('http') ? background.image : `${window.location.origin}${background.image}`}
                             alt="Preview do fundo" 
-                            className="w-full h-24 object-cover rounded border"
+                            className="w-full h-32 object-cover rounded-xl border border-slate-200 shadow-sm"
                             onError={(e) => {
+                              console.error('❌ Image load error:', e);
                               (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                            onLoad={() => {
+                              console.log('✅ Image loaded successfully');
                             }}
                           />
                         </div>
@@ -2153,25 +2836,28 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
 
       {/* Modal de Preview */}
       {showPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-6xl h-full max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">Preview - {templateData.name}</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl h-full max-h-[95vh] flex flex-col border border-slate-200">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Preview - {templateData.name}</h3>
+                <p className="text-sm text-slate-600">Visualização em tempo real</p>
+              </div>
               <div className="flex items-center space-x-4">
                 {/* Viewport Selector no Preview */}
-                <div className="flex bg-gray-100 rounded-lg p-1">
+                <div className="flex bg-slate-100 rounded-xl p-1 shadow-inner">
                   {[
-                    { id: 'desktop', label: 'Desktop', icon: Monitor },
-                    { id: 'tablet', label: 'Tablet', icon: Tablet },
-                    { id: 'mobile', label: 'Mobile', icon: Smartphone }
-                  ].map(({ id, label, icon: Icon }) => (
+                    { id: 'desktop', label: 'Desktop', icon: Monitor, color: 'bg-blue-500' },
+                    { id: 'tablet', label: 'Tablet', icon: Tablet, color: 'bg-purple-500' },
+                    { id: 'mobile', label: 'Mobile', icon: Smartphone, color: 'bg-green-500' }
+                  ].map(({ id, label, icon: Icon, color }) => (
                     <button
                       key={id}
                       onClick={() => setActiveView(id as any)}
-                      className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm transition-colors ${
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                         activeView === id 
-                          ? 'bg-white text-red-600 shadow-sm' 
-                          : 'text-gray-600 hover:text-gray-900'
+                          ? `${color} text-white shadow-lg transform scale-105` 
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                       }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -2181,17 +2867,17 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 </div>
                 <button
                   onClick={() => setShowPreview(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-all duration-200"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
             </div>
             
-            <div className="flex-1 overflow-auto p-8 bg-gray-100">
+            <div className="flex-1 overflow-auto p-8 bg-gradient-to-br from-slate-100 to-slate-200">
               <div className="flex justify-center">
                 <div 
-                  className="relative bg-white shadow-2xl rounded-lg overflow-hidden"
+                  className="relative bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200"
                   style={{ 
                     width: '100%', 
                     height: '100%',
@@ -2240,13 +2926,16 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
 
       {/* Modal de Upload */}
       {showUpload && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Fazer Upload</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-96 max-w-md border border-slate-200">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-2xl">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Fazer Upload</h3>
+                <p className="text-sm text-slate-600">Envie imagens ou vídeos</p>
+              </div>
               <button
                 onClick={() => setShowUpload(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-all duration-200"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -2269,19 +2958,28 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingFile}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center space-x-3 px-6 py-4 border-2 border-dashed border-slate-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 disabled:opacity-50 text-slate-600 hover:text-blue-600 group"
               >
                 {uploadingFile ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  </div>
                 ) : (
-                  <Upload className="h-5 w-5" />
+                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <Upload className="h-4 w-4 text-white" />
+                  </div>
                 )}
-                <span>{uploadingFile ? 'Enviando...' : 'Selecionar Arquivo'}</span>
+                <span className="font-medium">{uploadingFile ? 'Enviando...' : 'Selecionar Arquivo'}</span>
               </button>
               
-              <p className="text-sm text-gray-500 text-center">
-                Formatos suportados: JPG, PNG, GIF, WebP, MP4, WebM
-              </p>
+              <div className="bg-slate-100 rounded-xl p-4 text-center">
+                <p className="text-sm text-slate-600 font-medium">
+                  Formatos suportados: JPG, PNG, GIF, WebP, MP4, WebM
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Tamanho máximo: 10MB
+                </p>
+              </div>
             </div>
           </div>
         </div>
