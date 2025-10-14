@@ -90,7 +90,7 @@ interface Element {
   };
 }
 
-// Categorias completas do Elementor
+// Categorias simplificadas conforme solicitado
 const ELEMENT_CATEGORIES = [
   {
     id: 'basic',
@@ -105,10 +105,8 @@ const ELEMENT_CATEGORIES = [
       { id: 'divider', name: 'Divisor', icon: Layout, color: 'bg-gray-500', description: 'Linha divisória' },
       { id: 'spacer', name: 'Espaçador', icon: Layout, color: 'bg-slate-500', description: 'Espaço em branco' },
       { id: 'icon', name: 'Ícone', icon: Star, color: 'bg-yellow-500', description: 'Ícones vetoriais' },
-      { id: 'maps', name: 'Google Maps', icon: MapPin, color: 'bg-indigo-500', description: 'Mapas integrados' },
-      { id: 'counter', name: 'Contador', icon: TrendingUp, color: 'bg-emerald-500', description: 'Números animados' },
       { id: 'progress', name: 'Barra de Progresso', icon: Target, color: 'bg-teal-500', description: 'Indicador de progresso' },
-      { id: 'testimonial', name: 'Depoimento', icon: Users, color: 'bg-cyan-500', description: 'Avaliações de clientes' },
+      { id: 'testimonial', name: 'Depoimento', icon: Users, color: 'bg-cyan-500', description: 'Avaliações com sistema de estrelas' },
     ]
   },
   {
@@ -129,9 +127,6 @@ const ELEMENT_CATEGORIES = [
     icon: Code,
     elements: [
       { id: 'html', name: 'HTML', icon: Code, color: 'bg-gray-700', description: 'Código HTML customizado' },
-      { id: 'background', name: 'Fundo', icon: Palette, color: 'bg-pink-500', description: 'Cor ou imagem de fundo' },
-      { id: 'social', name: 'Redes Sociais', icon: Share, color: 'bg-blue-600', description: 'Ícones de redes sociais' },
-      { id: 'contact', name: 'Contato', icon: Phone, color: 'bg-green-600', description: 'Formulário de contato' },
     ]
   }
 ];
@@ -177,17 +172,45 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     }
   }, [session, params.id]);
 
+  // Monitorar mudanças nos elementos para debug
+  useEffect(() => {
+    console.log('🔍 Elements state changed:', elements);
+    console.log('📊 Elements count:', elements.length);
+  }, [elements]);
+
+  // Auto-save periódico para evitar perda de dados
+  useEffect(() => {
+    if (elements.length > 0 && !loading) {
+      const autoSaveTimer = setTimeout(() => {
+        console.log('🔄 Auto-save triggered');
+        handleSave();
+      }, 30000); // Auto-save a cada 30 segundos
+
+      return () => clearTimeout(autoSaveTimer);
+    }
+  }, [elements, loading]);
+
   const fetchTemplate = async () => {
     try {
       const response = await fetch(`/api/admin/templates/${params.id}`);
       if (response.ok) {
         const templateData = await response.json();
         setTemplateData(templateData);
-        if (!templateData.content.elements) {
-          setElements([]);
-        } else {
-          setElements(templateData.content.elements);
-          saveToHistory(templateData.content.elements);
+        
+        // Garantir que os elementos sempre existam
+        const templateElements = templateData.content?.elements || [];
+        console.log('📥 Elementos carregados do template:', templateElements);
+        
+        // Garantir que o background sempre existe
+        const templateBackground = templateData.content?.background || { type: 'color', value: '#ffffff', image: '' };
+        console.log('🎨 Background carregado do template:', templateBackground);
+        
+        setElements(templateElements);
+        setBackground(templateBackground);
+        
+        // Inicializar histórico apenas se houver elementos
+        if (templateElements.length > 0) {
+          saveToHistory(templateElements);
         }
       } else {
         console.error('Erro ao carregar template');
@@ -202,8 +225,11 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
   };
 
   const saveToHistory = (newElements: Element[]) => {
+    console.log('💾 Salvando no histórico:', newElements);
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newElements);
+    // Criar uma cópia profunda dos elementos para evitar referências
+    const elementsCopy = JSON.parse(JSON.stringify(newElements));
+    newHistory.push(elementsCopy);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -256,6 +282,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
 
   const addElement = (type: string) => {
     console.log('🎯 addElement called with type:', type);
+    console.log('📊 Current elements count:', elements.length);
     
     const defaultSize = getDefaultSize(type);
     console.log('📏 Default size:', defaultSize);
@@ -267,7 +294,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     console.log('📍 Element Y position:', elementY);
     
     const newElement: Element = {
-      id: `element_${Date.now()}`,
+      id: `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: type,
       content: getDefaultContent(type),
       position: { x: centeredX, y: elementY },
@@ -283,6 +310,8 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     console.log('✨ New element created:', newElement);
     
     const newElements = [...elements, newElement];
+    console.log('📋 New elements array:', newElements);
+    
     setElements(newElements);
     setSelectedElement(newElement.id);
     saveToHistory(newElements);
@@ -314,7 +343,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
     console.log('📍 Centered drop position:', { centeredX, centeredY });
 
     const newElement: Element = {
-      id: `element_${Date.now()}`,
+      id: `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: elementType,
       content: getDefaultContent(elementType),
       position: { x: centeredX, y: centeredY },
@@ -496,16 +525,8 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         };
       case 'html':
         return { 
-          html: '<div style="padding: 20px; background: #f3f4f6; border-radius: 8px;">HTML personalizado</div>' 
-        };
-      case 'background':
-        return { 
-          type: 'color', 
-          value: '#667eea', 
-          image: '',
-          repeat: 'no-repeat',
-          position: 'center',
-          size: 'cover'
+          html: '<div style="padding: 20px; background: #f3f4f6; border-radius: 8px;">HTML personalizado</div>',
+          isEditing: false
         };
       case 'divider':
         return { 
@@ -526,28 +547,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           borderRadius: 0,
           link: '',
           target: '_self'
-        };
-      case 'maps':
-        return { 
-          address: '', 
-          zoom: 15, 
-          height: 300,
-          width: '100%',
-          mapType: 'roadmap',
-          showControls: true
-        };
-      case 'counter':
-        return {
-          number: 100,
-          suffix: '',
-          prefix: '',
-          duration: 2000,
-          color: '#3b82f6',
-          fontSize: 48,
-          fontWeight: 'bold',
-          title: 'Contador',
-          titleColor: '#374151',
-          titleFontSize: 16
         };
       case 'progress':
         return {
@@ -595,25 +594,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           contentColor: '#374151',
           activeColor: '#3b82f6'
         };
-      case 'social':
-        return {
-          platforms: ['facebook', 'twitter', 'instagram', 'linkedin'],
-          size: 32,
-          color: '#3b82f6',
-          backgroundColor: 'transparent',
-          borderRadius: 0,
-          spacing: 10
-        };
-      case 'contact':
-        return {
-          title: 'Entre em Contato',
-          fields: ['name', 'email', 'message'],
-          buttonText: 'Enviar',
-          backgroundColor: '#ffffff',
-          textColor: '#374151',
-          buttonColor: '#3b82f6',
-          buttonTextColor: '#ffffff'
-        };
       default:
         return {};
     }
@@ -643,16 +623,10 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         return { width: Math.min(100, canvasWidth - 40), height: 50 };
       case 'html':
         return { width: Math.min(300, canvasWidth - 40), height: 100 };
-      case 'background':
-        return { width: Math.min(200, canvasWidth - 40), height: 50 };
       case 'divider':
         return { width: Math.min(400, canvasWidth - 40), height: 2 };
       case 'icon':
         return { width: 48, height: 48 };
-      case 'maps':
-        return { width: Math.min(400, canvasWidth - 40), height: 300 };
-      case 'counter':
-        return { width: Math.min(200, canvasWidth - 40), height: 100 };
       case 'progress':
         return { width: Math.min(300, canvasWidth - 40), height: 40 };
       case 'testimonial':
@@ -661,10 +635,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         return { width: Math.min(400, canvasWidth - 40), height: 150 };
       case 'tabs':
         return { width: Math.min(400, canvasWidth - 40), height: 200 };
-      case 'social':
-        return { width: Math.min(200, canvasWidth - 40), height: 50 };
-      case 'contact':
-        return { width: Math.min(350, canvasWidth - 40), height: 300 };
       default:
         return { width: Math.min(200, canvasWidth - 40), height: 50 };
     }
@@ -783,13 +753,21 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
   };
 
   const getElementForViewport = (element: Element) => {
-    if (element.responsive?.[activeView as keyof typeof element.responsive]) {
-      const viewportData = element.responsive[activeView as keyof typeof element.responsive];
+    // Garantir que o objeto responsive sempre existe
+    const responsive = element.responsive || {
+      desktop: { position: element.position, size: element.size, content: element.content },
+      tablet: { position: element.position, size: element.size, content: element.content },
+      mobile: { position: element.position, size: element.size, content: element.content }
+    };
+    
+    const viewportData = responsive[activeView as keyof typeof responsive];
+    if (viewportData) {
       return {
         ...element,
-        position: viewportData?.position || element.position,
-        size: viewportData?.size || element.size,
-        content: viewportData?.content || element.content
+        position: viewportData.position || element.position,
+        size: viewportData.size || element.size,
+        content: viewportData.content || element.content,
+        responsive: responsive
       };
     }
     return element;
@@ -1024,7 +1002,59 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           />
         );
       case 'html':
-        return <div dangerouslySetInnerHTML={{ __html: viewportElement.content.html }} />;
+        return (
+          <div 
+            style={{
+              width: '100%',
+              height: '100%',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '10px',
+              backgroundColor: '#f9fafb',
+              overflow: 'auto'
+            }}
+          >
+            {viewportElement.content.isEditing ? (
+              <textarea
+                value={viewportElement.content.html}
+                onChange={(e) => {
+                  if (selectedElement === element.id) {
+                    updateElement(element.id, {
+                      content: { ...viewportElement.content, html: e.target.value }
+                    });
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  outline: 'none',
+                  backgroundColor: 'transparent',
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  resize: 'none'
+                }}
+                onBlur={() => {
+                  updateElement(element.id, {
+                    content: { ...viewportElement.content, isEditing: false }
+                  });
+                }}
+                autoFocus
+              />
+            ) : (
+              <div
+                style={{ cursor: 'pointer', minHeight: '50px' }}
+                onClick={() => {
+                  setSelectedElement(element.id);
+                  updateElement(element.id, {
+                    content: { ...viewportElement.content, isEditing: true }
+                  });
+                }}
+                dangerouslySetInnerHTML={{ __html: viewportElement.content.html }}
+              />
+            )}
+          </div>
+        );
       case 'divider':
         return (
           <div 
@@ -1055,56 +1085,6 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             transition: viewportElement.style?.transition
           }}>
             ⭐
-          </div>
-        );
-      case 'maps':
-        return (
-          <div style={{ 
-            width: viewportElement.content.width || '100%', 
-            height: '100%', 
-            backgroundColor: '#f3f4f6', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            border: '2px dashed #d1d5db',
-            borderRadius: '8px'
-          }}>
-            <div style={{ textAlign: 'center', color: '#6b7280' }}>
-              <MapPin className="h-8 w-8 mx-auto mb-2" style={{ display: 'block' }} />
-              <span>Google Maps</span>
-              {viewportElement.content.address && (
-                <div className="text-sm mt-1">{viewportElement.content.address}</div>
-              )}
-            </div>
-          </div>
-        );
-      case 'counter':
-        return (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center', 
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              fontSize: viewportElement.content.fontSize + 'px',
-              fontWeight: viewportElement.content.fontWeight,
-              color: viewportElement.content.color,
-              marginBottom: '8px'
-            }}>
-              {viewportElement.content.prefix}{viewportElement.content.number}{viewportElement.content.suffix}
-            </div>
-            {viewportElement.content.title && (
-              <div style={{
-                fontSize: viewportElement.content.titleFontSize + 'px',
-                color: viewportElement.content.titleColor
-              }}>
-                {viewportElement.content.title}
-              </div>
-            )}
           </div>
         );
       case 'progress':
@@ -1298,6 +1278,17 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         </div>
 
         <div className="flex items-center space-x-3">
+          {/* Configuração do Fundo da Página */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setSelectedElement(null)}
+              className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Palette className="h-4 w-4" />
+              <span>Fundo da Página</span>
+            </button>
+          </div>
+          
           {/* Undo/Redo */}
           <button
             onClick={() => {
@@ -1427,13 +1418,14 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
               <div 
                 className="relative bg-white shadow-2xl rounded-lg overflow-hidden"
                 style={{ 
-                  width, 
-                  height, 
-                  minHeight: height,
+                  width: '100%', 
+                  height: '100%',
+                  minHeight: '100vh',
                   backgroundColor: background.type === 'color' ? background.value : '#ffffff',
                   backgroundImage: background.type === 'image' ? `url('${background.image}')` : undefined,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
+                  backgroundSize: background.type === 'image' ? 'cover' : 'auto',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
                 }}
                 onDrop={handleCanvasDrop}
                 onDragOver={handleCanvasDragOver}
@@ -1475,9 +1467,10 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
         </div>
 
         {/* Right Sidebar - Properties */}
-        {selectedElementData && (
-          <div className="w-80 bg-white border-l flex flex-col">
-            <div className="p-4 border-b">
+        <div className="w-80 bg-white border-l flex flex-col">
+          {selectedElementData ? (
+            <>
+              <div className="p-4 border-b">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold text-gray-900">Propriedades</h3>
                 <div className="flex items-center space-x-2">
@@ -1972,6 +1965,29 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 </div>
               )}
 
+              {/* Propriedades do HTML */}
+              {selectedElementData.type === 'html' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Código HTML</label>
+                    <textarea
+                      value={getElementDataForCurrentViewport(selectedElementData).content.html}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...getElementDataForCurrentViewport(selectedElementData).content, html: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      rows={8}
+                      placeholder="Digite o código HTML..."
+                      style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                    />
+                  </div>
+                  
+                  <div className="text-sm text-gray-500">
+                    <p>💡 Dica: Use CSS inline para estilização ou adicione classes CSS personalizadas.</p>
+                  </div>
+                </div>
+              )}
+
               {/* Propriedades do Fundo */}
               {selectedElementData.type === 'background' && (
                 <div className="space-y-4">
@@ -2043,9 +2059,96 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                   )}
                 </div>
               )}
+              </div>
+            </>
+          ) : (
+            /* Painel de Configuração do Fundo da Página */
+            <div>
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900">Fundo da Página</h3>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => {
+                        setBackground({ type: 'color', value: '#ffffff', image: '' });
+                        toast.success('Fundo resetado!');
+                      }}
+                      className="p-2 text-gray-400 hover:text-blue-500 transition-colors"
+                      title="Resetar"
+                    >
+                      <RotateCw className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 p-4 overflow-y-auto">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Fundo</label>
+                    <select
+                      value={background.type}
+                      onChange={(e) => setBackground({ ...background, type: e.target.value as 'color' | 'image' })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                      <option value="color">Cor Sólida</option>
+                      <option value="image">Imagem</option>
+                    </select>
+                  </div>
+                  
+                  {background.type === 'color' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Cor de Fundo</label>
+                      <input
+                        type="color"
+                        value={background.value}
+                        onChange={(e) => setBackground({ ...background, value: e.target.value })}
+                        className="w-full h-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      />
+                      <div className="mt-2 text-sm text-gray-600">
+                        Cor atual: {background.value}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {background.type === 'image' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Imagem de Fundo</label>
+                      <div className="space-y-2">
+                        <input
+                          type="url"
+                          value={background.image}
+                          onChange={(e) => setBackground({ ...background, image: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          placeholder="https://..."
+                        />
+                        <button
+                          onClick={() => setShowUpload(true)}
+                          className="w-full flex items-center justify-center space-x-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
+                        >
+                          <Upload className="h-4 w-4" />
+                          <span>Fazer Upload</span>
+                        </button>
+                      </div>
+                      {background.image && (
+                        <div className="mt-2">
+                          <img 
+                            src={background.image} 
+                            alt="Preview do fundo" 
+                            className="w-full h-24 object-cover rounded border"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Modal de Preview */}
@@ -2090,13 +2193,14 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 <div 
                   className="relative bg-white shadow-2xl rounded-lg overflow-hidden"
                   style={{ 
-                    width: getCanvasSize().width, 
-                    height: getCanvasSize().height,
-                    minHeight: getCanvasSize().height,
+                    width: '100%', 
+                    height: '100%',
+                    minHeight: '100vh',
                     backgroundColor: background.type === 'color' ? background.value : '#ffffff',
                     backgroundImage: background.type === 'image' ? `url('${background.image}')` : undefined,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
+                    backgroundSize: background.type === 'image' ? 'cover' : 'auto',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
                   }}
                 >
                   {elements.map((element) => {
