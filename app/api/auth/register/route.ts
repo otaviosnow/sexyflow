@@ -58,11 +58,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar usuário
+    // Em desenvolvimento local, todos os usuários são admin
+    const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
+    
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password: hashedPassword,
       subdomain,
+      role: isLocalDev ? 'ADMIN' : 'USER', // Admin em desenvolvimento local
     });
 
     // Enviar email de boas-vindas
@@ -74,12 +78,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Usuário criado com sucesso',
+      message: isLocalDev ? 'Usuário admin criado com sucesso (desenvolvimento local)' : 'Usuário criado com sucesso',
       user: {
         id: user._id.toString(),
         name: user.name,
         email: user.email,
         subdomain: user.subdomain,
+        role: user.role,
       }
     });
 
