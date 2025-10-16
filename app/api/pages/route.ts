@@ -64,6 +64,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
+    // Em desenvolvimento local, retornar páginas mock
+    const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
+    
+    if (isLocalDev) {
+      const mockPages = [
+        {
+          _id: 'page-1',
+          title: 'Página Presell',
+          type: 'presell',
+          slug: 'presell-exemplo',
+          description: 'Página de presell de exemplo',
+          content: getDefaultContent('presell'),
+          isPublished: true,
+          userId: session.user.id,
+          createdAt: new Date().toISOString()
+        },
+        {
+          _id: 'page-2',
+          title: 'Página Preview',
+          type: 'preview',
+          slug: 'preview-exemplo',
+          description: 'Página de preview de exemplo',
+          content: getDefaultContent('preview'),
+          isPublished: true,
+          userId: session.user.id,
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      return NextResponse.json(mockPages);
+    }
+
     await connectDB();
 
     const pages = await Page.find({ userId: session.user.id })
