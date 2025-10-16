@@ -32,6 +32,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Em desenvolvimento local, simular criação de usuário sem banco
+    const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
+    
+    if (isLocalDev) {
+      // Para desenvolvimento local, retornar sucesso sem banco
+      const mockUser = {
+        id: Date.now().toString(),
+        name,
+        email: email.toLowerCase(),
+        subdomain: generateSubdomain(name),
+        role: 'ADMIN'
+      };
+
+      return NextResponse.json({
+        success: true,
+        message: 'Usuário admin criado com sucesso (desenvolvimento local - sem banco)',
+        user: mockUser
+      });
+    }
+
     await connectDB();
 
     // Verificar se usuário já existe
@@ -58,15 +78,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar usuário
-    // Em desenvolvimento local, todos os usuários são admin
-    const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
-    
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password: hashedPassword,
       subdomain,
-      role: isLocalDev ? 'ADMIN' : 'USER', // Admin em desenvolvimento local
+      role: 'USER',
     });
 
     // Enviar email de boas-vindas

@@ -17,6 +17,20 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // Em desenvolvimento local, permitir login com qualquer credencial
+        const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
+        
+        if (isLocalDev) {
+          // Mock user para desenvolvimento local
+          return {
+            id: 'dev-user-123',
+            email: credentials.email.toLowerCase(),
+            name: credentials.email.split('@')[0],
+            role: 'ADMIN',
+            subdomain: credentials.email.split('@')[0].toLowerCase(),
+          };
+        }
+
         await connectDB();
         
         const user = await User.findOne({
