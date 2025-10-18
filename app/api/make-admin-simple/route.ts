@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       await user.save();
       
       return NextResponse.json({ 
-        message: '✅ Usuário teste90@gmail.com PROMOVIDO a ADMINISTRADOR',
+        message: 'Usuário teste90@gmail.com PROMOVIDO a ADMINISTRADOR',
         before: currentStatus,
         after: {
           email: user.email,

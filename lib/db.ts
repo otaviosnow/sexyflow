@@ -7,7 +7,10 @@ declare global {
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
+// Em desenvolvimento local, não exigir MongoDB
+const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
+
+if (!MONGODB_URI && !isLocalDev) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
@@ -23,6 +26,17 @@ if (!cached) {
 }
 
 async function connectDB() {
+  // Em desenvolvimento local, retornar conexão mock
+  if (isLocalDev && !MONGODB_URI) {
+    console.log('🔧 Modo de desenvolvimento local - usando conexão mock do MongoDB');
+    return {
+      connection: { readyState: 1 },
+      models: {},
+      model: () => ({}),
+      disconnect: () => Promise.resolve()
+    };
+  }
+
   if (cached.conn) {
     return cached.conn;
   }

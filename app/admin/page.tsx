@@ -42,6 +42,20 @@ export default function AdminPanel() {
       if (session?.user?.role !== 'ADMIN') {
         router.push('/dashboard');
       } else {
+        // Tentar carregar do localStorage primeiro
+        if (typeof window !== 'undefined') {
+          const storedTemplates = localStorage.getItem('mockTemplates');
+          if (storedTemplates) {
+            try {
+              const templates = JSON.parse(storedTemplates);
+              setTemplates(templates);
+              setLoading(false);
+              return;
+            } catch (error) {
+              console.error('Erro ao carregar templates do localStorage:', error);
+            }
+          }
+        }
         fetchTemplates();
       }
     }
@@ -53,6 +67,11 @@ export default function AdminPanel() {
       if (response.ok) {
         const data = await response.json();
         setTemplates(data);
+        
+        // Salvar no localStorage para persistência local
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mockTemplates', JSON.stringify(data));
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar templates:', error);
@@ -70,7 +89,15 @@ export default function AdminPanel() {
       });
 
       if (response.ok) {
-        fetchTemplates();
+        // Remover do localStorage em desenvolvimento local
+        if (typeof window !== 'undefined') {
+          const storedTemplates = JSON.parse(localStorage.getItem('mockTemplates') || '[]');
+          const updatedTemplates = storedTemplates.filter((template: any) => template._id !== id);
+          localStorage.setItem('mockTemplates', JSON.stringify(updatedTemplates));
+        }
+        
+        // Atualizar a lista local
+        setTemplates(prev => prev.filter(template => template._id !== id));
       }
     } catch (error) {
       console.error('Erro ao excluir template:', error);

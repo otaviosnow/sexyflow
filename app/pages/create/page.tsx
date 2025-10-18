@@ -1,200 +1,356 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Save, Eye, Settings } from 'lucide-react';
+import Link from 'next/link';
+import { 
+  ArrowLeft, 
+  Eye, 
+  Plus, 
+  Star, 
+  Users, 
+  Heart,
+  Monitor
+} from 'lucide-react';
+
+interface Template {
+  _id: string;
+  name: string;
+  type: string;
+  previewImage: string;
+  content: {
+    elements: any[];
+    background: any;
+  };
+  usageCount: number;
+}
 
 export default function CreatePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [pageData, setPageData] = useState({
-    title: '',
-    type: 'presell',
-    slug: '',
-  });
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (status === 'loading') return;
+    
+    if (!session) {
       router.push('/auth/login');
+      return;
     }
-  }, [status, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!session?.user?.id) return;
+    loadTemplates();
+  }, [session, status, router]);
 
-    setLoading(true);
+  const loadTemplates = async () => {
     try {
-      const response = await fetch('/api/pages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Mock templates para desenvolvimento local
+      const mockTemplates: Template[] = [
+        {
+          _id: 'template-1',
+          name: 'Presell Clássico',
+          type: 'presell',
+          previewImage: '/api/placeholder/400/300',
+          content: {
+            elements: [
+              {
+                id: 'heading-1',
+                type: 'heading',
+                content: { text: 'Descubra o Segredo das Mulheres Mais Desejadas', fontSize: 32, color: '#1f2937' },
+                position: { x: 50, y: 50 },
+                size: { width: 500, height: 80 },
+                style: {},
+                spacing: { top: 0, bottom: 20 }
+              },
+              {
+                id: 'button-1',
+                type: 'button',
+                content: { text: 'QUERO ME TORNAR IRRESISTÍVEL', backgroundColor: '#ef4444', color: '#ffffff' },
+                position: { x: 50, y: 200 },
+                size: { width: 300, height: 60 },
+                style: {},
+                spacing: { top: 0, bottom: 20 }
+              }
+            ],
+            background: { type: 'color', value: '#ffffff' }
+          },
+          usageCount: 127
         },
-        body: JSON.stringify({
-          ...pageData,
-          userId: session.user.id,
-        }),
-      });
+        {
+          _id: 'template-2',
+          name: 'Preview Moderno',
+          type: 'preview',
+          previewImage: '/api/placeholder/400/300',
+          content: {
+            elements: [
+              {
+                id: 'heading-1',
+                type: 'heading',
+                content: { text: 'Assista ao Vídeo Exclusivo', fontSize: 28, color: '#1f2937' },
+                position: { x: 50, y: 50 },
+                size: { width: 500, height: 80 },
+                style: {},
+                spacing: { top: 0, bottom: 20 }
+              },
+              {
+                id: 'video-1',
+                type: 'video',
+                content: { url: 'https://example.com/video.mp4', autoplay: false },
+                position: { x: 50, y: 150 },
+                size: { width: 400, height: 225 },
+                style: {},
+                spacing: { top: 0, bottom: 20 }
+              }
+            ],
+            background: { type: 'color', value: '#f8fafc' }
+          },
+          usageCount: 89
+        },
+        {
+          _id: 'template-3',
+          name: 'Pós-Venda Elegante',
+          type: 'post-sale',
+          previewImage: '/api/placeholder/400/300',
+          content: {
+            elements: [
+              {
+                id: 'heading-1',
+                type: 'heading',
+                content: { text: 'Obrigada pela Sua Compra!', fontSize: 30, color: '#059669' },
+                position: { x: 50, y: 50 },
+                size: { width: 500, height: 80 },
+                style: {},
+                spacing: { top: 0, bottom: 20 }
+              },
+              {
+                id: 'text-1',
+                type: 'text',
+                content: { text: 'Seu produto será entregue em até 24 horas.', fontSize: 16, color: '#6b7280' },
+                position: { x: 50, y: 150 },
+                size: { width: 400, height: 40 },
+                style: {},
+                spacing: { top: 0, bottom: 20 }
+              }
+            ],
+            background: { type: 'color', value: '#f0fdf4' }
+          },
+          usageCount: 156
+        }
+      ];
 
-      if (response.ok) {
-        const newPage = await response.json();
-        router.push(`/pages/${newPage._id}/editor`);
-      } else {
-        console.error('Erro ao criar página');
-      }
+      setTemplates(mockTemplates);
     } catch (error) {
-      console.error('Erro:', error);
+      console.error('Erro ao carregar templates:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
+  const handleCreatePage = async (templateId: string) => {
+    try {
+      const template = templates.find(t => t._id === templateId);
+      if (!template) return;
+
+      // Criar página baseada no template
+      const pageData = {
+        title: `Página baseada em ${template.name}`,
+        type: template.type,
+        templateId: template._id,
+        content: {
+          elements: template.content.elements,
+          background: template.content.background
+        }
+      };
+
+      // Simular criação da página
+      const newPageId = `page-${Date.now()}`;
+      
+      // Redirecionar para o editor da página
+      router.push(`/pages/${newPageId}/editor`);
+    } catch (error) {
+      console.error('Erro ao criar página:', error);
+    }
   };
 
-  const handleTitleChange = (title: string) => {
-    setPageData({
-      ...pageData,
-      title,
-      slug: generateSlug(title),
-    });
+  const handlePreview = (templateId: string) => {
+    setSelectedTemplate(selectedTemplate === templateId ? null : templateId);
   };
 
-  if (status === 'loading') {
+  if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-300">Carregando templates...</p>
+        </div>
       </div>
     );
   }
 
-  if (!session) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+      <div className="bg-gray-900/95 backdrop-blur-xl shadow-2xl border-b border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="flex items-center text-gray-600 hover:text-red-600 transition-colors"
+              <Link
+                href="/dashboard"
+                className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
               >
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Voltar ao Dashboard
-              </button>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Criar Nova Página
-              </h1>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">
-                {session.user?.email}
-              </span>
+                <ArrowLeft className="w-5 h-5" />
+                <span>Voltar</span>
+              </Link>
+              
+              <div className="flex items-center space-x-3">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-xl shadow-lg">
+                  <Heart className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Criar Nova Página
+                  </h1>
+                  <p className="text-sm text-gray-400">Escolha um template para começar</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Título */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Título da Página *
-              </label>
-              <input
-                type="text"
-                id="title"
-                value={pageData.title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                placeholder="Ex: Mentoria Completa de Moda Íntima"
-                required
-              />
-            </div>
+      {/* Conteúdo Principal */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Escolha um Template
+          </h2>
+          <p className="text-gray-300 text-lg">
+            Selecione um template para criar sua página. Você poderá personalizar todos os elementos depois.
+          </p>
+        </div>
 
-            {/* Slug */}
-            <div>
-              <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
-                URL da Página *
-              </label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                  {session.user?.subdomain || 'seu-subdomain'}.sexyflow.com/
-                </span>
-                <input
-                  type="text"
-                  id="slug"
-                  value={pageData.slug}
-                  onChange={(e) => setPageData({ ...pageData, slug: e.target.value })}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                  placeholder="mentoria-moda-intima"
-                  required
-                />
+        {/* Grid de Templates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {templates.map((template) => (
+            <div
+              key={template._id}
+              className="bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 overflow-hidden"
+            >
+              {/* Preview Image ou Preview Inline */}
+              {selectedTemplate === template._id ? (
+                <div className="bg-white p-4 min-h-[200px]">
+                  <div className="space-y-3">
+                    {template.content.elements.map((element) => (
+                      <div
+                        key={element.id}
+                        className="border border-gray-200 rounded-lg p-3"
+                        style={{
+                          width: Math.min(element.size.width, 300),
+                          height: Math.min(element.size.height, 80),
+                          backgroundColor: element.content.backgroundColor || 'transparent',
+                          color: element.content.color || '#000000',
+                          fontSize: Math.min(element.content.fontSize || 16, 14)
+                        }}
+                      >
+                        {element.type === 'heading' && (
+                          <h3 className="font-bold text-sm">{element.content.text}</h3>
+                        )}
+                        {element.type === 'button' && (
+                          <button className="px-4 py-2 rounded text-xs font-medium bg-red-500 text-white">
+                            {element.content.text}
+                          </button>
+                        )}
+                        {element.type === 'text' && (
+                          <p className="text-xs">{element.content.text}</p>
+                        )}
+                        {element.type === 'video' && (
+                          <div className="bg-gray-100 rounded flex items-center justify-center h-full">
+                            <div className="text-center text-gray-500">
+                              <Monitor className="w-4 h-4 mx-auto mb-1" />
+                              <p className="text-xs">Vídeo</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="relative h-48 bg-gray-800">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+                    <div className="text-center">
+                      <Monitor className="w-12 h-12 text-blue-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-300">Clique em Preview</p>
+                    </div>
+                  </div>
+                  
+                  {/* Badge de Popularidade */}
+                  <div className="absolute top-3 right-3">
+                    <div className="flex items-center space-x-1 bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs border border-green-500/30">
+                      <Users className="w-3 h-3" />
+                      <span>{template.usageCount} usos</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Conteúdo do Card */}
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white">
+                    {template.name}
+                  </h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    template.type === 'presell' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                    template.type === 'preview' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                    template.type === 'post-sale' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                    'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                  }`}>
+                    {template.type}
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-4 mb-6">
+                  <div className="flex items-center space-x-1 text-yellow-400">
+                    <Star className="w-4 h-4 fill-current" />
+                    <span className="text-sm font-medium">4.8</span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-gray-400">
+                    <Users className="w-4 h-4" />
+                    <span className="text-sm">{template.usageCount} pessoas usaram</span>
+                  </div>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => handlePreview(template._id)}
+                    className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl transition-all duration-300 border ${
+                      selectedTemplate === template._id
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 border-gray-600'
+                    }`}
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>{selectedTemplate === template._id ? 'Ocultar' : 'Preview'}</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleCreatePage(template._id)}
+                    className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 px-4 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Usar Template</span>
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* Tipo de Página */}
-            <div>
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Página *
-              </label>
-              <select
-                id="type"
-                value={pageData.type}
-                onChange={(e) => setPageData({ ...pageData, type: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-              >
-                <option value="presell">Página Presell (Pré-venda)</option>
-                <option value="preview">Página Preview (Prévia)</option>
-                <option value="post-sale-x">Página Pós-venda Produto X</option>
-                <option value="delivery">Página de Entrega</option>
-                <option value="post-sale-y">Página Pós-venda Produto Y</option>
-              </select>
-            </div>
-
-
-            {/* Botões */}
-            <div className="flex justify-end space-x-4 pt-6">
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard')}
-                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                ) : (
-                  <Plus className="h-5 w-5 mr-2" />
-                )}
-                {loading ? 'Criando...' : 'Editar Página'}
-              </button>
-            </div>
-          </form>
+          ))}
         </div>
       </div>
+
     </div>
   );
 }

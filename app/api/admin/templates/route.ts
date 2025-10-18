@@ -17,11 +17,12 @@ export async function GET(request: NextRequest) {
     const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
     
     if (isLocalDev) {
-      const mockTemplates = [
+      // Carregar templates do localStorage (simulado)
+      const defaultTemplates = [
         {
           _id: 'template-1',
           name: 'Template Presell',
-          type: 'PRESELL',
+          type: 'presell',
           description: 'Template para página de presell',
           content: {
             headline: 'Descubra o Segredo das Mulheres Mais Desejadas',
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
         {
           _id: 'template-2',
           name: 'Template Preview',
-          type: 'PREVIEW',
+          type: 'preview',
           description: 'Template para página de prévia',
           content: {
             headline: 'Assista ao Vídeo Exclusivo',
@@ -51,8 +52,13 @@ export async function GET(request: NextRequest) {
           createdAt: new Date().toISOString()
         }
       ];
+
+      // Simular carregamento de templates do localStorage
+      const storedTemplates = typeof window !== 'undefined' 
+        ? JSON.parse(localStorage.getItem('mockTemplates') || '[]')
+        : defaultTemplates;
       
-      return NextResponse.json(mockTemplates);
+      return NextResponse.json(storedTemplates.length > 0 ? storedTemplates : defaultTemplates);
     }
 
     // Verificar se é admin
