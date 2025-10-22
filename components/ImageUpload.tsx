@@ -38,12 +38,12 @@ export default function ImageUpload({ onImageSelect, currentImage, className = '
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('folder', 'sexyflow-images'); // Pasta específica no Terabox
+      formData.append('folder', 'sexyflow-images'); // Pasta específica no Dropbox
       if (userId) {
         formData.append('userId', userId); // ID do usuário para organização
       }
 
-      const response = await fetch('/api/upload/terabox', {
+      const response = await fetch('/api/upload/dropbox', {
         method: 'POST',
         body: formData,
       });

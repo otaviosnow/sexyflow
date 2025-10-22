@@ -1,6 +1,8 @@
 /**
- * Terabox Integration
+ * Cloudinary Integration (Substituindo Terabox)
  * Sistema de armazenamento em nuvem para imagens e vídeos
+ * 
+ * NOTA: Terabox não possui API oficial, usando Cloudinary como alternativa
  */
 
 export interface TeraboxUploadResponse {
