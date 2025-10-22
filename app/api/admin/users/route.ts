@@ -217,8 +217,8 @@ export async function GET(request: NextRequest) {
             pages: p.pages?.length || 0
           })),
           subscription: subscription ? {
-            status: subscription.status,
-            planName: subscription.planName,
+            status: Array.isArray(subscription) ? subscription[0]?.status : subscription.status,
+            planName: Array.isArray(subscription) ? subscription[0]?.planName : subscription.planName,
             usageCount: projects.reduce((total, p) => total + (p.pages?.length || 0), 0)
           } : null
         };

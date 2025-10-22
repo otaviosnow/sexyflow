@@ -61,8 +61,83 @@ export default function AdminPanel() {
     }
   }, [status, session, router]);
 
+  // Recarregar templates quando a página ganha foco (volta da edição)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('🔄 Página ganhou foco, recarregando templates...');
+      if (typeof window !== 'undefined') {
+        // Primeiro, tentar carregar templates individuais do localStorage
+        const templateKeys = Object.keys(localStorage).filter(key => key.startsWith('template_'));
+        console.log('🔑 Chaves de templates encontradas:', templateKeys);
+        
+        if (templateKeys.length > 0) {
+          const updatedTemplates = templates.map(template => {
+            const templateKey = `template_${template._id}`;
+            const savedData = localStorage.getItem(templateKey);
+            
+            if (savedData) {
+              try {
+                const savedTemplate = JSON.parse(savedData);
+                console.log(`📝 Template ${template._id} atualizado:`, savedTemplate.name);
+                return {
+                  ...template,
+                  name: savedTemplate.name,
+                  type: savedTemplate.type || template.type,
+                  description: savedTemplate.description || template.description,
+                  updatedAt: savedTemplate.updatedAt || template.createdAt
+                };
+              } catch (error) {
+                console.error(`Erro ao carregar template ${template._id}:`, error);
+                return template;
+              }
+            }
+            return template;
+          });
+          
+          console.log('🔄 Templates atualizados:', updatedTemplates);
+          setTemplates(updatedTemplates);
+          
+          // Salvar lista atualizada no localStorage
+          localStorage.setItem('mockTemplates', JSON.stringify(updatedTemplates));
+        } else {
+          // Fallback: carregar do mockTemplates
+          const storedTemplates = localStorage.getItem('mockTemplates');
+          if (storedTemplates) {
+            try {
+              const templates = JSON.parse(storedTemplates);
+              console.log('📋 Templates carregados do localStorage:', templates);
+              setTemplates(templates);
+            } catch (error) {
+              console.error('Erro ao recarregar templates:', error);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [templates]);
+
   const fetchTemplates = async () => {
     try {
+      // Em modo de desenvolvimento, carregar do localStorage primeiro
+      const isLocalDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+      
+      if (isLocalDev && typeof window !== 'undefined') {
+        const storedTemplates = localStorage.getItem('mockTemplates');
+        if (storedTemplates) {
+          try {
+            const templates = JSON.parse(storedTemplates);
+            setTemplates(templates);
+            setLoading(false);
+            return;
+          } catch (error) {
+            console.error('Erro ao carregar templates do localStorage:', error);
+          }
+        }
+      }
+
       const response = await fetch('/api/admin/templates');
       if (response.ok) {
         const data = await response.json();

@@ -15,7 +15,8 @@ import {
   Type,
   Settings,
   Download,
-  Trash2
+  Trash2,
+  Minus
 } from 'lucide-react';
 
 interface PageData {
@@ -29,7 +30,7 @@ interface PageData {
 
 interface DragItem {
   id: string;
-  type: 'text' | 'image' | 'video' | 'button' | 'pixel';
+  type: 'text' | 'image' | 'video' | 'button' | 'spacer' | 'pixel';
   x: number;
   y: number;
   width: number;
@@ -121,8 +122,8 @@ export default function PageEditor({ params }: { params: { id: string } }) {
       type,
       x: 50,
       y: 50 + dragItems.length * 60,
-      width: type === 'image' ? 300 : type === 'video' ? 400 : 250,
-      height: type === 'image' ? 200 : type === 'video' ? 225 : 50,
+      width: type === 'image' ? 300 : type === 'video' ? 400 : type === 'spacer' ? 400 : 250,
+      height: type === 'image' ? 200 : type === 'video' ? 225 : type === 'spacer' ? 50 : 50,
       content: getDefaultContent(type)
     };
     
@@ -135,6 +136,8 @@ export default function PageEditor({ params }: { params: { id: string } }) {
         return { text: 'Clique para editar', fontSize: 24, color: '#000000' };
       case 'button':
         return { text: 'Clique Aqui', backgroundColor: '#dc2626', color: '#ffffff' };
+      case 'spacer':
+        return { height: 50, backgroundColor: '#f3f4f6', borderColor: '#d1d5db' };
       case 'pixel':
         return { pixelId: '', event: 'PageView' };
       default:
@@ -278,8 +281,16 @@ export default function PageEditor({ params }: { params: { id: string } }) {
                 </button>
                 
                 <button
+                  onClick={() => addElement('spacer')}
+                  className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-red-300 hover:bg-red-50 transition-colors"
+                >
+                  <Minus className="h-6 w-6 text-gray-600 mb-2" />
+                  <span className="text-sm text-gray-700">Espaçador</span>
+                </button>
+                
+                <button
                   onClick={() => addElement('pixel')}
-                  className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-red-300 hover:bg-red-50 transition-colors col-span-2"
+                  className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-red-300 hover:bg-red-50 transition-colors"
                 >
                   <Code className="h-6 w-6 text-gray-600 mb-2" />
                   <span className="text-sm text-gray-700">Pixel Facebook</span>
@@ -306,6 +317,7 @@ export default function PageEditor({ params }: { params: { id: string } }) {
                           {item.type === 'image' && <Image className="h-4 w-4 text-gray-600" />}
                           {item.type === 'video' && <Video className="h-4 w-4 text-gray-600" />}
                           {item.type === 'button' && <Settings className="h-4 w-4 text-gray-600" />}
+                          {item.type === 'spacer' && <Minus className="h-4 w-4 text-gray-600" />}
                           {item.type === 'pixel' && <Code className="h-4 w-4 text-gray-600" />}
                           <span className="text-sm font-medium text-gray-700 capitalize">
                             {item.type}
@@ -490,6 +502,53 @@ export default function PageEditor({ params }: { params: { id: string } }) {
                       value={selectedItemData.content.color || '#ffffff'}
                       onChange={(e) => updateItem(selectedItem!, {
                         content: { ...selectedItemData.content, color: e.target.value }
+                      })}
+                      className="w-full h-10 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedItemData.type === 'spacer' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Altura (px)
+                    </label>
+                    <input
+                      type="number"
+                      value={selectedItemData.content.height || 50}
+                      onChange={(e) => updateItem(selectedItem!, {
+                        content: { ...selectedItemData.content, height: parseInt(e.target.value) },
+                        height: parseInt(e.target.value)
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      min="10"
+                      max="500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Cor de Fundo
+                    </label>
+                    <input
+                      type="color"
+                      value={selectedItemData.content.backgroundColor || '#f3f4f6'}
+                      onChange={(e) => updateItem(selectedItem!, {
+                        content: { ...selectedItemData.content, backgroundColor: e.target.value }
+                      })}
+                      className="w-full h-10 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Cor da Borda
+                    </label>
+                    <input
+                      type="color"
+                      value={selectedItemData.content.borderColor || '#d1d5db'}
+                      onChange={(e) => updateItem(selectedItem!, {
+                        content: { ...selectedItemData.content, borderColor: e.target.value }
                       })}
                       className="w-full h-10 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     />
@@ -702,6 +761,25 @@ export default function PageEditor({ params }: { params: { id: string } }) {
                   >
                     {item.content.text || 'Clique Aqui'}
                   </button>
+                )}
+                
+                {item.type === 'spacer' && (
+                  <div 
+                    className="w-full h-full flex items-center justify-center border-2 border-dashed rounded"
+                    style={{
+                      backgroundColor: item.content.backgroundColor || '#f3f4f6',
+                      borderColor: item.content.borderColor || '#d1d5db',
+                      minHeight: item.content.height || 50
+                    }}
+                  >
+                    <div className="text-center text-gray-500">
+                      <Minus className="h-6 w-6 mx-auto mb-1" />
+                      <span className="text-sm">Espaçador</span>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {item.content.height || 50}px
+                      </div>
+                    </div>
+                  </div>
                 )}
                 
                 {item.type === 'pixel' && (

@@ -16,6 +16,34 @@ export async function GET(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
+    // Verificar se estamos em modo de desenvolvimento local
+    const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
+    
+    if (isLocalDev) {
+      // Retornar template mock para desenvolvimento local
+      const mockTemplate = {
+        _id: params.id,
+        name: 'Template Mock',
+        type: 'presell',
+        description: 'Template de desenvolvimento',
+        content: {
+          elements: [],
+          background: { type: 'color', value: '#ffffff', image: '', opacity: 1 }
+        },
+        previewImage: '',
+        isActive: true,
+        createdBy: {
+          _id: 'dev-user-123',
+          name: 'Usuário Dev',
+          email: 'dev@example.com'
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      return NextResponse.json(mockTemplate);
+    }
+
     // Verificar se é admin
     const user = await User.findById(session.user.id);
     if (!user || user.role !== 'ADMIN') {
@@ -50,6 +78,37 @@ export async function PUT(
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
+    // Verificar se estamos em modo de desenvolvimento local
+    const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
+    
+    if (isLocalDev) {
+      // Em desenvolvimento local, simular salvamento no localStorage
+      const body = await request.json();
+      const { name, type, description, content, previewImage, isActive } = body;
+      
+      // Simular template atualizado
+      const updatedTemplate = {
+        _id: params.id,
+        name: name || 'Template Mock',
+        type: type || 'presell',
+        description: description || 'Template de desenvolvimento',
+        content: content || { elements: [], background: { type: 'color', value: '#ffffff', image: '', opacity: 1 } },
+        previewImage: previewImage || '',
+        isActive: isActive !== undefined ? isActive : true,
+        createdBy: {
+          _id: 'dev-user-123',
+          name: 'Usuário Dev',
+          email: 'dev@example.com'
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      console.log('Template salvo em modo local:', updatedTemplate);
+      
+      return NextResponse.json(updatedTemplate);
     }
 
     // Verificar se é admin

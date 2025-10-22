@@ -369,18 +369,50 @@ body {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/templates', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(templateData),
-      });
+      // Em modo de desenvolvimento, salvar no localStorage
+      const isLocalDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+      
+      if (isLocalDev) {
+        // Criar template mock
+        const newTemplate = {
+          _id: `template-${Date.now()}`,
+          name: templateData.name,
+          type: templateData.type,
+          description: templateData.description,
+          content: templateData.content,
+          previewImage: templateData.previewImage,
+          createdBy: {
+            _id: session.user.id,
+            name: session.user.name || 'Admin',
+            email: session.user.email
+          },
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
 
-      if (response.ok) {
+        // Salvar no localStorage
+        const existingTemplates = JSON.parse(localStorage.getItem('mockTemplates') || '[]');
+        const updatedTemplates = [...existingTemplates, newTemplate];
+        localStorage.setItem('mockTemplates', JSON.stringify(updatedTemplates));
+        
+        console.log('Template criado e salvo no localStorage:', newTemplate);
         router.push('/admin');
       } else {
-        console.error('Erro ao criar template');
+        // Modo produção - usar API
+        const response = await fetch('/api/admin/templates', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(templateData),
+        });
+
+        if (response.ok) {
+          router.push('/admin');
+        } else {
+          console.error('Erro ao criar template');
+        }
       }
     } catch (error) {
       console.error('Erro:', error);

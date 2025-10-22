@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
     
     if (isLocalDev) {
-      // Carregar templates do localStorage (simulado)
+      // Em desenvolvimento local, retornar templates mock
       const defaultTemplates = [
         {
           _id: 'template-1',
@@ -53,12 +53,7 @@ export async function GET(request: NextRequest) {
         }
       ];
 
-      // Simular carregamento de templates do localStorage
-      const storedTemplates = typeof window !== 'undefined' 
-        ? JSON.parse(localStorage.getItem('mockTemplates') || '[]')
-        : defaultTemplates;
-      
-      return NextResponse.json(storedTemplates.length > 0 ? storedTemplates : defaultTemplates);
+      return NextResponse.json(defaultTemplates);
     }
 
     // Verificar se é admin

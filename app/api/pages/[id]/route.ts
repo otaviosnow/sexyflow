@@ -111,6 +111,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
+    // Em desenvolvimento local, simular exclusão
+    const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
+    
+    if (isLocalDev) {
+      console.log('Modo desenvolvimento: simulando exclusão da página', params.id);
+      return NextResponse.json({ message: 'Página excluída com sucesso (modo desenvolvimento)' });
+    }
+
     await connectDB();
 
     const page = await Page.findOne({ 
