@@ -133,123 +133,39 @@ export default function TemplatePreviewPage({ params }: { params: { id: string }
       const id = element.content.pixelId.trim();
       const purchaseValue = parseFloat(element.content.purchaseValue) || 14.9;
       
-      // Detectar se estamos em localhost
-      const isLocalhost = window.location.hostname === 'localhost' || 
-                         window.location.hostname === '127.0.0.1' ||
-                         window.location.hostname.includes('localhost');
+      console.log('Injetando Facebook Pixel:', id);
+      console.log('Valor do Purchase:', purchaseValue);
       
-      console.log('Injetando Facebook Pixel único:', id);
-      console.log('Valor do Purchase configurado:', purchaseValue);
-      console.log('Tipo do valor:', typeof purchaseValue);
-      console.log('Ambiente localhost:', isLocalhost);
-      
-      if (isLocalhost) {
-        console.log('🔧 Modo localhost detectado - usando implementação simulada');
-        
-        // Em localhost, usar implementação simulada que funciona
-        window.fbq = function() {
-          console.log('🎯 Facebook Pixel (localhost):', arguments);
-          
-          // Simular eventos para debug
-          if (arguments[0] === 'track' && arguments[1] === 'Purchase') {
-            console.log('✅ Evento Purchase simulado com sucesso!');
-            console.log('💰 Valor:', arguments[2]?.value);
-            console.log('💱 Moeda:', arguments[2]?.currency);
-            
-            // Salvar no localStorage para debug
-            const eventData = {
-              event: 'Purchase',
-              value: arguments[2]?.value,
-              currency: arguments[2]?.currency,
-              timestamp: new Date().toISOString(),
-              pixelId: id
-            };
-            localStorage.setItem(`pixel_event_${id}`, JSON.stringify(eventData));
-          }
-        };
-        window.fbq.queue = [];
-        window.fbq.loaded = true;
-        
-        // Disparar eventos imediatamente
-        fbq('init', id);
-        fbq('track', 'Lead');
-        console.log('🚀 Disparando Purchase (localhost) com valor:', purchaseValue);
-        fbq('track', 'Purchase', {value: purchaseValue, currency: 'BRL'});
-        
-      } else {
-        // Em produção, usar script oficial
-        console.log('🌐 Modo produção - carregando script oficial do Facebook');
-        
-        const fbScript = document.createElement('script');
-        fbScript.async = true;
-        fbScript.src = 'https://connect.facebook.net/en_US/fbevents.js';
-        fbScript.onload = function() {
-          console.log('Script do Facebook carregado com sucesso!');
-          
-          // Função para aguardar fbq estar disponível
-          const waitForFbq = (attempts = 0) => {
-            if (typeof fbq !== 'undefined') {
-              console.log('fbq disponível! Inicializando pixel...');
-              // Inicializar pixel
-              fbq('init', id);
-              fbq('track', 'Lead');
-              
-              // Disparar Purchase
-              console.log('Disparando evento Purchase para pixel:', id);
-              console.log('Dados do Purchase:', {value: purchaseValue, currency: 'BRL'});
-              fbq('track', 'Purchase', {value: purchaseValue, currency: 'BRL'});
-            } else if (attempts < 20) { // Tentar por até 2 segundos (20 x 100ms)
-              console.log(`Aguardando fbq... tentativa ${attempts + 1}/20`);
-              setTimeout(() => waitForFbq(attempts + 1), 100);
-            } else {
-              console.error('fbq não ficou disponível após 2 segundos. Usando implementação local.');
-              // Fallback para implementação local
-              window.fbq = function() {
-                console.log('Facebook Pixel (fallback):', arguments);
-              };
-              window.fbq.queue = [];
-              window.fbq.loaded = true;
-              
-              fbq('init', id);
-              fbq('track', 'Lead');
-              console.log('Disparando Purchase (fallback) com valor:', purchaseValue);
-              fbq('track', 'Purchase', {value: purchaseValue, currency: 'BRL'});
-            }
-          };
-          
-          // Iniciar verificação
-          waitForFbq();
-        };
-        fbScript.onerror = function() {
-          console.warn('Script do Facebook bloqueado. Usando implementação local.');
-          
-          // Criar fbq manualmente se bloqueado
-          window.fbq = function() {
-            console.log('Facebook Pixel (local):', arguments);
-          };
-          window.fbq.queue = [];
-          window.fbq.loaded = true;
-          
-          // Aguardar um pouco antes de disparar eventos
-          setTimeout(() => {
-            fbq('init', id);
-            fbq('track', 'Lead');
-            console.log('Disparando Purchase (fallback) com valor:', purchaseValue);
-            fbq('track', 'Purchase', {value: purchaseValue, currency: 'BRL'});
-          }, 50);
-        };
-        document.head.appendChild(fbScript);
+      // Verificar se já existe um script do Facebook
+      const existingScript = document.querySelector('script[src*="facebook.net"]');
+      if (existingScript) {
+        existingScript.remove();
       }
       
-      // Adicionar noscript para fallback
-      const noscript = document.createElement('noscript');
-      const img = document.createElement('img');
-      img.height = '1';
-      img.width = '1';
-      img.style.display = 'none';
-      img.src = `https://www.facebook.com/tr?id=${id}&ev=Lead&noscript=1`;
-      noscript.appendChild(img);
-      document.head.appendChild(noscript);
+      // Criar e injetar script do Facebook
+      const fbScript = document.createElement('script');
+      fbScript.src = `https://connect.facebook.net/pt_BR/fbevents.js`;
+      fbScript.async = true;
+      fbScript.defer = true;
+      
+      fbScript.onload = function() {
+        console.log('✅ Facebook Pixel carregado com sucesso!');
+        // Aguardar um pouco para garantir que fbq está disponível
+        setTimeout(() => {
+          if (typeof (window as any).fbq !== 'undefined') {
+            (window as any).fbq('init', id);
+            (window as any).fbq('track', 'Lead');
+            (window as any).fbq('track', 'Purchase', {value: purchaseValue, currency: 'BRL'});
+            console.log('✅ Eventos do Facebook Pixel disparados!');
+          }
+        }, 1000);
+      };
+      
+      fbScript.onerror = function() {
+        console.warn('❌ Erro ao carregar Facebook Pixel');
+      };
+      
+      document.head.appendChild(fbScript);
     }
     
     // Cleanup function
