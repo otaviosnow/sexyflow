@@ -8,9 +8,10 @@ interface ImageUploadProps {
   onImageSelect: (url: string) => void;
   currentImage?: string;
   className?: string;
+  userId?: string;
 }
 
-export default function ImageUpload({ onImageSelect, currentImage, className = '' }: ImageUploadProps) {
+export default function ImageUpload({ onImageSelect, currentImage, className = '', userId }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,10 +26,10 @@ export default function ImageUpload({ onImageSelect, currentImage, className = '
       return;
     }
 
-    // Verificar tamanho (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    // Verificar tamanho (max 50MB para Terabox)
+    const maxSize = 50 * 1024 * 1024; // 50MB
     if (file.size > maxSize) {
-      toast.error('Arquivo muito grande (máximo 10MB)');
+      toast.error('Arquivo muito grande (máximo 50MB)');
       return;
     }
 
@@ -37,8 +38,12 @@ export default function ImageUpload({ onImageSelect, currentImage, className = '
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('folder', 'sexyflow-images'); // Pasta específica no Terabox
+      if (userId) {
+        formData.append('userId', userId); // ID do usuário para organização
+      }
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/upload/terabox', {
         method: 'POST',
         body: formData,
       });
