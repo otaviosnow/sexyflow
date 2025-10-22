@@ -1,228 +1,169 @@
-# 🔥 SexyFlow - SaaS para Nicho Hot
+# 🚀 SexyFlow - Sistema de Páginas de Vendas
 
-SaaS completo para automatização de páginas de vendas no nicho hot/adulto, com editor visual, hospedagem automática e analytics avançados.
+Uma plataforma completa para criação e gerenciamento de páginas de vendas com editor visual, sistema de assinaturas e analytics.
 
-## 🚀 Tecnologias
+## ✨ Funcionalidades Principais
 
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, MongoDB, Mongoose
-- **Autenticação**: NextAuth.js
-- **Banco de Dados**: MongoDB Atlas
-- **Deploy**: Render
-- **Email**: Nodemailer
-- **Upload**: Multer
-- **Analytics**: Sistema próprio
+### 🔐 Sistema de Autenticação
+- **Login/Registro** com validação completa
+- **Autenticação local** com localStorage
+- **Redirecionamento inteligente** baseado no status do plano
 
-## 📋 Funcionalidades
+### 💳 Planos de Assinatura
+- **STARTER**: R$ 97/mês - 3 páginas, subdomínio
+- **PRO**: R$ 197/mês - 8 páginas, subdomínio, analytics
+- **ENTERPRISE**: Contato direto - Domínio customizado, suporte prioritário
 
-### Para Usuários
-- ✅ Sistema de autenticação completo
-- ✅ Dashboard personalizado
-- ✅ Criação de páginas com templates
-- ✅ Editor visual drag & drop
-- ✅ Upload de arquivos (até 2GB)
-- ✅ Hospedagem automática com subdomínios
-- ✅ Analytics e relatórios
-- ✅ Planos mensais e anuais
+### 🎨 Editor Visual
+- **Drag & Drop** de elementos
+- **Templates pré-definidos**
+- **Responsive design** (Desktop, Tablet, Mobile)
+- **Facebook Pixel** integrado
+- **Preview em tempo real**
 
-### Para Admins
-- ✅ Painel administrativo
-- ✅ Gerenciamento de templates
-- ✅ Relatórios agregados
-- ✅ Auditoria de ações
-- ✅ Configurações do sistema
+### 📊 Dashboard Completo
+- **Gestão de projetos** com subdomínios
+- **Analytics** de visualizações e cliques
+- **Biblioteca de mídia**
+- **Sistema administrativo**
 
-### Tipos de Página
-- 📱 Página de Presell
-- 🎥 Página de Prévia
-- 💰 Pós-venda Produto X
-- 📦 Entrega do Produto
-- 🎯 Pós-venda Produto Y
+### 🛠️ Tecnologias Utilizadas
+- **Next.js 14** - Framework React
+- **TypeScript** - Tipagem estática
+- **Tailwind CSS** - Estilização
+- **Lucide React** - Ícones
+- **LocalStorage** - Persistência de dados
 
-## 🛠️ Configuração do MongoDB Atlas
+## 🚀 Como Executar
 
-### 1. Configurar Cluster
-1. Acesse [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Crie uma conta gratuita
-3. Crie um novo cluster (M0 Sandbox é gratuito)
-4. Escolha a região mais próxima do Brasil
+### Pré-requisitos
+- Node.js 18+
+- npm ou yarn
 
-### 2. Configurar Segurança
-1. **Network Access**: Adicione seu IP atual (201.162.72.91)
-2. **Database Access**: Crie um usuário com as credenciais:
-   - Username: `tavinmktdigital_db_user`
-   - Password: `yr1HQU0uzwJ75Ba4`
-   - Role: `Atlas admin`
-
-### 3. Obter String de Conexão
-1. Clique em "Connect" no seu cluster
-2. Escolha "Connect your application"
-3. Copie a string de conexão
-4. Substitua `<password>` pela senha do usuário
-5. Substitua `<dbname>` por `sexyflow`
-
-### String de Conexão Final:
-```
-mongodb+srv://tavinmktdigital_db_user:yr1HQU0uzwJ75Ba4@cluster0.xxxxx.mongodb.net/sexyflow?retryWrites=true&w=majority
-```
-
-## 🔧 Configuração Local
-
-### 1. Instalar Dependências
+### Instalação
 ```bash
+# Clone o repositório
+git clone https://github.com/otaviosnow/sexyflow.git
+cd sexyflow
+
+# Instale as dependências
 npm install
-```
 
-### 2. Configurar Variáveis de Ambiente
-Crie um arquivo `.env.local` na raiz do projeto:
-
-```env
-# Database
-MONGODB_URI="sua_string_de_conexao_mongodb"
-
-# NextAuth
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="seu-secret-key-aqui"
-
-# Email (para notificações)
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="587"
-SMTP_USER="seu-email@gmail.com"
-SMTP_PASS="sua-senha-de-app"
-
-# Upload de arquivos
-UPLOAD_MAX_SIZE="2147483648"
-UPLOAD_PATH="./public/uploads"
-
-# Subdomínios
-BASE_DOMAIN="sexyflow.com"
-```
-
-### 3. Popular Banco de Dados
-```bash
-npm run db:seed
-```
-
-### 4. Executar em Desenvolvimento
-```bash
+# Execute o projeto
 npm run dev
 ```
 
-## 🚀 Deploy no Render
-
-### 1. Conectar Repositório
-1. Acesse [Render](https://render.com)
-2. Conecte sua conta GitHub
-3. Selecione o repositório `sexyflow`
-
-### 2. Configurar Web Service
-- **Build Command**: `npm install && npm run build`
-- **Start Command**: `npm start`
-- **Environment**: `Node`
-
-### 3. Variáveis de Ambiente no Render
-Adicione todas as variáveis do `.env.local` no painel do Render.
-
-### 4. Configurar MongoDB Atlas para Render
-1. No MongoDB Atlas, vá em "Network Access"
-2. Adicione `0.0.0.0/0` para permitir conexões de qualquer IP
-3. Ou adicione o IP específico do Render (disponível nos logs)
+### Acesso
+- **URL**: http://localhost:3000
+- **Admin**: admin@gmail.com (senha: admin123)
 
 ## 📁 Estrutura do Projeto
 
 ```
 sexyflow/
-├── app/                    # App Router (Next.js 14)
+├── app/                    # Páginas Next.js
+│   ├── admin/             # Painel administrativo
 │   ├── api/               # API Routes
-│   ├── auth/              # Páginas de autenticação
-│   └── page.tsx           # Landing page
-├── components/            # Componentes React
-├── lib/                   # Utilitários e configurações
-├── models/                # Modelos MongoDB/Mongoose
-├── types/                 # Tipos TypeScript
-├── public/                # Arquivos estáticos
-└── styles/                # Estilos globais
+│   ├── dashboard/         # Dashboard do usuário
+│   ├── login/             # Autenticação
+│   ├── projects/          # Gestão de projetos
+│   ├── payment/           # Sistema de pagamentos
+│   └── choose-plan/       # Seleção de planos
+├── components/            # Componentes reutilizáveis
+├── lib/                   # Utilitários e serviços
+│   ├── models/           # Modelos de dados
+│   ├── services/         # Serviços (Payment, etc.)
+│   └── utils/            # Funções utilitárias
+└── public/               # Arquivos estáticos
 ```
 
-## 🔐 Credenciais Padrão
+## 🔄 Fluxo do Usuário
 
-Após executar o seed:
-- **Admin**: admin@sexyflow.com
-- **Senha**: admin123
+### 1. **Novo Usuário**
+```
+Homepage → Registro → Login → Escolher Plano → Pagamento → Projetos
+```
 
-## 📊 Modelos de Dados
+### 2. **Usuário Logado**
+```
+Homepage → Projetos → Dashboard → Editor → Preview
+```
 
-### User
-- Informações do usuário
-- Planos e permissões
-- Subdomínio personalizado
+### 3. **Admin**
+```
+Login → Dashboard Admin → Gestão de Usuários/Templates
+```
 
-### Template
-- Templates de páginas
-- Configurações de estilo
-- Conteúdo padrão
+## 🎯 Funcionalidades por Plano
 
-### Page
-- Páginas criadas pelos usuários
-- Conteúdo personalizado
-- Status de publicação
+| Funcionalidade | STARTER | PRO | ENTERPRISE |
+|----------------|---------|-----|------------|
+| Páginas | 3 | 8 | Ilimitadas |
+| Subdomínio | ✅ | ✅ | ✅ |
+| Domínio Customizado | ❌ | ❌ | ✅ |
+| Analytics | ❌ | ✅ | ✅ |
+| Suporte | Email | Email | WhatsApp |
 
-### Analytics
-- Eventos de página
-- Métricas de conversão
-- Dados de usuário
+## 🛡️ Segurança
 
-### FileUpload
-- Arquivos enviados
-- Metadados de upload
-- Controle de acesso
+- **Validação de formulários** completa
+- **Sanitização de dados** de entrada
+- **Proteção CSRF** nas APIs
+- **Validação de planos** no backend
 
-## 🎨 Design System
+## 📱 Responsividade
 
-### Cores
-- **Primary**: Vermelho (#dc2626)
-- **Secondary**: Rosa (#ec4899)
-- **Dark**: Cinza escuro (#0f172a)
-- **Light**: Branco (#ffffff)
+- **Mobile First** design
+- **Breakpoints** otimizados
+- **Touch gestures** no editor
+- **Preview responsivo** em tempo real
 
-### Fontes
-- **Heading**: Playfair Display
-- **Body**: Inter
+## 🔧 Configuração de Desenvolvimento
 
-### Componentes
-- Design sedutor e moderno
-- Gradientes quentes
-- Animações suaves
-- Responsivo
+### Variáveis de Ambiente
+```env
+# .env.local
+NEXTAUTH_SECRET=your-secret-key
+NEXTAUTH_URL=http://localhost:3000
+MONGODB_URI=your-mongodb-connection
+```
 
-## 📈 Próximos Passos
+### Scripts Disponíveis
+```bash
+npm run dev          # Desenvolvimento
+npm run build        # Build de produção
+npm run start        # Servidor de produção
+npm run lint         # Linting
+```
 
-1. ✅ Configurar MongoDB Atlas
-2. ✅ Implementar autenticação
-3. ✅ Criar templates padrão
-4. 🔄 Desenvolver editor visual
-5. 🔄 Implementar hospedagem automática
-6. 🔄 Sistema de analytics
-7. 🔄 Deploy no Render
+## 📈 Próximas Funcionalidades
+
+- [ ] **Integração com Stripe** real
+- [ ] **Email marketing** integrado
+- [ ] **A/B Testing** de páginas
+- [ ] **API REST** completa
+- [ ] **Webhooks** de pagamento
+- [ ] **Templates** premium
+- [ ] **SEO** otimizado
 
 ## 🤝 Contribuição
 
 1. Fork o projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
+2. Crie uma branch (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
 5. Abra um Pull Request
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ## 📞 Suporte
 
-Para dúvidas ou suporte:
-- Email: contato@sexyflow.com
-- Discord: [Link do servidor]
+- **WhatsApp**: +55 31 99778-3097
+- **Email**: suporte@sexyflow.com
+- **GitHub Issues**: [Reportar Bug](https://github.com/otaviosnow/sexyflow/issues)
 
 ---
 
-**SexyFlow** - Automatize suas vendas no nicho hot 🔥
+**Desenvolvido com ❤️ para revolucionar a criação de páginas de vendas**
