@@ -138,7 +138,7 @@ export default function PaymentSuccessPage() {
             </p>
             <div className="space-y-4">
               <button
-                onClick={() => router.push('/plans')}
+                onClick={() => router.push('/choose-plan')}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
               >
                 Tentar Novamente

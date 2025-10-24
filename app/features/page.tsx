@@ -112,7 +112,7 @@ export default function FeaturesPage() {
             Crie sua primeira página de vendas em minutos
           </p>
           <Link
-            href="/plans"
+            href="/choose-plan"
             className="bg-white hover:bg-gray-50 text-pink-600 px-8 py-4 rounded-lg text-lg font-semibold transition-colors inline-flex items-center"
           >
             Escolher Plano

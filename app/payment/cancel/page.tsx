@@ -18,7 +18,7 @@ export default function PaymentCancelPage() {
   }, [searchParams]);
 
   const handleTryAgain = () => {
-    router.push('/plans');
+    router.push('/choose-plan');
   };
 
   const handleGoHome = () => {

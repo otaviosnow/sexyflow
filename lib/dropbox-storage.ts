@@ -210,7 +210,7 @@ class DropboxService {
       return {
         used: result.result.used,
         allocation: result.result.allocation,
-        usage_percentage: (result.result.used / (result.result.allocation as any).allocated) * 100
+    usage_percentage: (result.result.used / (result.result.allocation as any).allocated) * 100
       };
     } catch (error) {
       console.error('❌ Erro ao obter estatísticas:', error);
