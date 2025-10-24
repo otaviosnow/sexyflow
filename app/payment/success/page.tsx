@@ -67,7 +67,7 @@ export default function PaymentSuccessPage() {
         }
 
         // Verificar status do pagamento (código original)
-        const status = await PaymentService.checkPaymentStatus(paymentId);
+        const status = await PaymentService.checkPaymentStatus(paymentId || '');
         setPaymentStatus(status.status);
         
         if (status.subscription) {
@@ -75,7 +75,7 @@ export default function PaymentSuccessPage() {
         }
 
         // Limpar pagamento pendente
-        PaymentService.clearPendingPayment(userId);
+        PaymentService.clearPendingPayment(userId || '');
         
         // Verificar se usuário está logado
         const currentUser = localStorage.getItem('currentUser');

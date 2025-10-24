@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Plus, Globe, Settings, Eye, Edit, Trash2, Crown, Star, Phone } from 'lucide-react';
 
 interface Project {
@@ -26,24 +27,26 @@ interface UserPlan {
 
 export default function ProjectsPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<any>(null);
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar se usuário está logado
-    const currentUser = localStorage.getItem('currentUser');
-    if (!currentUser) {
-      router.push('/');
+    // Verificar se usuário está logado via NextAuth
+    if (status === 'loading') return;
+    
+    if (!session) {
+      router.push('/login');
       return;
     }
 
-    const userData = JSON.parse(currentUser);
-    setUser(userData);
+    // Usar dados da sessão NextAuth
+    setUser(session.user);
 
     // Carregar plano do usuário
-    const subscription = localStorage.getItem(`subscription_${userData.id}`);
+    const subscription = localStorage.getItem(`subscription_${session.user?.id}`);
     if (subscription) {
       const subData = JSON.parse(subscription);
       // Simular dados do plano baseado no ID
@@ -73,7 +76,7 @@ export default function ProjectsPage() {
     }
 
     // Carregar projetos do usuário
-    const userProjects = localStorage.getItem(`projects_${userData.id}`);
+    const userProjects = localStorage.getItem(`projects_${session.user?.id}`);
     if (userProjects) {
       setProjects(JSON.parse(userProjects));
     }

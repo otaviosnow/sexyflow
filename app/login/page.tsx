@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 import { Eye, EyeOff, Mail, Lock, Heart } from 'lucide-react';
 
 export default function LoginPage() {
@@ -13,7 +14,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [userPlanStatus, setUserPlanStatus] = useState<string>('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,157 +24,150 @@ export default function LoginPage() {
     try {
       console.log('🔐 Tentando fazer login com:', formData.email);
       
-      // Simular verificação de credenciais (substituir por API real)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Verificar se usuário existe no localStorage (simulação)
-      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = existingUsers.find((u: any) => u.email === formData.email && u.password === formData.password);
-      
-      if (!user) {
-        setError('Email ou senha incorretos');
-        return;
-      }
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
 
-      console.log('✅ Login bem-sucedido! Redirecionando...');
-      
-      // Salvar usuário atual no localStorage
-      localStorage.setItem('currentUser', JSON.stringify({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        cpf: user.cpf,
-        age: user.age,
-        createdAt: user.createdAt
-      }));
-      
-      // Verificar se usuário tem plano ativo
-      const subscription = localStorage.getItem(`subscription_${user.id}`);
-      if (subscription) {
-        const subData = JSON.parse(subscription);
-        if (subData.status === 'active') {
-          // Usuário tem plano ativo - mostrar status e redirecionar
-          setUserPlanStatus(`✅ Plano ativo detectado! Redirecionando para seus projetos...`);
-          setTimeout(() => {
-            router.push('/projects');
-          }, 1500);
-        } else {
-          // Usuário tem plano mas não está ativo
-          setUserPlanStatus(`⚠️ Seu plano está inativo. Redirecionando para renovação...`);
-          setTimeout(() => {
-            router.push('/choose-plan');
-          }, 1500);
-        }
-      } else {
-        // Usuário não tem plano
-        setUserPlanStatus(`📋 Nenhum plano ativo. Redirecionando para escolha de planos...`);
+      console.log('📋 Resultado do login:', result);
+
+      if (result?.error) {
+        console.error('❌ Erro no login:', result.error);
+        setError('Email ou senha incorretos');
+      } else if (result?.ok) {
+        console.log('✅ Login bem-sucedido! Redirecionando...');
+        
+        // Aguardar um pouco para garantir que a sessão seja criada
         setTimeout(() => {
-          router.push('/choose-plan');
-        }, 1500);
+          router.push('/projects');
+        }, 100);
       }
-      
     } catch (error) {
-      console.error('💥 Erro no login:', error);
-      setError('Erro interno do servidor');
+      console.error('❌ Erro no login:', error);
+      setError('Erro interno. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-6">
-            <div className="bg-gradient-to-r from-pink-500 to-pink-600 p-4 rounded-2xl shadow-lg">
-              <Heart className="w-10 h-10 text-white" />
+        <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="relative">
+              <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center">
+                <svg width="32" height="32" viewBox="0 0 32 32" className="text-pink-600">
+                  {/* Coração principal */}
+                  <path d="M16 28 Q12 24 8 20 Q6 16 10 14 Q14 12 16 16 Q18 20 22 18 Q26 16 24 20 Q20 24 16 28" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                  {/* Rabo saindo de baixo, passando por dentro e saindo por fora */}
+                  <path d="M16 28 Q12 24 8 20 Q6 16 10 14 Q14 12 16 16 Q18 20 22 18 Q26 16 24 20 Q20 24 16 28" stroke="#be185d" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                  <path d="M16 26 Q13 22 10 19 Q8 17 11 16 Q14 15 16 18 Q18 21 21 19 Q24 17 22 19 Q19 22 16 26" stroke="#be185d" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                </svg>
+              </div>
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-400 to-pink-500 bg-clip-text text-transparent mb-3">
-            SexyFlow
-          </h1>
-          <p className="text-gray-300 text-lg">
-            Crie páginas de vendas profissionais
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">SexyFlow</h1>
+          <p className="text-gray-600 mt-2">Crie páginas de vendas profissionais</p>
         </div>
 
-        {/* Formulário */}
-        <div className="bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-gray-700/50">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">
-            Entrar na sua conta
-          </h2>
-
-          {error && (
-            <div className="bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl mb-6">
-              {error}
-            </div>
-          )}
-
-          {userPlanStatus && (
-            <div className="bg-blue-500/20 border border-blue-500/30 text-blue-400 px-4 py-3 rounded-xl mb-6">
-              {userPlanStatus}
-            </div>
-          )}
+        {/* Formulário de Login */}
+        <div className="bg-white py-8 px-6 shadow-xl rounded-2xl">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 text-center">Entrar na sua conta</h2>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
+                  id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
+                  required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all text-white placeholder-gray-400"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                   placeholder="seu@email.com"
-                  required
                 />
               </div>
             </div>
 
+            {/* Senha */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Senha
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 bg-gray-800/50 border border-gray-600 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all text-white placeholder-gray-400"
+                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                   placeholder="Sua senha"
-                  required
                 />
                 <button
                   type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  )}
                 </button>
               </div>
             </div>
 
+            {/* Erro */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            {/* Botão de Login */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-pink-500 to-pink-600 text-white py-3 px-4 rounded-xl font-medium hover:from-pink-600 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-pink-500/25 hover:scale-105"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Entrando...
+                </div>
+              ) : (
+                'Entrar'
+              )}
             </button>
           </form>
 
+          {/* Link para Registro */}
           <div className="mt-6 text-center">
-            <p className="text-gray-400">
+            <p className="text-gray-600">
               Não tem uma conta?{' '}
               <Link
                 href="/register"
-                className="text-pink-400 hover:text-pink-300 font-medium transition-colors"
+                className="text-pink-600 hover:text-pink-500 font-medium transition-colors"
               >
                 Criar conta
               </Link>
@@ -183,8 +176,10 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-8 text-gray-500 text-sm">
-          <p>© 2024 SexyFlow. Todos os direitos reservados.</p>
+        <div className="text-center">
+          <p className="text-gray-500 text-sm">
+            © 2024 SexyFlow. Todos os direitos reservados.
+          </p>
         </div>
       </div>
     </div>

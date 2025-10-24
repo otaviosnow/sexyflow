@@ -8,14 +8,18 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         // Allow access to auth pages without token
-        if (req.nextUrl.pathname.startsWith('/auth/')) {
+        if (req.nextUrl.pathname.startsWith('/auth/') ||
+            req.nextUrl.pathname.startsWith('/login') ||
+            req.nextUrl.pathname.startsWith('/register') ||
+            req.nextUrl.pathname === '/') {
           return true;
         }
         
         // Require token for protected routes
         if (req.nextUrl.pathname.startsWith('/dashboard') || 
             req.nextUrl.pathname.startsWith('/admin') ||
-            req.nextUrl.pathname.startsWith('/pages')) {
+            req.nextUrl.pathname.startsWith('/pages') ||
+            req.nextUrl.pathname.startsWith('/projects')) {
           return !!token;
         }
         
@@ -30,6 +34,7 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/admin/:path*',
-    '/pages/:path*'
-  ]
+    '/pages/:path*',
+    '/projects/:path*'
+  ],
 };

@@ -1,4 +1,4 @@
-import { User, Project, Plan } from '../models/Subscription';
+import { User, Project } from '../models/Subscription';
 import { PLANS } from '../models/Plan';
 
 export interface PlanLimits {

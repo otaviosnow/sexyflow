@@ -14,8 +14,8 @@ export interface SubscriptionCheck {
 // Verificar status da assinatura do usuário
 export function checkUserSubscription(user: User): SubscriptionCheck {
   const hasActiveSubscription = hasActivePlan(user);
-  const isNearExpiration = isNearExpiration(user);
-  const isInGracePeriod = isInGracePeriod(user);
+  const isNearExpirationCheck = isNearExpiration(user);
+  const isInGracePeriodCheck = isInGracePeriod(user);
   
   // Gerar notificações baseadas no status
   const notifications = generateUserNotifications(user);
@@ -26,16 +26,16 @@ export function checkUserSubscription(user: User): SubscriptionCheck {
   
   if (!hasActiveSubscription) {
     shouldRedirect = true;
-    redirectUrl = '/plans';
-  } else if (isInGracePeriod) {
+    redirectUrl = '/choose-plan';
+  } else if (isInGracePeriodCheck) {
     shouldRedirect = true;
     redirectUrl = '/billing';
   }
   
   return {
     hasActiveSubscription,
-    isNearExpiration,
-    isInGracePeriod,
+    isNearExpiration: isNearExpirationCheck,
+    isInGracePeriod: isInGracePeriodCheck,
     notifications,
     shouldRedirect,
     redirectUrl
@@ -128,7 +128,7 @@ export function canAccessDashboard(user: User): { allowed: boolean; redirectUrl?
   if (!subscriptionCheck.hasActiveSubscription) {
     return {
       allowed: false,
-      redirectUrl: '/plans'
+      redirectUrl: '/choose-plan'
     };
   }
   

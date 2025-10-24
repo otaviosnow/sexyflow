@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { 
   Plus, 
@@ -42,6 +43,7 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [pages, setPages] = useState<Page[]>([]);
   const [deletedPages, setDeletedPages] = useState<Set<string>>(new Set());
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -58,20 +60,21 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'pages' | 'library'>('pages');
 
   useEffect(() => {
-    // Verificar se usuário está logado via localStorage
-    const user = localStorage.getItem('currentUser');
-    if (!user) {
-      router.push('/');
+    // Verificar se usuário está logado via NextAuth
+    if (status === 'loading') return;
+    
+    if (!session) {
+      router.push('/login');
       return;
     }
 
-    const userData = JSON.parse(user);
-    setCurrentUser(userData);
+    // Usar dados da sessão NextAuth
+    setCurrentUser(session.user);
     
     // Verificar se é admin
-    const isAdminUser = userData.email === 'admin@gmail.com';
+    const isAdminUser = session.user?.email === 'admin@gmail.com';
     setIsAdmin(isAdminUser);
-    console.log('Usuário logado:', userData.email, 'É admin:', isAdminUser);
+    console.log('Usuário logado:', session.user?.email, 'É admin:', isAdminUser);
 
     // Carregar projeto atual se houver
     const project = localStorage.getItem('currentProject');
@@ -88,7 +91,7 @@ export default function DashboardPage() {
     }
 
     // Carregar plano do usuário
-    const subscription = localStorage.getItem(`subscription_${userData.id}`);
+    const subscription = localStorage.getItem(`subscription_${session.user?.id}`);
     if (subscription) {
       const subData = JSON.parse(subscription);
       const planData = {

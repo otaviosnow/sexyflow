@@ -31,7 +31,7 @@ export default function TemplatePreviewPage({ params }: { params: { id: string }
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/login');
+      router.push('/login');
     }
   }, [status, router]);
 
