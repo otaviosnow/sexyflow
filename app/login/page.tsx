@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signIn, getSession } from 'next-auth/react';
-import { Eye, EyeOff, Mail, Lock, Heart } from 'lucide-react';
+import { signIn } from 'next-auth/react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -15,16 +15,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-
-  // Verificar se já está logado
-  useEffect(() => {
-    getSession().then(session => {
-      if (session) {
-        console.log('🔍 Já está logado:', session);
-        router.push('/projects');
-      }
-    });
-  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,34 +34,24 @@ export default function LoginPage() {
 
       if (result?.error) {
         console.error('❌ Erro no login:', result.error);
-        if (result.error === 'CredentialsSignin') {
-          setError('Email ou senha incorretos. Verifique suas credenciais.');
-        } else {
-          setError('Erro ao fazer login. Tente novamente.');
-        }
-      } else if (result?.ok) {
+        setError('Email ou senha incorretos');
+        setIsLoading(false);
+        return;
+      }
+
+      if (result?.ok) {
         console.log('✅ Login bem-sucedido!');
-        console.log('Token salvo:', result);
         
         // Aguardar um pouco para garantir que a sessão seja criada
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Verificar se a sessão foi criada
-        const session = await getSession();
-        console.log('🔍 Sessão após login:', session);
-        
-        if (session) {
-          console.log('✅ Sessão criada! Redirecionando...');
-          window.location.href = '/projects';
-        } else {
-          console.error('❌ Sessão não foi criada!');
-          setError('Erro ao criar sessão. Tente novamente.');
-        }
+        // Redirecionar
+        console.log('Redirecionando para /projects...');
+        window.location.href = '/projects';
       }
     } catch (error) {
       console.error('❌ Erro no login:', error);
       setError('Erro interno. Tente novamente.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -85,9 +65,7 @@ export default function LoginPage() {
             <div className="relative">
               <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center">
                 <svg width="32" height="32" viewBox="0 0 32 32" className="text-pink-600">
-                  {/* Coração principal */}
                   <path d="M16 28 Q12 24 8 20 Q6 16 10 14 Q14 12 16 16 Q18 20 22 18 Q26 16 24 20 Q20 24 16 28" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-                  {/* Rabo saindo de baixo, passando por dentro e saindo por fora */}
                   <path d="M16 28 Q12 24 8 20 Q6 16 10 14 Q14 12 16 16 Q18 20 22 18 Q26 16 24 20 Q20 24 16 28" stroke="#be185d" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
                   <path d="M16 26 Q13 22 10 19 Q8 17 11 16 Q14 15 16 18 Q18 21 21 19 Q24 17 22 19 Q19 22 16 26" stroke="#be185d" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
                 </svg>
