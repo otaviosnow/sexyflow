@@ -25,8 +25,11 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
+          console.log('❌ Usuário não encontrado:', credentials.email);
           return null;
         }
+        
+        console.log('✅ Usuário encontrado:', user.email);
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password,

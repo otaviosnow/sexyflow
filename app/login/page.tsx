@@ -44,7 +44,11 @@ export default function LoginPage() {
 
       if (result?.error) {
         console.error('❌ Erro no login:', result.error);
-        setError('Email ou senha incorretos');
+        if (result.error === 'CredentialsSignin') {
+          setError('Email ou senha incorretos. Verifique suas credenciais.');
+        } else {
+          setError('Erro ao fazer login. Tente novamente.');
+        }
       } else if (result?.ok) {
         console.log('✅ Login bem-sucedido!');
         console.log('Token salvo:', result);
