@@ -34,14 +34,22 @@ export default function ProjectsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🔍 Status:', status);
+    console.log('🔍 Session:', session);
+    
     // Verificar se usuário está logado via NextAuth
-    if (status === 'loading') return;
+    if (status === 'loading') {
+      console.log('⏳ Aguardando sessão...');
+      return;
+    }
     
     if (!session) {
+      console.log('❌ Sem sessão, redirecionando para login');
       router.push('/login');
       return;
     }
 
+    console.log('✅ Sessão encontrada:', session.user);
     // Usar dados da sessão NextAuth
     setUser(session.user);
 
