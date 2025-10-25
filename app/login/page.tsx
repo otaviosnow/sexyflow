@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { Eye, EyeOff, Mail, Lock, Heart } from 'lucide-react';
 
 export default function LoginPage() {
@@ -15,6 +15,16 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+
+  // Verificar se já está logado
+  useEffect(() => {
+    getSession().then(session => {
+      if (session) {
+        console.log('🔍 Já está logado:', session);
+        router.push('/projects');
+      }
+    });
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +52,17 @@ export default function LoginPage() {
         // Aguardar um pouco para garantir que a sessão seja criada
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        console.log('Redirecionando para /projects...');
-        window.location.href = '/projects';
+        // Verificar se a sessão foi criada
+        const session = await getSession();
+        console.log('🔍 Sessão após login:', session);
+        
+        if (session) {
+          console.log('✅ Sessão criada! Redirecionando...');
+          window.location.href = '/projects';
+        } else {
+          console.error('❌ Sessão não foi criada!');
+          setError('Erro ao criar sessão. Tente novamente.');
+        }
       }
     } catch (error) {
       console.error('❌ Erro no login:', error);
