@@ -37,11 +37,21 @@ export default function ProjectsPage() {
     console.log('🔍 Status:', status);
     console.log('🔍 Session:', session);
     
+    // Timeout de segurança: se não carregar em 5 segundos, redirecionar
+    const timeout = setTimeout(() => {
+      if (status === 'loading') {
+        console.log('⏰ Timeout - redirecionando para login');
+        router.push('/login');
+      }
+    }, 5000);
+    
     // Verificar se usuário está logado via NextAuth
     if (status === 'loading') {
       console.log('⏳ Aguardando sessão...');
-      return;
+      return () => clearTimeout(timeout);
     }
+    
+    clearTimeout(timeout);
     
     if (!session) {
       console.log('❌ Sem sessão, redirecionando para login');
