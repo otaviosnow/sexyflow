@@ -14,6 +14,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://sexyflow.com.br'),
   title: 'SexyFlow - Automatize suas vendas no nicho hot',
   description: 'SaaS completo para criação automatizada de páginas de vendas no nicho hot/adulto, com editor visual, hospedagem automática e analytics avançados.',
   keywords: ['saas', 'vendas', 'nicho hot', 'páginas de vendas', 'automatização', 'marketing digital'],
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'pt_BR',
-    url: 'https://sexyflow.com',
+    url: 'https://sexyflow.com.br',
     title: 'SexyFlow - Automatize suas vendas no nicho hot',
     description: 'SaaS completo para criação automatizada de páginas de vendas no nicho hot/adulto',
     siteName: 'SexyFlow',
