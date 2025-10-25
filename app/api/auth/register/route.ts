@@ -32,26 +32,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Em desenvolvimento local, simular criação de usuário sem banco
-    const isLocalDev = process.env.NODE_ENV === 'development' || process.env.NEXTAUTH_URL?.includes('localhost');
-    
-    if (isLocalDev) {
-      // Para desenvolvimento local, retornar sucesso sem banco
-      const mockUser = {
-        id: Date.now().toString(),
-        name,
-        email: email.toLowerCase(),
-        subdomain: generateSubdomain(name),
-        role: 'ADMIN'
-      };
-
-      return NextResponse.json({
-        success: true,
-        message: 'Usuário admin criado com sucesso (desenvolvimento local - sem banco)',
-        user: mockUser
-      });
-    }
-
     await connectDB();
 
     // Verificar se usuário já existe
@@ -95,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: isLocalDev ? 'Usuário admin criado com sucesso (desenvolvimento local)' : 'Usuário criado com sucesso',
+      message: 'Usuário criado com sucesso',
       user: {
         id: user._id.toString(),
         name: user.name,
