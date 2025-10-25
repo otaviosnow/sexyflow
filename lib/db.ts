@@ -6,6 +6,10 @@ if (!MONGODB_URI) {
   throw new Error('MONGODB_URI não definida no .env.local');
 }
 
+declare global {
+  var mongoose: any;
+}
+
 let cached = global.mongoose;
 
 if (!cached) {
