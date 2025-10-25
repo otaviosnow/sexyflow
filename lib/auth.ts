@@ -14,43 +14,54 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
+          console.log('='.repeat(50));
+          console.log('🔐 INICIANDO AUTENTICAÇÃO');
+          console.log('='.repeat(50));
+          
           if (!credentials?.email || !credentials?.password) {
             console.log('❌ CREDENCIAIS FALTANDO');
             return null;
           }
 
-          console.log('🔍 TENTANDO AUTENTICAR:', credentials.email);
-          console.log('🔍 SENHA RECEBIDA:', credentials.password);
+          console.log('📧 EMAIL:', credentials.email);
+          console.log('🔑 SENHA:', credentials.password ? 'FORNECIDA' : 'NÃO FORNECIDA');
           
+          console.log('🔄 CONECTANDO AO MONGODB...');
           await connectDB();
           console.log('✅ CONECTADO AO MONGODB');
           
+          console.log('🔍 BUSCANDO USUÁRIO NO BD...');
           const user = await User.findOne({
             email: credentials.email.toLowerCase(),
             isActive: true
           });
 
           if (!user) {
-            console.log('❌ USUÁRIO NÃO ENCONTRADO:', credentials.email);
+            console.log('❌ USUÁRIO NÃO ENCONTRADO NO BD');
+            console.log('='.repeat(50));
             return null;
           }
           
           console.log('✅ USUÁRIO ENCONTRADO:', user.email);
-          console.log('🔍 SENHA NO BD:', user.password ? 'EXISTE' : 'NÃO EXISTE');
+          console.log('👤 NOME:', user.name);
+          console.log('📝 SENHA NO BD:', user.password ? 'EXISTE' : 'NÃO EXISTE');
 
+          console.log('🔍 COMPARANDO SENHAS...');
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           );
 
-          console.log('🔍 SENHA VÁLIDA?', isPasswordValid);
+          console.log('🔐 SENHA VÁLIDA?', isPasswordValid);
 
           if (!isPasswordValid) {
             console.log('❌ SENHA INVÁLIDA - ACESSO NEGADO');
+            console.log('='.repeat(50));
             return null;
           }
 
           console.log('✅ AUTENTICAÇÃO BEM-SUCEDIDA');
+          console.log('='.repeat(50));
 
           return {
             id: user._id.toString(),
@@ -61,6 +72,7 @@ export const authOptions: NextAuthOptions = {
           };
         } catch (error) {
           console.error('❌ ERRO NA AUTENTICAÇÃO:', error);
+          console.log('='.repeat(50));
           return null;
         }
       }
