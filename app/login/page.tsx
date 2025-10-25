@@ -22,22 +22,31 @@ export default function LoginPage() {
     setError('');
 
     try {
+      console.log('🔐 TENTANDO LOGIN:', formData.email);
+      
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
         redirect: false,
       });
 
+      console.log('📋 RESULTADO:', result);
+
       if (result?.error) {
+        console.log('❌ ERRO:', result.error);
         setError('Email ou senha incorretos');
         setIsLoading(false);
         return;
       }
 
       if (result?.ok) {
-        window.location.href = '/projects';
+        console.log('✅ OK - mas verificando sessão...');
+        setIsLoading(false);
+        setError('Login bem-sucedido, mas sessão não criada. Verifique MongoDB.');
+        return;
       }
     } catch (error) {
+      console.error('❌ ERRO:', error);
       setError('Erro ao fazer login');
       setIsLoading(false);
     }
