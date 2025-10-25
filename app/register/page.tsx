@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
   });
@@ -21,7 +22,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -30,15 +31,14 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Email ou senha incorretos');
+        setError(data.error || 'Erro ao criar conta');
         setIsLoading(false);
         return;
       }
 
-      localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/projects');
+      router.push('/login');
     } catch (error) {
-      setError('Erro ao fazer login');
+      setError('Erro ao criar conta');
       setIsLoading(false);
     }
   };
@@ -59,9 +59,30 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white py-8 px-6 shadow-xl rounded-2xl">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">Entrar na sua conta</h2>
+          <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">Criar conta</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                Nome
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  placeholder="Seu nome"
+                />
+              </div>
+            </div>
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email
@@ -129,19 +150,19 @@ export default function LoginPage() {
               {isLoading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Entrando...
+                  Criando...
                 </div>
               ) : (
-                'Entrar'
+                'Criar conta'
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Não tem uma conta?{' '}
-              <Link href="/register" className="text-pink-600 hover:text-pink-500 font-medium">
-                Criar conta
+              Já tem uma conta?{' '}
+              <Link href="/login" className="text-pink-600 hover:text-pink-500 font-medium">
+                Fazer login
               </Link>
             </p>
           </div>
