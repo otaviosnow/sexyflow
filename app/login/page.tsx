@@ -27,9 +27,19 @@ export default function LoginPage() {
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        redirect: true,
-        callbackUrl: '/projects',
+        redirect: false,
       });
+
+      console.log('📋 Resultado do login:', result);
+
+      if (result?.error) {
+        console.error('❌ Erro no login:', result.error);
+        setError('Email ou senha incorretos');
+      } else if (result?.ok) {
+        console.log('✅ Login bem-sucedido! Redirecionando...');
+        // Forçar reload completo para garantir que a sessão seja aplicada
+        window.location.href = '/projects';
+      }
     } catch (error) {
       console.error('❌ Erro no login:', error);
       setError('Erro interno. Tente novamente.');
