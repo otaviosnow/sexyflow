@@ -38,11 +38,8 @@ export default function LoginPage() {
       } else if (result?.ok) {
         console.log('✅ Login bem-sucedido! Redirecionando...');
         console.log('Token salvo:', result);
-        // Aguardar um pouco para garantir que a sessão seja criada
-        setTimeout(() => {
-          console.log('Redirecionando para /projects...');
-          window.location.href = '/projects';
-        }, 500);
+        // Forçar navegação completa com callbackUrl
+        window.location.href = '/projects';
       }
     } catch (error) {
       console.error('❌ Erro no login:', error);
