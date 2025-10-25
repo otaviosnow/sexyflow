@@ -15,13 +15,15 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
-            console.log('❌ Credenciais faltando');
+            console.log('❌ CREDENCIAIS FALTANDO');
             return null;
           }
 
-          console.log('🔍 Tentando autenticar:', credentials.email);
+          console.log('🔍 TENTANDO AUTENTICAR:', credentials.email);
+          console.log('🔍 SENHA RECEBIDA:', credentials.password);
           
           await connectDB();
+          console.log('✅ CONECTADO AO MONGODB');
           
           const user = await User.findOne({
             email: credentials.email.toLowerCase(),
@@ -29,23 +31,26 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!user) {
-            console.log('❌ Usuário não encontrado:', credentials.email);
+            console.log('❌ USUÁRIO NÃO ENCONTRADO:', credentials.email);
             return null;
           }
           
-          console.log('✅ Usuário encontrado:', user.email);
+          console.log('✅ USUÁRIO ENCONTRADO:', user.email);
+          console.log('🔍 SENHA NO BD:', user.password ? 'EXISTE' : 'NÃO EXISTE');
 
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           );
 
+          console.log('🔍 SENHA VÁLIDA?', isPasswordValid);
+
           if (!isPasswordValid) {
-            console.log('❌ Senha inválida');
+            console.log('❌ SENHA INVÁLIDA - ACESSO NEGADO');
             return null;
           }
 
-          console.log('✅ Autenticação bem-sucedida');
+          console.log('✅ AUTENTICAÇÃO BEM-SUCEDIDA');
 
           return {
             id: user._id.toString(),
@@ -55,7 +60,7 @@ export const authOptions: NextAuthOptions = {
             subdomain: user.subdomain || '',
           };
         } catch (error) {
-          console.error('❌ Erro na autenticação:', error);
+          console.error('❌ ERRO NA AUTENTICAÇÃO:', error);
           return null;
         }
       }
