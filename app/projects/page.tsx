@@ -34,33 +34,13 @@ export default function ProjectsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🔍 Status:', status);
-    console.log('🔍 Session:', session);
-    
-    // Timeout de segurança: se não carregar em 5 segundos, redirecionar
-    const timeout = setTimeout(() => {
-      if (status === 'loading') {
-        console.log('⏰ Timeout - redirecionando para login');
-        router.push('/login');
-      }
-    }, 5000);
-    
-    // Verificar se usuário está logado via NextAuth
-    if (status === 'loading') {
-      console.log('⏳ Aguardando sessão...');
-      return () => clearTimeout(timeout);
-    }
-    
-    clearTimeout(timeout);
+    if (status === 'loading') return;
     
     if (!session) {
-      console.log('❌ Sem sessão, redirecionando para login');
       router.push('/login');
       return;
     }
 
-    console.log('✅ Sessão encontrada:', session.user);
-    // Usar dados da sessão NextAuth
     setUser(session.user);
 
     // Carregar plano do usuário
