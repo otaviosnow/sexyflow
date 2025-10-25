@@ -34,8 +34,11 @@ export default function LoginPage() {
         return;
       }
 
-      if (result?.ok) {
+      if (result?.ok && !result?.error) {
         window.location.href = '/projects';
+      } else {
+        setError('Erro ao fazer login');
+        setIsLoading(false);
       }
     } catch (error) {
       setError('Erro ao fazer login');
