@@ -36,9 +36,13 @@ export default function LoginPage() {
         console.error('❌ Erro no login:', result.error);
         setError('Email ou senha incorretos');
       } else if (result?.ok) {
-        console.log('✅ Login bem-sucedido! Redirecionando...');
+        console.log('✅ Login bem-sucedido!');
         console.log('Token salvo:', result);
-        // Forçar navegação completa com callbackUrl
+        
+        // Aguardar um pouco para garantir que a sessão seja criada
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        console.log('Redirecionando para /projects...');
         window.location.href = '/projects';
       }
     } catch (error) {
