@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signIn, getSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 export default function LoginPage() {
@@ -35,16 +35,6 @@ export default function LoginPage() {
       }
 
       if (result?.ok) {
-        // Verificar se a sessão foi realmente criada
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const session = await getSession();
-        
-        if (!session) {
-          setError('Erro ao criar sessão. Tente novamente.');
-          setIsLoading(false);
-          return;
-        }
-        
         window.location.href = '/projects';
       }
     } catch (error) {
@@ -166,3 +156,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
