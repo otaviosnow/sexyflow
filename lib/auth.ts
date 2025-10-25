@@ -14,54 +14,49 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
-          console.log('='.repeat(50));
+          console.log('========================================');
           console.log('🔐 INICIANDO AUTENTICAÇÃO');
-          console.log('='.repeat(50));
+          console.log('Email:', credentials?.email);
+          console.log('Senha fornecida:', credentials?.password ? 'SIM' : 'NÃO');
+          console.log('========================================');
           
           if (!credentials?.email || !credentials?.password) {
             console.log('❌ CREDENCIAIS FALTANDO');
             return null;
           }
 
-          console.log('📧 EMAIL:', credentials.email);
-          console.log('🔑 SENHA:', credentials.password ? 'FORNECIDA' : 'NÃO FORNECIDA');
-          
-          console.log('🔄 CONECTANDO AO MONGODB...');
+          console.log('1️⃣ Conectando ao MongoDB...');
           await connectDB();
-          console.log('✅ CONECTADO AO MONGODB');
-          
-          console.log('🔍 BUSCANDO USUÁRIO NO BD...');
+          console.log('✅ MongoDB conectado');
+
+          console.log('2️⃣ Buscando usuário:', credentials.email.toLowerCase());
           const user = await User.findOne({
             email: credentials.email.toLowerCase(),
             isActive: true
           });
 
           if (!user) {
-            console.log('❌ USUÁRIO NÃO ENCONTRADO NO BD');
-            console.log('='.repeat(50));
+            console.log('❌ USUÁRIO NÃO ENCONTRADO');
             return null;
           }
           
-          console.log('✅ USUÁRIO ENCONTRADO:', user.email);
-          console.log('👤 NOME:', user.name);
-          console.log('📝 SENHA NO BD:', user.password ? 'EXISTE' : 'NÃO EXISTE');
+          console.log('✅ Usuário encontrado:', user.email);
+          console.log('3️⃣ Verificando senha...');
 
-          console.log('🔍 COMPARANDO SENHAS...');
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           );
 
-          console.log('🔐 SENHA VÁLIDA?', isPasswordValid);
+          console.log('Senha válida?', isPasswordValid);
 
           if (!isPasswordValid) {
-            console.log('❌ SENHA INVÁLIDA - ACESSO NEGADO');
-            console.log('='.repeat(50));
+            console.log('❌ SENHA INVÁLIDA');
             return null;
           }
 
           console.log('✅ AUTENTICAÇÃO BEM-SUCEDIDA');
-          console.log('='.repeat(50));
+          console.log('========================================');
 
           return {
             id: user._id.toString(),
@@ -71,8 +66,7 @@ export const authOptions: NextAuthOptions = {
             subdomain: user.subdomain || '',
           };
         } catch (error) {
-          console.error('❌ ERRO NA AUTENTICAÇÃO:', error);
-          console.log('='.repeat(50));
+          console.error('❌ ERRO:', error);
           return null;
         }
       }
@@ -80,7 +74,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 dias
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
