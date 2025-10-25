@@ -118,7 +118,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
   // Verificação de autenticação
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/login');
+      router.push('/login');
     } else if (status === 'authenticated' && session?.user?.role !== 'ADMIN') {
       router.push('/dashboard');
     }

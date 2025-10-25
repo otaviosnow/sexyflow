@@ -48,7 +48,7 @@ export default function MediaLibrary() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/login');
+      router.push('/login');
     } else {
       loadMediaFiles();
     }

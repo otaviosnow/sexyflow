@@ -24,7 +24,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/login');
+      router.push('/login');
     }
   }, [status, router]);
 

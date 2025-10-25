@@ -52,7 +52,7 @@ export default function PageEditor({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/login');
+      router.push('/login');
     }
   }, [status, router]);
 
