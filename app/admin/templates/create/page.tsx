@@ -357,7 +357,7 @@ body {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/login');
+      router.push('/login');
     } else if (status === 'authenticated' && session?.user?.role !== 'ADMIN') {
       router.push('/dashboard');
     }

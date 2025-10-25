@@ -40,7 +40,7 @@ export default function LoginPage() {
         
         // Aguardar um pouco para garantir que a sessão seja criada
         setTimeout(() => {
-          router.push('/projects');
+          window.location.href = '/projects';
         }, 100);
       }
     } catch (error) {

@@ -55,7 +55,7 @@ export default function RegisterPage() {
       if (response.ok) {
         setSuccess(true);
         setTimeout(() => {
-          router.push('/auth/login');
+          router.push('/login');
         }, 2000);
       } else {
         setError(data.error || 'Erro ao criar conta');
@@ -218,7 +218,7 @@ export default function RegisterPage() {
             <p className="text-gray-400">
               Já tem uma conta?{' '}
               <Link
-                href="/auth/login"
+                href="/login"
                 className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
               >
                 Fazer login

@@ -36,7 +36,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/login');
+      router.push('/login');
     } else if (status === 'authenticated') {
       // Verificar se é admin
       if (session?.user?.role !== 'ADMIN') {
