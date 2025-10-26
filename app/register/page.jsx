@@ -86,7 +86,6 @@ export default function RegisterPage() {
             </div>
             <h1 className="text-3xl font-bold text-white">SexyFlow</h1>
           </div>
-          <p className="text-cyan-300">Crie sua conta futurística</p>
         </div>
         
         {/* Formulário */}
