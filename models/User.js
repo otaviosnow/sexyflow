@@ -1,7 +1,7 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from 'mongoose'
+import bcrypt from 'bcryptjs'
 
-const userSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -32,18 +32,18 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-});
+})
 
 // Hash da senha antes de salvar
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
-});
+UserSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next()
+  this.password = await bcrypt.hash(this.password, 12)
+  next()
+})
 
 // Método para comparar senhas
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
+UserSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password)
+}
 
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.models.User || mongoose.model('User', UserSchema)
