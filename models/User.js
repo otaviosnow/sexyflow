@@ -24,6 +24,11 @@ const UserSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  plan: {
+    type: String,
+    enum: ['starter', 'pro', 'enterprise'],
+    default: 'starter'
+  },
   isActive: {
     type: Boolean,
     default: true
