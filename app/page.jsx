@@ -221,7 +221,7 @@ export default function HomePage() {
               </div>
 
               {/* Plano Pro */}
-              <div className="bg-[#FCEEF3] p-10 rounded-2xl border-2 border-accent-pink hover:scale-105 hover:shadow-2xl hover:shadow-pink-500/30 transition-all duration-300 cursor-pointer flex flex-col transform md:scale-110">
+              <div className="bg-[#FCEEF3] p-10 rounded-2xl border-2 border-accent-pink hover:scale-[1.15] hover:shadow-2xl hover:shadow-pink-500/30 transition-all duration-300 cursor-pointer flex flex-col transform md:scale-110">
                 <div className="text-center mb-2">
                   <span className="inline-block bg-[#E9498B] text-white px-4 py-1 rounded-lg text-sm font-medium mb-4">
                     90% das pessoas escolhem
