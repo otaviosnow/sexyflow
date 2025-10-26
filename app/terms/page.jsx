@@ -30,6 +30,18 @@ export default function TermsPage() {
             </p>
 
             <h2 className="text-2xl font-bold text-light-text mb-4">
+              Responsabilidade pelo Conteúdo
+            </h2>
+            <p className="text-light-text-secondary mb-6">
+              <strong>IMPORTANTE:</strong> O SexyFlow é uma plataforma que fornece ferramentas para criação de páginas. 
+              Nós <strong>NÃO nos responsabilizamos</strong> por qualquer conteúdo, informação, imagem, vídeo ou material 
+              criado, publicado ou compartilhado pelos usuários através de nossas ferramentas. O usuário é o único e 
+              exclusivo responsável por todo o conteúdo que criar, publicar ou distribuir através das páginas criadas 
+              em nossa plataforma. O SexyFlow atua exclusivamente como provedor de tecnologia e infraestrutura para 
+              criação de páginas, não exercendo controle editorial, revisão ou aprovação prévia do conteúdo dos usuários.
+            </p>
+
+            <h2 className="text-2xl font-bold text-light-text mb-4">
               Conta do Usuário
             </h2>
             <p className="text-light-text-secondary mb-6">
