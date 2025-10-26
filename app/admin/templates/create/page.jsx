@@ -1,16 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
-
-// Importar GrapesJS apenas no cliente
-const GrapesJSEditor = dynamic(() => import('@/components/GrapesJSEditor'), {
-  ssr: false,
-  loading: () => <div className="flex items-center justify-center h-full"><p>Carregando editor...</p></div>
-})
 
 export default function CreateTemplatePage() {
+  const [mounted, setMounted] = useState(false)
+  const [GrapesJSEditor, setGrapesJSEditor] = useState(null)
+
+  useEffect(() => {
+    setMounted(true)
+    // Importar componente apenas no cliente
+    import('@/components/GrapesJSEditor').then((mod) => {
+      setGrapesJSEditor(() => mod.default)
+    })
+  }, [])
   const router = useRouter()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -175,7 +178,16 @@ export default function CreateTemplatePage() {
 
       {/* Editor */}
       <div className="flex-1 overflow-hidden">
-        <GrapesJSEditor onSave={handleEditorSave} />
+        {!mounted || !GrapesJSEditor ? (
+          <div className="flex items-center justify-center h-full bg-light-bg">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-pink mx-auto mb-4"></div>
+              <p className="text-light-text">Carregando editor...</p>
+            </div>
+          </div>
+        ) : (
+          <GrapesJSEditor onSave={handleEditorSave} />
+        )}
       </div>
     </div>
   )

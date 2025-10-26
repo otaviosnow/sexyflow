@@ -7,6 +7,20 @@ export default function GrapesJSEditor({ initialHtml = '', initialCss = '', init
   const editorInstanceRef = useRef(null)
 
   useEffect(() => {
+    // Carregar CSS do GrapesJS
+    if (typeof window !== 'undefined' && !document.getElementById('grapesjs-css')) {
+      const link1 = document.createElement('link')
+      link1.id = 'grapesjs-css'
+      link1.rel = 'stylesheet'
+      link1.href = 'https://unpkg.com/grapesjs/dist/css/grapes.min.css'
+      document.head.appendChild(link1)
+
+      const link2 = document.createElement('link')
+      link2.rel = 'stylesheet'
+      link2.href = 'https://unpkg.com/grapesjs-preset-webpage/dist/grapesjs-preset-webpage.min.css'
+      document.head.appendChild(link2)
+    }
+
     // Importar GrapesJS apenas no cliente
     if (typeof window !== 'undefined' && editorRef.current && !editorInstanceRef.current) {
       import('grapesjs').then((grapesjs) => {
