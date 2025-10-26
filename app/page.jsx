@@ -230,15 +230,9 @@ export default function HomePage() {
                   </span>
                 </div>
                 <div className="text-center mb-6">
-                  <div className="w-12 h-12 bg-accent-purple/10 rounded-full flex items-center justify-center mx-auto mb-4 relative">
-                    <svg className="w-6 h-6 text-accent-purple" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
-                    </svg>
-                    <svg className="w-3 h-3 text-accent-purple/60 absolute -top-1 -left-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
-                    </svg>
-                    <svg className="w-3 h-3 text-accent-purple/60 absolute -bottom-1 -right-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
+                  <div className="w-12 h-12 bg-accent-purple/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-6 h-6 text-accent-purple" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 2l1.5 3 3.5.5-2.5 2.5.5 3.5-3-1.5-3 1.5.5-3.5L5 5.5l3.5-.5L10 2zm0 0v12M3 14h14v4H3v-4z" />
                     </svg>
                   </div>
                   <h3 className="text-xl font-semibold text-light-text mb-2">Plano Pro</h3>
