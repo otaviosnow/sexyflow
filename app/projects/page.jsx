@@ -19,26 +19,12 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     if (session) {
-      // Simular carregamento de projetos
+      // Usuário começa com 0 projetos
+      // Cada projeto = 1 subdomínio onde ele pode criar páginas
       setTimeout(() => {
-        setProjects([
-          {
-            id: 1,
-            name: 'Landing Page Vendas',
-            description: 'Página para produto digital',
-            createdAt: new Date().toISOString(),
-            isPublished: true
-          },
-          {
-            id: 2,
-            name: 'Portfolio Pessoal',
-            description: 'Site pessoal com projetos',
-            createdAt: new Date().toISOString(),
-            isPublished: false
-          }
-        ])
+        setProjects([])
         setLoading(false)
-      }, 1000)
+      }, 500)
     }
   }, [session])
 
@@ -84,7 +70,7 @@ export default function ProjectsPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-3xl font-bold text-white">Meus Projetos</h2>
-            <p className="text-white/60 mt-1">Bem-vindo ao futuro da criação web!</p>
+            <p className="text-white/60 mt-1">Cada projeto é um subdomínio onde você pode criar páginas</p>
           </div>
           <button className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-cyan-600 hover:to-purple-700 transition-all duration-300">
             + Novo Projeto
@@ -146,7 +132,7 @@ export default function ProjectsPage() {
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Você ainda não tem projetos</h3>
               <p className="text-white/60 mb-8">
-                Crie seu primeiro projeto e comece a construir páginas incríveis para seus clientes.
+                Crie seu primeiro projeto (subdomínio) e comece a construir páginas incríveis dentro dele.
               </p>
               <button className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-cyan-600 hover:to-purple-700 transition-all duration-300">
                 Criar Primeiro Projeto
