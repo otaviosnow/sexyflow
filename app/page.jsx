@@ -76,12 +76,12 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
-              <Link 
-                href="/pricing" 
+              <button 
+                onClick={() => document.getElementById('pricing-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="border border-light-border text-light-text px-8 py-4 rounded-lg text-lg font-medium hover:bg-light-surface transition-colors"
               >
                 Ver Planos
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -151,7 +151,7 @@ export default function HomePage() {
         </div>
 
         {/* Pricing Section */}
-        <div className="py-20">
+        <div id="pricing-section" className="py-20 scroll-mt-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold text-light-text mb-4">
@@ -162,21 +162,19 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
+            <div className="grid md:grid-cols-3 gap-0 max-w-7xl mx-auto">
               {/* Plano Starter */}
-              <div className="bg-white p-8 rounded-xl border border-light-border hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer">
+              <div className="bg-white p-10 rounded-l-2xl border-r border-pink-200 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer flex flex-col">
                 <div className="text-center mb-6">
-                  <div className="w-12 h-12 bg-accent-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                  </div>
+                  <svg className="w-10 h-10 text-accent-blue mx-auto mb-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
                   <h3 className="text-xl font-semibold text-light-text mb-2">Plano Starter</h3>
                   <div className="text-3xl font-bold text-light-text">
                     R$ 29,90<span className="text-lg text-light-text-secondary">/mês</span>
                   </div>
                 </div>
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-3 mb-8 flex-grow">
                   <li className="flex items-center text-light-text-secondary">
                     <svg className="w-5 h-5 text-accent-green mr-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -223,24 +221,22 @@ export default function HomePage() {
               </div>
 
               {/* Plano Pro */}
-              <div className="bg-white p-10 rounded-xl border-2 border-accent-pink relative hover:scale-110 hover:shadow-2xl hover:shadow-pink-500/30 transition-all duration-300 cursor-pointer transform md:scale-105">
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                  <span className="bg-accent-pink text-white px-4 py-1 rounded-full text-sm font-medium">
+              <div className="bg-[#FCEEF3] p-10 border-r border-pink-300 hover:scale-105 hover:shadow-2xl hover:shadow-pink-500/30 transition-all duration-300 cursor-pointer flex flex-col">
+                <div className="text-center mb-2">
+                  <span className="inline-block bg-[#E9498B] text-white px-4 py-1 rounded-lg text-sm font-medium mb-4">
                     90% das pessoas escolhem
                   </span>
                 </div>
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-accent-purple/10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ filter: 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.3))' }}>
-                    <svg className="w-9 h-9 text-accent-purple" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 0 4px rgba(139, 92, 246, 0.5))' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 20h18v-3H3v3zM5 17l2-8 2 3 3-5 3 5 2-3 2 8" />
-                    </svg>
-                  </div>
+                  <svg className="w-10 h-10 text-accent-purple mx-auto mb-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 20h18M5 20l2-8 2 3 3-5 3 5 2-3 2 8" />
+                  </svg>
                   <h3 className="text-xl font-semibold text-light-text mb-2">Plano Pro</h3>
                   <div className="text-3xl font-bold text-light-text">
                     R$ 47,00<span className="text-lg text-light-text-secondary">/mês</span>
                   </div>
                 </div>
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-3 mb-8 flex-grow">
                   <li className="flex items-center text-light-text-secondary">
                     <svg className="w-5 h-5 text-accent-green mr-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -292,20 +288,18 @@ export default function HomePage() {
                 </ul>
                 <Link 
                   href="/register" 
-                  className="w-full bg-accent-pink text-white py-3 rounded-lg font-medium hover:bg-pink-600 transition-colors block text-center"
+                  className="w-full bg-[#E9498B] text-white py-3 rounded-lg font-medium hover:bg-pink-600 transition-colors block text-center"
                 >
                   Escolher Plano
                 </Link>
               </div>
 
               {/* Plano Enterprise */}
-              <div className="bg-white p-8 rounded-xl border border-light-border hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 cursor-pointer">
+              <div className="bg-[#E8F8EE] p-10 rounded-r-2xl border-l border-green-300 hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 cursor-pointer flex flex-col">
                 <div className="text-center mb-6">
-                  <div className="w-12 h-12 bg-accent-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </div>
+                  <svg className="w-10 h-10 text-accent-green mx-auto mb-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
                   <h3 className="text-xl font-semibold text-light-text mb-2">Plano Enterprise</h3>
                   <div className="text-3xl font-bold text-light-text">
                     Contato Direto
@@ -363,7 +357,7 @@ export default function HomePage() {
                 </ul>
                 <Link 
                   href="/contact" 
-                  className="w-full bg-accent-green text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors block text-center"
+                  className="w-full bg-[#28A745] text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors block text-center"
                 >
                   Falar no WhatsApp
                 </Link>
@@ -374,6 +368,31 @@ export default function HomePage() {
 
         {/* Testimonials Section */}
         <div className="bg-light-surface py-20">
+          <style jsx>{`
+            @keyframes fadeInUp {
+              from {
+                opacity: 0;
+                transform: translateY(30px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            .testimonial-card {
+              animation: fadeInUp 0.6s ease-out forwards;
+              opacity: 0;
+            }
+            .testimonial-card:nth-child(1) {
+              animation-delay: 0.1s;
+            }
+            .testimonial-card:nth-child(2) {
+              animation-delay: 0.3s;
+            }
+            .testimonial-card:nth-child(3) {
+              animation-delay: 0.5s;
+            }
+          `}</style>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold text-light-text mb-4">
@@ -386,7 +405,7 @@ export default function HomePage() {
 
             <div className="grid md:grid-cols-3 gap-8">
               {/* Testimonial 1 */}
-              <div className="bg-white p-8 rounded-xl border border-light-border">
+              <div className="testimonial-card bg-white p-8 rounded-xl border border-light-border hover:shadow-lg transition-shadow duration-300">
                 <div className="flex items-center mb-4">
                   <div className="w-12 h-12 bg-accent-pink/10 rounded-full flex items-center justify-center mr-4">
                     <span className="text-accent-pink font-bold text-lg">D</span>
@@ -409,7 +428,7 @@ export default function HomePage() {
               </div>
 
               {/* Testimonial 2 */}
-              <div className="bg-white p-8 rounded-xl border border-light-border">
+              <div className="testimonial-card bg-white p-8 rounded-xl border border-light-border hover:shadow-lg transition-shadow duration-300">
                 <div className="flex items-center mb-4">
                   <div className="w-12 h-12 bg-accent-blue/10 rounded-full flex items-center justify-center mr-4">
                     <span className="text-accent-blue font-bold text-lg">J</span>
@@ -432,7 +451,7 @@ export default function HomePage() {
               </div>
 
               {/* Testimonial 3 */}
-              <div className="bg-white p-8 rounded-xl border border-light-border">
+              <div className="testimonial-card bg-white p-8 rounded-xl border border-light-border hover:shadow-lg transition-shadow duration-300">
                 <div className="flex items-center mb-4">
                   <div className="w-12 h-12 bg-accent-green/10 rounded-full flex items-center justify-center mr-4">
                     <span className="text-accent-green font-bold text-lg">A</span>
