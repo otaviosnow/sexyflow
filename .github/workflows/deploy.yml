@@ -20,4 +20,10 @@ jobs:
           git pull origin main
           npm install
           npm run build
-          pm2 restart sexyflow
+          export MONGODB_URI="mongodb+srv://tavinmktdigital_db_user:%40Snow2012@sexyflow-cluster.n7ofzur.mongodb.net/sexyflow?retryWrites=true&w=majority"
+          export NEXTAUTH_SECRET="sexyflow-production-secret-key-2025"
+          export NEXTAUTH_URL="https://sexyflow.com.br"
+          export DROPBOX_ACCESS_TOKEN="sl.u.AGCoYjwzkVlrilJN3IY_NYQsSkdyqHSsq9dVpfD5AuNxT6ofYk0gqtP72hb8psYyC5sH0aCJVau460ETfbM6k4J4Z_10r"
+          export DROPBOX_APP_KEY="bn28aobr2w4wi0r"
+          export DROPBOX_APP_SECRET="496krrnewavixib"
+          pm2 start npm --name "sexyflow" -- start
