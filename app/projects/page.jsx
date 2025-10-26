@@ -14,6 +14,8 @@ export default function ProjectsPage() {
   const [projectName, setProjectName] = useState('')
   const [subdomain, setSubdomain] = useState('')
   const [creating, setCreating] = useState(false)
+  const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -23,43 +25,92 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     if (session) {
-      // Usuário começa com 0 projetos
-      // Cada projeto = 1 subdomínio onde ele pode criar páginas
-      setTimeout(() => {
-        setProjects([])
-        setLoading(false)
-      }, 500)
+      loadProjects()
     }
   }, [session])
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/projects')
+      const data = await response.json()
+
+      if (response.ok) {
+        setProjects(data.projects || [])
+      } else {
+        console.error('Erro ao carregar projetos:', data.error)
+        setProjects([])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar projetos:', error)
+      setProjects([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCreateProject = async (e) => {
     e.preventDefault()
     setCreating(true)
+    setError('')
 
     try {
-      // Simular criação de projeto
-      // TODO: Integrar com API real
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const newProject = {
-        id: Date.now(),
-        name: projectName,
-        subdomain: subdomain,
-        description: `Projeto ${projectName}`,
-        createdAt: new Date().toISOString(),
-        isPublished: false,
-        pages: []
-      }
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: projectName,
+          subdomain: subdomain,
+          description: `Projeto ${projectName}`
+        })
+      })
 
-      setProjects([...projects, newProject])
-      setShowCreateModal(false)
-      setProjectName('')
-      setSubdomain('')
+      const data = await response.json()
+
+      if (response.ok) {
+        // Adicionar o novo projeto à lista
+        setProjects([data.project, ...projects])
+        setShowCreateModal(false)
+        setProjectName('')
+        setSubdomain('')
+        setError('')
+      } else {
+        setError(data.error || 'Erro ao criar projeto')
+      }
     } catch (error) {
       console.error('Erro ao criar projeto:', error)
-      alert('Erro ao criar projeto. Tente novamente.')
+      setError('Erro de conexão. Tente novamente.')
     } finally {
       setCreating(false)
+    }
+  }
+
+  const handleDeleteProject = async (projectId, projectName) => {
+    if (!confirm(`Tem certeza que deseja deletar o projeto "${projectName}"? Esta ação não pode ser desfeita.`)) {
+      return
+    }
+
+    setDeletingId(projectId)
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // Remover o projeto da lista
+        setProjects(projects.filter(p => p.id !== projectId && p._id !== projectId))
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao deletar projeto')
+      }
+    } catch (error) {
+      console.error('Erro ao deletar projeto:', error)
+      alert('Erro de conexão. Tente novamente.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -119,46 +170,69 @@ export default function ProjectsPage() {
 
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <div key={project.id} className="bg-white border border-light-border rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-light-text mb-1">{project.name}</h3>
-                  <p className="text-sm text-light-text-secondary line-clamp-2">{project.subdomain}.sexyflow.com.br</p>
-                </div>
-                <div className="flex items-center gap-1 ml-4">
-                  <button className="p-2 text-light-text-secondary hover:text-light-text transition-colors">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                    </svg>
-                  </button>
-                  <button className="p-2 text-light-text-secondary hover:text-accent-pink transition-colors">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between text-sm text-light-text-secondary">
-                <div className="flex items-center gap-1">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                  </svg>
-                  <span>{new Date(project.createdAt).toLocaleDateString('pt-BR')}</span>
-                </div>
-                {project.isPublished && (
-                  <div className="flex items-center gap-1 text-accent-green">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
-                    </svg>
-                    <span>Publicado</span>
+          {projects.map((project) => {
+            const projectId = project.id || project._id
+            const isDeleting = deletingId === projectId
+            
+            return (
+              <div key={projectId} className={`bg-white border border-light-border rounded-xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ${isDeleting ? 'opacity-50' : ''}`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-light-text mb-1">{project.name}</h3>
+                    <p className="text-sm text-light-text-secondary line-clamp-2">{project.subdomain}.sexyflow.com.br</p>
                   </div>
-                )}
+                  <div className="flex items-center gap-1 ml-4">
+                    <button 
+                      onClick={() => window.open(`https://${project.subdomain}.sexyflow.com.br`, '_blank')}
+                      className="p-2 text-light-text-secondary hover:text-light-text transition-colors"
+                      title="Visualizar"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                      </svg>
+                    </button>
+                    <button 
+                      onClick={() => router.push(`/pages?project=${projectId}`)}
+                      className="p-2 text-light-text-secondary hover:text-accent-pink transition-colors"
+                      title="Gerenciar páginas"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                      </svg>
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteProject(projectId, project.name)}
+                      disabled={isDeleting}
+                      className="p-2 text-light-text-secondary hover:text-red-600 transition-colors disabled:opacity-50"
+                      title="Deletar"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between text-sm text-light-text-secondary">
+                  <div className="flex items-center gap-1">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span>{new Date(project.createdAt).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                  {project.isPublished && (
+                    <div className="flex items-center gap-1 text-accent-green">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+                      </svg>
+                      <span>Publicado</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Empty State */}
@@ -238,10 +312,19 @@ export default function ProjectsPage() {
                 </p>
               </div>
 
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => {
+                    setShowCreateModal(false)
+                    setError('')
+                  }}
                   className="flex-1 px-4 py-3 bg-light-bg text-light-text rounded-lg hover:bg-gray-200 transition-colors font-medium"
                 >
                   Cancelar
