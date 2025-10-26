@@ -8,7 +8,13 @@ import { signOut } from 'next-auth/react'
 export default function ProjectsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [projects, setProjects] = useState([])
+  const [projects, setProjects] = useState<Array<{
+    id: number
+    name: string
+    description: string
+    createdAt: string
+    isPublished: boolean
+  }>>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
