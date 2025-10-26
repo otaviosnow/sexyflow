@@ -10,6 +10,10 @@ export default function ProjectsPage() {
   const router = useRouter()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [projectName, setProjectName] = useState('')
+  const [subdomain, setSubdomain] = useState('')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -27,6 +31,37 @@ export default function ProjectsPage() {
       }, 500)
     }
   }, [session])
+
+  const handleCreateProject = async (e) => {
+    e.preventDefault()
+    setCreating(true)
+
+    try {
+      // Simular criação de projeto
+      // TODO: Integrar com API real
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      const newProject = {
+        id: Date.now(),
+        name: projectName,
+        subdomain: subdomain,
+        description: `Projeto ${projectName}`,
+        createdAt: new Date().toISOString(),
+        isPublished: false,
+        pages: []
+      }
+
+      setProjects([...projects, newProject])
+      setShowCreateModal(false)
+      setProjectName('')
+      setSubdomain('')
+    } catch (error) {
+      console.error('Erro ao criar projeto:', error)
+      alert('Erro ao criar projeto. Tente novamente.')
+    } finally {
+      setCreating(false)
+    }
+  }
 
   if (status === 'loading' || loading) {
     return (
@@ -72,7 +107,10 @@ export default function ProjectsPage() {
             <h2 className="text-3xl font-bold text-white">Meus Projetos</h2>
             <p className="text-white/60 mt-1">Cada projeto é um subdomínio onde você pode criar páginas</p>
           </div>
-          <button className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-cyan-600 hover:to-purple-700 transition-all duration-300">
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-cyan-600 hover:to-purple-700 transition-all duration-300"
+          >
             + Novo Projeto
           </button>
         </div>
@@ -134,13 +172,90 @@ export default function ProjectsPage() {
               <p className="text-white/60 mb-8">
                 Crie seu primeiro projeto (subdomínio) e comece a construir páginas incríveis dentro dele.
               </p>
-              <button className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-cyan-600 hover:to-purple-700 transition-all duration-300">
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-cyan-600 hover:to-purple-700 transition-all duration-300"
+              >
                 Criar Primeiro Projeto
               </button>
             </div>
           </div>
         )}
       </main>
+
+      {/* Modal de Criar Projeto */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-md w-full">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-white">Novo Projeto</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-white/60 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProject} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Nome do Projeto
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  placeholder="Ex: Meu Site"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Subdomínio
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    required
+                    value={subdomain}
+                    onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-l-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    placeholder="meusite"
+                  />
+                  <span className="px-4 py-3 bg-white/5 border border-l-0 border-white/20 rounded-r-lg text-white/60 text-sm">
+                    .sexyflow.com.br
+                  </span>
+                </div>
+                <p className="text-xs text-white/40 mt-1">
+                  Apenas letras minúsculas, números e hífens
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-3 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !projectName || !subdomain}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded-lg hover:from-cyan-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creating ? 'Criando...' : 'Criar Projeto'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
