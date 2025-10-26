@@ -162,9 +162,9 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
               {/* Plano Starter */}
-              <div className="bg-white p-8 rounded-xl border border-light-border">
+              <div className="bg-white p-8 rounded-xl border border-light-border hover:scale-105 hover:shadow-2xl transition-all duration-300 cursor-pointer">
                 <div className="text-center mb-6">
                   <div className="w-12 h-12 bg-accent-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg className="w-6 h-6 text-accent-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -223,16 +223,22 @@ export default function HomePage() {
               </div>
 
               {/* Plano Pro */}
-              <div className="bg-white p-8 rounded-xl border-2 border-accent-pink relative">
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+              <div className="bg-white p-8 rounded-xl border-2 border-accent-pink relative hover:scale-105 hover:shadow-2xl transition-all duration-300 cursor-pointer">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
                   <span className="bg-accent-pink text-white px-4 py-1 rounded-full text-sm font-medium">
                     90% das pessoas escolhem
                   </span>
                 </div>
                 <div className="text-center mb-6">
-                  <div className="w-12 h-12 bg-accent-purple/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-accent-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  <div className="w-12 h-12 bg-accent-purple/10 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+                    <svg className="w-6 h-6 text-accent-purple" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
+                    </svg>
+                    <svg className="w-3 h-3 text-accent-purple/60 absolute -top-1 -left-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
+                    </svg>
+                    <svg className="w-3 h-3 text-accent-purple/60 absolute -bottom-1 -right-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
                     </svg>
                   </div>
                   <h3 className="text-xl font-semibold text-light-text mb-2">Plano Pro</h3>
@@ -299,7 +305,7 @@ export default function HomePage() {
               </div>
 
               {/* Plano Enterprise */}
-              <div className="bg-white p-8 rounded-xl border border-light-border">
+              <div className="bg-white p-8 rounded-xl border border-light-border hover:scale-105 hover:shadow-2xl transition-all duration-300 cursor-pointer">
                 <div className="text-center mb-6">
                   <div className="w-12 h-12 bg-accent-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg className="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
