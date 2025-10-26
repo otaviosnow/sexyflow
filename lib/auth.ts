@@ -1,12 +1,16 @@
 import { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from './auth-config';
 
-export function getAuthUser(request: NextRequest) {
-  return null;
+export async function getAuthUser(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  return session?.user || null;
 }
 
-export function requireAuth(request: NextRequest) {
-  return true;
+export async function requireAuth(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  return !!session;
 }
 
 // Exportar authOptions para compatibilidade
-export const authOptions = {};
+export { authOptions };
