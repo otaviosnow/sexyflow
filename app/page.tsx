@@ -55,7 +55,7 @@ export default function HomePage() {
             <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
               Crie Páginas
               <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-                {' '}Futurísticas
+                {' '}Futurísticas 🚀
               </span>
             </h1>
             <p className="text-xl text-white/80 mb-12 max-w-3xl mx-auto leading-relaxed">
