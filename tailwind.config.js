@@ -8,11 +8,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'cyber-cyan': '#06b6d4',
-        'cyber-purple': '#8b5cf6',
-        'cyber-pink': '#ec4899',
-        'cyber-blue': '#3b82f6',
-        'cyber-green': '#10b981',
+        'light-bg': '#ffffff',
+        'light-surface': '#f8fafc',
+        'light-card': '#ffffff',
+        'light-border': '#e2e8f0',
+        'light-text': '#1e293b',
+        'light-text-secondary': '#64748b',
+        'accent-pink': '#ec4899',
+        'accent-purple': '#8b5cf6',
+        'accent-blue': '#3b82f6',
+        'accent-green': '#10b981',
+        'accent-red': '#ef4444',
       },
       animation: {
         'blob': 'blob 7s infinite',
