@@ -2,38 +2,47 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Check, Star, Crown, Phone, ArrowRight } from 'lucide-react';
 import { PLANS } from '@/lib/models/Plan';
 
 export default function ChoosePlanPage() {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar se usuário está logado
-    const user = localStorage.getItem('currentUser');
-    if (!user) {
-      router.push('/');
+    // Verificar se usuário está autenticado
+    if (status === 'unauthenticated') {
+      router.push('/login');
       return;
     }
 
-    const userData = JSON.parse(user);
-    setCurrentUser(userData);
-
-    // Verificar se já tem plano ativo
-    const subscription = localStorage.getItem(`subscription_${userData.id}`);
-    if (subscription) {
-      // Já tem plano, redirecionar para projetos
-      router.push('/projects');
-      return;
+    if (status === 'authenticated') {
+      // Verificar se já tem assinatura ativa
+      checkSubscription();
     }
+  }, [status, router]);
 
+  const checkSubscription = async () => {
+    try {
+      const response = await fetch('/api/subscriptions/check');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasActiveSubscription) {
+          // Já tem plano, redirecionar para projetos
+          router.push('/projects');
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar assinatura:', error);
+    }
     setIsLoading(false);
-  }, [router]);
+  };
 
   const handlePlanSelection = async (planId: string) => {
-    if (!currentUser) return;
+    if (!session) return;
 
     if (planId === 'plan-enterprise') {
       // Plano Enterprise - abrir WhatsApp
@@ -48,7 +57,7 @@ export default function ChoosePlanPage() {
       
       // Dados do pagamento
       const paymentData = {
-        userId: currentUser.id,
+        userId: session.user.id,
         planId: planId,
         amount: amount,
         currency: 'BRL',
@@ -57,7 +66,7 @@ export default function ChoosePlanPage() {
       };
 
       // Salvar pagamento pendente
-      localStorage.setItem(`pending_payment_${currentUser.id}`, JSON.stringify(paymentData));
+      localStorage.setItem(`pending_payment_${session.user.id}`, JSON.stringify(paymentData));
 
       // Simular processo de pagamento (substituir pela integração real da Cakto)
       alert(`Redirecionando para pagamento do ${planName}...\nValor: R$ ${amount.toFixed(2).replace('.', ',')}\n\nEm um ambiente real, você seria redirecionado para o gateway de pagamento da Cakto.`);
@@ -67,7 +76,7 @@ export default function ChoosePlanPage() {
         // Criar assinatura ativa
         const subscription = {
           _id: `sub-${Date.now()}`,
-          userId: currentUser.id,
+          userId: session.user.id,
           planId: planId,
           status: 'active',
           startDate: new Date().toISOString(),
@@ -80,10 +89,10 @@ export default function ChoosePlanPage() {
         };
 
         // Salvar assinatura
-        localStorage.setItem(`subscription_${currentUser.id}`, JSON.stringify(subscription));
+        localStorage.setItem(`subscription_${session.user.id}`, JSON.stringify(subscription));
         
         // Remover pagamento pendente
-        localStorage.removeItem(`pending_payment_${currentUser.id}`);
+        localStorage.removeItem(`pending_payment_${session.user.id}`);
 
         // Redirecionar para projetos
         router.push('/projects');
@@ -121,7 +130,7 @@ export default function ChoosePlanPage() {
     }
   };
 
-  if (isLoading) {
+  if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -130,6 +139,10 @@ export default function ChoosePlanPage() {
         </div>
       </div>
     );
+  }
+
+  if (!session) {
+    return null;
   }
 
   return (

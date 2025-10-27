@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 
@@ -14,19 +15,15 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
-  // Verificar se o usuário já está logado
+  // Verificar se o usuário já está logado com NextAuth
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      // Usuário já está logado, redirecionar para projects
+    if (status === 'authenticated') {
       router.push('/projects');
-    } else {
-      setCheckingAuth(false);
     }
-  }, [router]);
+  }, [status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +31,7 @@ export default function RegisterPage() {
     setError('');
 
     try {
+      // Primeiro, criar a conta na API
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,15 +46,28 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push('/login');
+      // Conta criada com sucesso - fazer login automático com NextAuth
+      const loginResult = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
+
+      if (loginResult?.ok) {
+        // Redirecionar para projects
+        router.push('/projects');
+      } else {
+        // Se falhar o login, redirecionar para página de login
+        router.push('/login');
+      }
     } catch (error) {
       setError('Erro ao criar conta');
       setIsLoading(false);
     }
   };
 
-  // Mostrar loading enquanto verifica autenticação
-  if (checkingAuth) {
+  // Mostrar loading enquanto verifica autenticação com NextAuth
+  if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">

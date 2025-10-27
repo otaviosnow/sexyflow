@@ -33,21 +33,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Usar NextAuth para autenticação segura
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
     await connectDB();
 
     const body = await request.json();
-    const { name, subdomain, description, userEmail } = body;
+    const { name, subdomain, description } = body;
 
     if (!name || !subdomain) {
       return NextResponse.json({ error: 'Nome e subdomínio são obrigatórios' }, { status: 400 });
     }
 
-    if (!userEmail) {
-      return NextResponse.json({ error: 'Email do usuário é obrigatório' }, { status: 401 });
-    }
-
-    // Buscar usuário pelo email (autenticação localStorage)
-    const user = await User.findOne({ email: userEmail });
+    // Buscar usuário autenticado via NextAuth session
+    const user = await User.findById(session.user.id);
     
     if (!user) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 401 });

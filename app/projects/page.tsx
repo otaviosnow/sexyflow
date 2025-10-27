@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import { 
   Plus, 
   Settings, 
@@ -17,24 +18,21 @@ import {
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { data: session, status } = useSession();
   const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
+    if (status === 'unauthenticated') {
       router.push('/login');
-      return;
     }
-    setUser(JSON.parse(userData));
-  }, [router]);
+  }, [status, router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
     router.push('/login');
   };
 
-  if (!user) {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
@@ -42,7 +40,11 @@ export default function ProjectsPage() {
     );
   }
 
-  const isAdmin = user.role === 'ADMIN';
+  if (!session) {
+    return null;
+  }
+
+  const isAdmin = session.user.role === 'ADMIN';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
@@ -110,7 +112,7 @@ export default function ProjectsPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Bem-vindo, {user.name}! 👋
+                Bem-vindo, {session.user.name}! 👋
               </h2>
               <p className="text-gray-600">
                 {isAdmin ? 'Você tem acesso total ao sistema como administrador.' : 'Gerencie suas páginas de vendas em um só lugar.'}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
@@ -13,19 +14,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
-  // Verificar se o usuário já está logado
+  // Verificar se o usuário já está logado com NextAuth
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      // Usuário já está logado, redirecionar para projects
+    if (status === 'authenticated') {
       router.push('/projects');
-    } else {
-      setCheckingAuth(false);
     }
-  }, [router]);
+  }, [status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,30 +30,32 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      // Usar NextAuth signIn() com credentials provider
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false, // Não redirecionar automaticamente
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Email ou senha incorretos');
+      if (result?.error) {
+        setError('Email ou senha incorretos');
         setIsLoading(false);
         return;
       }
 
-      localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/projects');
+      if (result?.ok) {
+        // Login bem-sucedido - redirecionar para projects
+        router.push('/projects');
+        router.refresh();
+      }
     } catch (error) {
       setError('Erro ao fazer login');
       setIsLoading(false);
     }
   };
 
-  // Mostrar loading enquanto verifica autenticação
-  if (checkingAuth) {
+  // Mostrar loading enquanto verifica autenticação com NextAuth
+  if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">

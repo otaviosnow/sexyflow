@@ -2,32 +2,36 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { CheckCircle, ArrowRight, Home } from 'lucide-react';
 import { PaymentService } from '@/lib/services/PaymentService';
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
   const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     const checkPaymentStatus = async () => {
+      if (status === 'unauthenticated') {
+        router.push('/login');
+        return;
+      }
+
+      if (status !== 'authenticated' || !session) {
+        return;
+      }
+
       try {
         const paymentId = searchParams.get('payment_id');
         const userId = searchParams.get('user_id');
         
         // Se não há parâmetros, verificar se há pagamento pendente no localStorage
         if (!paymentId || !userId) {
-          const currentUser = localStorage.getItem('currentUser');
-          if (!currentUser) {
-            router.push('/');
-            return;
-          }
-          
-          const userData = JSON.parse(currentUser);
-          const pendingPayment = localStorage.getItem(`pending_payment_${userData.id}`);
+          const pendingPayment = localStorage.getItem(`pending_payment_${session.user.id}`);
           
           if (pendingPayment) {
             // Simular pagamento aprovado
@@ -36,7 +40,7 @@ export default function PaymentSuccessPage() {
             // Criar assinatura ativa
             const subscription = {
               _id: `sub-${Date.now()}`,
-              userId: userData.id,
+              userId: session.user.id,
               planId: paymentData.planId,
               status: 'active',
               startDate: new Date().toISOString(),
@@ -49,10 +53,10 @@ export default function PaymentSuccessPage() {
             };
 
             // Salvar assinatura
-            localStorage.setItem(`subscription_${userData.id}`, JSON.stringify(subscription));
+            localStorage.setItem(`subscription_${session.user.id}`, JSON.stringify(subscription));
             
             // Remover pagamento pendente
-            localStorage.removeItem(`pending_payment_${userData.id}`);
+            localStorage.removeItem(`pending_payment_${session.user.id}`);
             
             setPaymentStatus('approved');
             setSubscription(subscription);
@@ -77,20 +81,10 @@ export default function PaymentSuccessPage() {
         // Limpar pagamento pendente
         PaymentService.clearPendingPayment(userId || '');
         
-        // Verificar se usuário está logado
-        const currentUser = localStorage.getItem('currentUser');
-        
-        if (currentUser) {
-          // Usuário logado - redirecionar para dashboard após 3 segundos
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 3000);
-        } else {
-          // Usuário não logado - redirecionar para login após 3 segundos
-          setTimeout(() => {
-            router.push('/login');
-          }, 3000);
-        }
+        // Usuário autenticado via NextAuth - redirecionar para dashboard após 3 segundos
+        setTimeout(() => {
+          router.push('/projects');
+        }, 3000);
         
         setIsLoading(false);
       } catch (error) {
@@ -101,7 +95,7 @@ export default function PaymentSuccessPage() {
     };
 
     checkPaymentStatus();
-  }, [searchParams, router]);
+  }, [searchParams, router, status, session]);
 
   const handleGoToDashboard = () => {
     router.push('/dashboard');

@@ -2,12 +2,13 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { ArrowLeft, Globe, CheckCircle, XCircle, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function CreateProject() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [checkingSubdomain, setCheckingSubdomain] = useState(false);
   const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null);
@@ -19,13 +20,10 @@ export default function CreateProject() {
   });
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
+    if (status === 'unauthenticated') {
       router.push('/login');
-      return;
     }
-    setUser(JSON.parse(userData));
-  }, [router]);
+  }, [status, router]);
 
   const checkSubdomainAvailability = async (subdomain: string) => {
     if (subdomain.length < 3) {
@@ -81,10 +79,7 @@ export default function CreateProject() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          userEmail: user.email // Adicionar email do usuário para autenticação
-        }),
+        body: JSON.stringify(formData), // NextAuth cuida da autenticação
       });
 
       const data = await response.json();
@@ -105,12 +100,16 @@ export default function CreateProject() {
     }
   };
 
-  if (!user) {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
       </div>
     );
+  }
+
+  if (!session) {
+    return null;
   }
 
   return (

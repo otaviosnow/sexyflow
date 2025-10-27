@@ -3,27 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Check, Star, Crown, Phone, ArrowRight, Users, Zap, Shield } from 'lucide-react';
 import { PLANS } from '@/lib/models/Plan';
 
 export default function HomePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    // Verificar se o usuário está logado
-    const currentUser = localStorage.getItem('currentUser');
-    const isLoggedInUser = !!currentUser;
-    setIsLoggedIn(isLoggedInUser);
-    
-    // Se usuário está logado, redirecionar para projetos
-    if (isLoggedInUser) {
+    // Se usuário está autenticado, redirecionar para projetos
+    if (status === 'authenticated') {
       router.push('/projects');
     }
-  }, [router]);
+  }, [status, router]);
 
   const handlePlanClick = (planName: string) => {
-    if (!isLoggedIn) {
+    // Verificar se está autenticado com NextAuth
+    if (!session) {
       alert('Você precisa fazer login primeiro para escolher um plano.');
       router.push('/login');
       return;

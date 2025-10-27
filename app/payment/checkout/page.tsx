@@ -2,31 +2,33 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Check, CreditCard, Lock, ArrowLeft } from 'lucide-react';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
 
   useEffect(() => {
-    // Carregar dados do pagamento do localStorage
-    const currentUser = localStorage.getItem('currentUser');
-    if (!currentUser) {
-      router.push('/');
+    if (status === 'unauthenticated') {
+      router.push('/login');
       return;
     }
 
-    const userData = JSON.parse(currentUser);
-    const pendingPayment = localStorage.getItem(`pending_payment_${userData.id}`);
-    
-    if (pendingPayment) {
-      setPaymentData(JSON.parse(pendingPayment));
-    } else {
-      router.push('/choose-plan');
+    if (status === 'authenticated' && session) {
+      // Carregar dados do pagamento do localStorage
+      const pendingPayment = localStorage.getItem(`pending_payment_${session.user.id}`);
+      
+      if (pendingPayment) {
+        setPaymentData(JSON.parse(pendingPayment));
+      } else {
+        router.push('/choose-plan');
+      }
     }
-  }, [router]);
+  }, [status, session, router]);
 
   const handlePayment = async () => {
     if (!paymentData) return;
