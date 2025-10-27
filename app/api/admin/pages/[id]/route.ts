@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
-import Project from '@/models/Project';
 import Page from '@/models/Page';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function GET(
+export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('📄 GET /api/admin/users/[id] - Buscando usuário:', params.id);
+    console.log('🗑️ DELETE /api/admin/pages/[id] - Excluindo página:', params.id);
     
     const session = await getServerSession(authOptions);
     
@@ -30,24 +29,27 @@ export async function GET(
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    // Buscar usuário específico
-    const user: any = await User.findById(params.id)
-      .select('name email role createdAt isActive')
-      .lean();
-
-    if (!user) {
-      console.log('❌ Usuário não encontrado');
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    // Buscar página
+    const page = await Page.findById(params.id);
+    if (!page) {
+      console.log('❌ Página não encontrada');
+      return NextResponse.json({ error: 'Página não encontrada' }, { status: 404 });
     }
 
-    console.log('✅ Usuário encontrado:', user.email);
+    // Excluir página
+    await Page.findByIdAndDelete(params.id);
+    console.log('✅ Página excluída com sucesso!');
 
-    return NextResponse.json(user);
+    return NextResponse.json({ 
+      message: 'Página excluída com sucesso',
+      deletedId: params.id 
+    });
   } catch (error) {
-    console.error('❌ Erro ao buscar usuário:', error);
+    console.error('❌ Erro ao excluir página:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }
 }
+

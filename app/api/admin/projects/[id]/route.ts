@@ -6,12 +6,12 @@ import Page from '@/models/Page';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function GET(
+export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('📄 GET /api/admin/users/[id] - Buscando usuário:', params.id);
+    console.log('🗑️ DELETE /api/admin/projects/[id] - Excluindo projeto:', params.id);
     
     const session = await getServerSession(authOptions);
     
@@ -30,24 +30,31 @@ export async function GET(
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    // Buscar usuário específico
-    const user: any = await User.findById(params.id)
-      .select('name email role createdAt isActive')
-      .lean();
-
-    if (!user) {
-      console.log('❌ Usuário não encontrado');
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    // Buscar projeto
+    const project = await Project.findById(params.id);
+    if (!project) {
+      console.log('❌ Projeto não encontrado');
+      return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 });
     }
 
-    console.log('✅ Usuário encontrado:', user.email);
+    // Excluir todas as páginas do projeto primeiro
+    await Page.deleteMany({ projectId: params.id });
+    console.log('✅ Páginas do projeto excluídas');
 
-    return NextResponse.json(user);
+    // Excluir projeto
+    await Project.findByIdAndDelete(params.id);
+    console.log('✅ Projeto excluído com sucesso!');
+
+    return NextResponse.json({ 
+      message: 'Projeto e suas páginas excluídos com sucesso',
+      deletedId: params.id 
+    });
   } catch (error) {
-    console.error('❌ Erro ao buscar usuário:', error);
+    console.error('❌ Erro ao excluir projeto:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }
 }
+

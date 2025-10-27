@@ -15,7 +15,8 @@ import {
   MoreVertical,
   Ban,
   CheckCircle,
-  Trash2
+  Trash2,
+  Eye
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -277,6 +278,13 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => router.push(`/admin/users/${user._id}`)}
+                          className="p-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-colors"
+                          title="Ver detalhes"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
                         <button
                           onClick={() => toggleUserStatus(user._id, user.isActive)}
                           className={`p-2 rounded-lg transition-colors ${

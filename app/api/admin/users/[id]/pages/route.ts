@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
-import Project from '@/models/Project';
 import Page from '@/models/Page';
+import Project from '@/models/Project';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('📄 GET /api/admin/users/[id] - Buscando usuário:', params.id);
+    console.log('📄 GET /api/admin/users/[id]/pages - Buscando páginas do usuário:', params.id);
     
     const session = await getServerSession(authOptions);
     
@@ -30,24 +30,54 @@ export async function GET(
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    // Buscar usuário específico
-    const user: any = await User.findById(params.id)
-      .select('name email role createdAt isActive')
-      .lean();
-
-    if (!user) {
+    // Verificar se usuário alvo existe
+    const targetUser = await User.findById(params.id);
+    if (!targetUser) {
       console.log('❌ Usuário não encontrado');
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
 
-    console.log('✅ Usuário encontrado:', user.email);
+    // Buscar páginas do usuário (através dos projetos)
+    const pages: any = await Page.aggregate([
+      {
+        $lookup: {
+          from: 'projects',
+          localField: 'projectId',
+          foreignField: '_id',
+          as: 'project'
+        }
+      },
+      {
+        $match: {
+          'project.userId': targetUser._id
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          slug: 1,
+          type: 1,
+          createdAt: 1,
+          isActive: 1,
+          projectId: 1,
+          projectName: { $arrayElemAt: ['$project.name', 0] }
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      }
+    ]);
 
-    return NextResponse.json(user);
+    console.log(`✅ ${pages.length} páginas encontradas para o usuário`);
+
+    return NextResponse.json(pages);
   } catch (error) {
-    console.error('❌ Erro ao buscar usuário:', error);
+    console.error('❌ Erro ao buscar páginas do usuário:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }
 }
+
