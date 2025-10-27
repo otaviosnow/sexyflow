@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { Check, Star, Crown, Phone, ArrowRight } from 'lucide-react';
 import { PLANS } from '@/lib/models/Plan';
 
@@ -159,10 +159,10 @@ export default function ChoosePlanPage() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <span className="text-gray-600">Olá, {currentUser?.name}</span>
+              <span className="text-gray-600">Olá, {session?.user?.name}</span>
               <button
-                onClick={() => {
-                  localStorage.removeItem('currentUser');
+                onClick={async () => {
+                  await signOut({ redirect: false });
                   router.push('/');
                 }}
                 className="text-gray-500 hover:text-gray-700"
