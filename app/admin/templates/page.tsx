@@ -190,7 +190,9 @@ export default function TemplatesListPage() {
                       </span>
                     </div>
                     {!template.isActive && (
-                      <AlertCircle className="h-5 w-5 text-yellow-500" title="Template inativo" />
+                      <div title="Template inativo">
+                        <AlertCircle className="h-5 w-5 text-yellow-500" />
+                      </div>
                     )}
                   </div>
 
