@@ -162,7 +162,7 @@ export default function ProjectsPage() {
             </button>
 
             <button
-              onClick={() => router.push('/templates')}
+              onClick={() => router.push('/admin/templates')}
               className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-all hover:scale-105 border-2 border-transparent hover:border-green-400 group"
             >
               <div className="flex items-center gap-4">
@@ -170,8 +170,8 @@ export default function ProjectsPage() {
                   <Layout className="h-8 w-8 text-green-600" />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-lg font-semibold text-gray-900">Templates</h3>
-                  <p className="text-sm text-gray-600">Ver todos</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Gerenciar Templates</h3>
+                  <p className="text-sm text-gray-600">Ver e editar</p>
                 </div>
               </div>
             </button>
