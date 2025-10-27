@@ -21,7 +21,7 @@ interface Template {
   description?: string;
   previewImage?: string;
   isActive: boolean;
-  createdBy: {
+  createdBy?: {
     name: string;
     email: string;
   };
@@ -203,7 +203,7 @@ export default function TemplatesListPage() {
                   )}
 
                   <div className="text-xs text-gray-500 mb-4">
-                    <p>Criado por: {template.createdBy.name}</p>
+                    <p>Criado por: {template.createdBy?.name || 'Desconhecido'}</p>
                     <p>Em: {new Date(template.createdAt).toLocaleDateString('pt-BR')}</p>
                   </div>
 
