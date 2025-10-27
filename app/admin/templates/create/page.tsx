@@ -396,8 +396,17 @@ body {
         const updatedTemplates = [...existingTemplates, newTemplate];
         localStorage.setItem('mockTemplates', JSON.stringify(updatedTemplates));
         
+        // Salvar dados iniciais para o editor visual
+        localStorage.setItem(`template_${newTemplate._id}`, JSON.stringify({
+          ...newTemplate,
+          content: [], // Iniciar com array vazio de elementos
+          background: { type: 'color', value: '#ffffff', opacity: 1, image: '' }
+        }));
+        
         console.log('Template criado e salvo no localStorage:', newTemplate);
-        router.push('/admin');
+        
+        // Redirecionar para o editor visual
+        router.push(`/admin/templates/${newTemplate._id}/visual-editor`);
       } else {
         // Modo produção - usar API
         const response = await fetch('/api/admin/templates', {
@@ -409,7 +418,9 @@ body {
         });
 
         if (response.ok) {
-          router.push('/admin');
+          const createdTemplate = await response.json();
+          // Redirecionar para o editor visual
+          router.push(`/admin/templates/${createdTemplate._id}/visual-editor`);
         } else {
           console.error('Erro ao criar template');
         }
