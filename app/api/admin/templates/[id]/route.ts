@@ -98,29 +98,49 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('🗑️ Tentando excluir template:', params.id);
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
+      console.log('❌ Não autorizado - sem sessão');
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
     await connectDB();
+    console.log('✅ Conectado ao MongoDB');
 
     // Verificar se é admin
     const user = await User.findById(session.user.id);
     if (!user || user.role !== 'ADMIN') {
+      console.log('❌ Acesso negado - não é admin');
       return NextResponse.json({ error: 'Acesso negado. Apenas administradores.' }, { status: 403 });
     }
+
+    console.log('✅ Usuário é admin:', user.email);
 
     const template = await Template.findById(params.id);
 
     if (!template) {
+      console.log('❌ Template não encontrado:', params.id);
       return NextResponse.json({ error: 'Template não encontrado' }, { status: 404 });
     }
 
-    await Template.findByIdAndDelete(params.id);
+    console.log('📄 Template encontrado:', template.name);
 
-    return NextResponse.json({ message: 'Template excluído com sucesso' });
+    const result = await Template.findByIdAndDelete(params.id);
+    
+    if (result) {
+      console.log('✅ Template DELETADO com sucesso do MongoDB:', result._id);
+    } else {
+      console.log('⚠️ findByIdAndDelete retornou null');
+    }
+
+    return NextResponse.json({ 
+      message: 'Template excluído com sucesso',
+      deletedId: params.id,
+      deletedName: template.name
+    });
   } catch (error) {
     console.error('Erro ao excluir template:', error);
     return NextResponse.json(

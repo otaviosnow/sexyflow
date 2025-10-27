@@ -75,22 +75,38 @@ export default function TemplatesListPage() {
       return;
     }
 
+    console.log('🗑️ Frontend: Iniciando exclusão do template:', templateId);
+
     try {
       setDeletingId(templateId);
-      const response = await fetch(`/api/admin/templates/${templateId}`, {
+      
+      const url = `/api/admin/templates/${templateId}`;
+      console.log('📡 Frontend: Fazendo DELETE para:', url);
+      
+      const response = await fetch(url, {
         method: 'DELETE',
       });
 
+      console.log('📥 Frontend: Resposta recebida:', response.status, response.statusText);
+
       if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Frontend: Template excluído:', data);
+        
         // Remover template da lista
         setTemplates(templates.filter(t => t._id !== templateId));
         alert('Template excluído com sucesso!');
+        
+        // Recarregar templates do servidor para garantir sincronização
+        console.log('🔄 Frontend: Recarregando lista de templates...');
+        await loadTemplates();
       } else {
         const errorData = await response.json();
+        console.error('❌ Frontend: Erro na resposta:', errorData);
         alert(errorData.error || 'Erro ao excluir template');
       }
     } catch (error) {
-      console.error('Erro ao excluir template:', error);
+      console.error('❌ Frontend: Erro ao excluir template:', error);
       alert('Erro ao excluir template. Verifique a conexão.');
     } finally {
       setDeletingId(null);
