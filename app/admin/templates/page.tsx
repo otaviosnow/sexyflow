@@ -99,36 +99,36 @@ export default function TemplatesListPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando templates...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando templates...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => router.push('/projects')}
-                className="flex items-center text-gray-600 hover:text-pink-600 transition-colors"
+                onClick={() => router.push('/admin')}
+                className="flex items-center text-gray-400 hover:text-white transition-colors"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
-                Voltar aos Projetos
+                Voltar ao Painel
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-white">
                 Gerenciar Templates
               </h1>
             </div>
             <button
               onClick={() => router.push('/admin/templates/create')}
-              className="flex items-center gap-2 bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors shadow-sm"
+              className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg"
             >
               <Plus className="h-5 w-5" />
               Criar Novo Template
@@ -140,19 +140,19 @@ export default function TemplatesListPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {templates.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-              <FileText className="h-8 w-8 text-gray-400" />
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-pink-500/10 rounded-full mb-4">
+              <FileText className="h-8 w-8 text-pink-500" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-white mb-2">
               Nenhum template criado
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-400 mb-6">
               Crie seu primeiro template para começar a construir páginas incríveis!
             </p>
             <button
               onClick={() => router.push('/admin/templates/create')}
-              className="inline-flex items-center gap-2 bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg"
             >
               <Plus className="h-5 w-5" />
               Criar Primeiro Template
@@ -163,10 +163,10 @@ export default function TemplatesListPage() {
             {templates.map((template) => (
               <div
                 key={template._id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all overflow-hidden"
+                className="bg-gray-900 border border-gray-800 hover:border-pink-500/50 rounded-xl transition-all overflow-hidden group"
               >
                 {/* Preview Image */}
-                <div className="aspect-video bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center">
+                <div className="aspect-video bg-gradient-to-br from-pink-500/10 to-purple-500/10 flex items-center justify-center border-b border-gray-800">
                   {template.previewImage ? (
                     <img
                       src={template.previewImage}
@@ -174,7 +174,7 @@ export default function TemplatesListPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Layout className="h-12 w-12 text-pink-400" />
+                    <Layout className="h-12 w-12 text-pink-500" />
                   )}
                 </div>
 
@@ -182,10 +182,10 @@ export default function TemplatesListPage() {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      <h3 className="text-lg font-semibold text-white mb-1">
                         {template.name}
                       </h3>
-                      <span className="inline-block text-xs font-medium text-pink-600 bg-pink-100 px-2 py-1 rounded">
+                      <span className="inline-block text-xs font-medium text-pink-400 bg-pink-500/10 px-2 py-1 rounded">
                         {template.type.toUpperCase()}
                       </span>
                     </div>
@@ -197,7 +197,7 @@ export default function TemplatesListPage() {
                   </div>
 
                   {template.description && (
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                    <p className="text-sm text-gray-400 mb-4 line-clamp-2">
                       {template.description}
                     </p>
                   )}
@@ -211,7 +211,7 @@ export default function TemplatesListPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => router.push(`/admin/templates/${template._id}/visual-editor`)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
                       title="Visualizar/Editar"
                     >
                       <Eye className="h-4 w-4" />
@@ -221,11 +221,11 @@ export default function TemplatesListPage() {
                     <button
                       onClick={() => handleDelete(template._id)}
                       disabled={deletingId === template._id}
-                      className="flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Excluir"
                     >
                       {deletingId === template._id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
                       ) : (
                         <Trash2 className="h-4 w-4" />
                       )}

@@ -422,20 +422,20 @@ body {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-950">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => router.push('/projects')}
-                className="flex items-center text-gray-600 hover:text-red-600 transition-colors"
+                onClick={() => router.push('/admin')}
+                className="flex items-center text-gray-400 hover:text-white transition-colors"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
-                Voltar aos Projetos
+                Voltar ao Painel
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-white">
                 Criar Novo Template
               </h1>
             </div>
@@ -447,18 +447,18 @@ body {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Formulário */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm p-6 sticky top-8">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 sticky top-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Nome */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Nome do Template *
                   </label>
                   <input
                     type="text"
                     value={templateData.name}
                     onChange={(e) => setTemplateData({ ...templateData, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-pink-500 focus:border-pink-500 placeholder-gray-500"
                     placeholder="Ex: Template Presell Premium"
                     required
                   />
@@ -466,13 +466,13 @@ body {
 
                 {/* Tipo */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Tipo de Template *
                   </label>
                   <select
                     value={templateData.type}
                     onChange={(e) => setTemplateData({ ...templateData, type: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                   >
                     <option value="presell">Presell (Pré-venda)</option>
                     <option value="preview">Preview (Prévia)</option>
@@ -484,28 +484,28 @@ body {
 
                 {/* Descrição */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Descrição
                   </label>
                   <textarea
                     value={templateData.description}
                     onChange={(e) => setTemplateData({ ...templateData, description: e.target.value })}
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-pink-500 focus:border-pink-500 placeholder-gray-500"
                     placeholder="Descreva o template..."
                   />
                 </div>
 
                 {/* Preview Image */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     URL da Imagem de Preview
                   </label>
                   <input
                     type="url"
                     value={templateData.previewImage}
                     onChange={(e) => setTemplateData({ ...templateData, previewImage: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-pink-500 focus:border-pink-500 placeholder-gray-500"
                     placeholder="https://..."
                   />
                 </div>
@@ -514,15 +514,15 @@ body {
                 <div className="flex space-x-4 pt-6">
                   <button
                     type="button"
-                    onClick={() => router.push('/projects')}
-                    className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    onClick={() => router.push('/admin')}
+                    className="flex-1 px-6 py-3 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-lg hover:from-pink-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
                   >
                     {loading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
