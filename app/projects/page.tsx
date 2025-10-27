@@ -24,8 +24,14 @@ export default function ProjectsPage() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
+      return;
     }
-  }, [status, router]);
+    
+    // Redirecionar admins para painel admin
+    if (status === 'authenticated' && session?.user?.role === 'ADMIN') {
+      router.push('/admin');
+    }
+  }, [status, session, router]);
 
   const handleLogout = async () => {
     await signOut({ redirect: false });
@@ -118,13 +124,15 @@ export default function ProjectsPage() {
                 {isAdmin ? 'Você tem acesso total ao sistema como administrador.' : 'Gerencie suas páginas de vendas em um só lugar.'}
               </p>
             </div>
-            <button
-              onClick={() => router.push('/projects/create')}
-              className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold"
-            >
-              <Plus className="h-5 w-5" />
-              Novo Projeto
-            </button>
+            {!isAdmin && (
+              <button
+                onClick={() => router.push('/projects/create')}
+                className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold"
+              >
+                <Plus className="h-5 w-5" />
+                Novo Projeto
+              </button>
+            )}
           </div>
         </div>
 
@@ -178,65 +186,67 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Projects Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold text-gray-900">Meus Projetos</h3>
-            <span className="text-sm text-gray-500">{projects.length} projeto(s)</span>
-          </div>
+        {/* Projects Section - Only for non-admin users */}
+        {!isAdmin && (
+          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Meus Projetos</h3>
+              <span className="text-sm text-gray-500">{projects.length} projeto(s)</span>
+            </div>
 
-          {projects.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full mb-6">
-                <FileText className="h-10 w-10 text-pink-600" />
-              </div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum projeto ainda
-              </h4>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Crie seu primeiro projeto e comece a construir suas páginas de vendas de alto impacto!
-              </p>
-              <button
-                onClick={() => router.push('/projects/create')}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-semibold"
-              >
-                <Plus className="h-5 w-5" />
-                Criar Primeiro Projeto
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projects.map((project) => (
-                <div
-                  key={project.id}
-                  className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-md p-6 hover:shadow-xl transition-all hover:scale-105 border border-gray-200 cursor-pointer"
-                  onClick={() => router.push(`/projects/${project.id}`)}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                      <Layout className="h-6 w-6 text-pink-600" />
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Adicionar ação de configurações
-                      }}
-                      className="p-2 hover:bg-white rounded-lg transition-colors"
-                    >
-                      <Settings className="h-4 w-4 text-gray-400" />
-                    </button>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
-                  <p className="text-sm text-gray-600 mb-4">{project.description || 'Sem descrição'}</p>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <BarChart3 className="h-3 w-3" />
-                    <span>0 visualizações</span>
-                  </div>
+            {projects.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full mb-6">
+                  <FileText className="h-10 w-10 text-pink-600" />
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <h4 className="text-xl font-semibold text-gray-900 mb-2">
+                  Nenhum projeto ainda
+                </h4>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Crie seu primeiro projeto e comece a construir suas páginas de vendas de alto impacto!
+                </p>
+                <button
+                  onClick={() => router.push('/projects/create')}
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-semibold"
+                >
+                  <Plus className="h-5 w-5" />
+                  Criar Primeiro Projeto
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {projects.map((project) => (
+                  <div
+                    key={project.id}
+                    className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-md p-6 hover:shadow-xl transition-all hover:scale-105 border border-gray-200 cursor-pointer"
+                    onClick={() => router.push(`/projects/${project.id}`)}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <Layout className="h-6 w-6 text-pink-600" />
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Adicionar ação de configurações
+                        }}
+                        className="p-2 hover:bg-white rounded-lg transition-colors"
+                      >
+                        <Settings className="h-4 w-4 text-gray-400" />
+                      </button>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
+                    <p className="text-sm text-gray-600 mb-4">{project.description || 'Sem descrição'}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <BarChart3 className="h-3 w-3" />
+                      <span>0 visualizações</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
