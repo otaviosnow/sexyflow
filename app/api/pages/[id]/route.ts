@@ -33,7 +33,7 @@ export async function GET(
     console.log('✅ Usuário encontrado:', user.email);
 
     // Buscar página
-    const page = await Page.findOne({
+    const page: any = await Page.findOne({
       _id: params.id,
       userId: user._id,
       isActive: true
@@ -88,7 +88,7 @@ export async function PUT(
     console.log('📦 Dados recebidos:', { title, slug, isPublished });
 
     // Buscar página
-    const page = await Page.findOne({
+    const page: any = await Page.findOne({
       _id: params.id,
       userId: user._id,
       isActive: true
@@ -177,7 +177,7 @@ export async function DELETE(
     console.log('✅ Usuário encontrado:', user.email);
 
     // Buscar página
-    const page = await Page.findOne({
+    const page: any = await Page.findOne({
       _id: params.id,
       userId: user._id,
       isActive: true
