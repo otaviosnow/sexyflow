@@ -1,0 +1,374 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { 
+  ArrowLeft, 
+  Plus, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  Globe,
+  BarChart3,
+  Settings,
+  ExternalLink,
+  Calendar,
+  Users
+} from 'lucide-react';
+
+interface Project {
+  _id: string;
+  name: string;
+  subdomain: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  pages: Page[];
+}
+
+interface Page {
+  _id: string;
+  title: string;
+  slug: string;
+  type: string;
+  isPublished: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export default function ProjectDashboard({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [project, setProject] = useState<Project | null>(null);
+  const [pages, setPages] = useState<Page[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deletingPageId, setDeletingPageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+      return;
+    }
+
+    if (status === 'authenticated' && session) {
+      loadProject();
+    }
+  }, [status, session, router]);
+
+  const loadProject = async () => {
+    try {
+      setLoading(true);
+      
+      // Buscar projeto
+      const projectResponse = await fetch(`/api/projects/${params.id}`);
+      if (projectResponse.ok) {
+        const projectData = await projectResponse.json();
+        setProject(projectData);
+      }
+
+      // Buscar páginas do projeto
+      const pagesResponse = await fetch(`/api/projects/${params.id}/pages`);
+      if (pagesResponse.ok) {
+        const pagesData = await pagesResponse.json();
+        setPages(pagesData);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar projeto:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePage = async (pageId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta página? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      setDeletingPageId(pageId);
+      
+      const response = await fetch(`/api/pages/${pageId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setPages(pages.filter(p => p._id !== pageId));
+        alert('Página excluída com sucesso!');
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Erro ao excluir página');
+      }
+    } catch (error) {
+      console.error('Erro ao excluir página:', error);
+      alert('Erro ao excluir página. Verifique a conexão.');
+    } finally {
+      setDeletingPageId(null);
+    }
+  };
+
+  const handleTogglePublish = async (pageId: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`/api/pages/${pageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: !currentStatus }),
+      });
+
+      if (response.ok) {
+        setPages(pages.map(p => 
+          p._id === pageId 
+            ? { ...p, isPublished: !currentStatus }
+            : p
+        ));
+        alert(`Página ${!currentStatus ? 'publicada' : 'despublicada'} com sucesso!`);
+      } else {
+        alert('Erro ao alterar status da página');
+      }
+    } catch (error) {
+      console.error('Erro ao alterar status:', error);
+      alert('Erro ao alterar status da página');
+    }
+  };
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando projeto...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">Projeto não encontrado</h1>
+          <button
+            onClick={() => router.push('/projects')}
+            className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg transition-colors"
+          >
+            Voltar aos Projetos
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const projectUrl = `https://${project.subdomain}.sexyflow.onrender.com`;
+
+  return (
+    <div className="min-h-screen bg-gray-950">
+      {/* Header */}
+      <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.push('/projects')}
+                className="flex items-center text-gray-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Voltar aos Projetos
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-white">{project.name}</h1>
+                <p className="text-gray-400 text-sm">{projectUrl}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => window.open(projectUrl, '_blank')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                <span className="hidden sm:inline">Visitar Site</span>
+              </button>
+              
+              <button
+                onClick={() => router.push(`/projects/${params.id}/settings`)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Configurações</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Total de Páginas</p>
+                <p className="text-2xl font-bold text-white">{pages.length}</p>
+              </div>
+              <div className="p-3 bg-blue-500/10 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-blue-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Páginas Publicadas</p>
+                <p className="text-2xl font-bold text-white">
+                  {pages.filter(p => p.isPublished).length}
+                </p>
+              </div>
+              <div className="p-3 bg-green-500/10 rounded-lg">
+                <Globe className="h-6 w-6 text-green-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Visualizações</p>
+                <p className="text-2xl font-bold text-white">0</p>
+              </div>
+              <div className="p-3 bg-purple-500/10 rounded-lg">
+                <Eye className="h-6 w-6 text-purple-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Criado em</p>
+                <p className="text-sm font-medium text-white">
+                  {new Date(project.createdAt).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+              <div className="p-3 bg-pink-500/10 rounded-lg">
+                <Calendar className="h-6 w-6 text-pink-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pages Section */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-white">Minhas Páginas</h2>
+            <button
+              onClick={() => router.push(`/projects/${params.id}/pages/create`)}
+              className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              <Plus className="h-4 w-4" />
+              Nova Página
+            </button>
+          </div>
+
+          {pages.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-full mb-6">
+                <Plus className="h-10 w-10 text-pink-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Nenhuma página criada
+              </h3>
+              <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                Crie sua primeira página para que ela apareça no seu site.
+              </p>
+              <button
+                onClick={() => router.push(`/projects/${params.id}/pages/create`)}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-semibold"
+              >
+                <Plus className="h-5 w-5" />
+                Criar Primeira Página
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pages.map((page) => (
+                <div
+                  key={page._id}
+                  className="bg-gray-800 border border-gray-700 rounded-xl p-6 hover:border-pink-500/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-white mb-1">
+                        {page.title}
+                      </h3>
+                      <p className="text-sm text-gray-400 mb-2">
+                        /{page.slug}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
+                          page.isPublished 
+                            ? 'bg-green-500/10 text-green-400' 
+                            : 'bg-yellow-500/10 text-yellow-400'
+                        }`}>
+                          {page.isPublished ? 'Publicada' : 'Rascunho'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {page.type}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => router.push(`/projects/${params.id}/pages/${page._id}/editor`)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span className="text-sm font-medium">Editar</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => window.open(`${projectUrl}/${page.slug}`, '_blank')}
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-colors"
+                      title="Visualizar"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    
+                    <button
+                      onClick={() => handleTogglePublish(page._id, page.isPublished)}
+                      className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                        page.isPublished
+                          ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'
+                          : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                      }`}
+                      title={page.isPublished ? 'Despublicar' : 'Publicar'}
+                    >
+                      <Globe className="h-4 w-4" />
+                    </button>
+                    
+                    <button
+                      onClick={() => handleDeletePage(page._id)}
+                      disabled={deletingPageId === page._id}
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Excluir"
+                    >
+                      {deletingPageId === page._id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

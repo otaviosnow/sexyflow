@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import Page from '@/models/Page';
 import Project from '@/models/Project';
 import User from '@/models/User';
 import { getServerSession } from 'next-auth';
@@ -11,7 +10,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('📄 GET /api/pages/[id] - Buscando página:', params.id);
+    console.log('📄 GET /api/projects/[id] - Buscando projeto:', params.id);
     
     const session = await getServerSession(authOptions);
     
@@ -32,23 +31,23 @@ export async function GET(
 
     console.log('✅ Usuário encontrado:', user.email);
 
-    // Buscar página
-    const page = await Page.findOne({
+    // Buscar projeto
+    const project = await Project.findOne({
       _id: params.id,
       userId: user._id,
       isActive: true
     }).lean();
 
-    if (!page) {
-      console.log('❌ Página não encontrada ou não pertence ao usuário');
-      return NextResponse.json({ error: 'Página não encontrada' }, { status: 404 });
+    if (!project) {
+      console.log('❌ Projeto não encontrado ou não pertence ao usuário');
+      return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 });
     }
 
-    console.log('✅ Página encontrada:', page.title);
+    console.log('✅ Projeto encontrado:', project.name);
 
-    return NextResponse.json(page);
+    return NextResponse.json(project);
   } catch (error) {
-    console.error('❌ Erro ao buscar página:', error);
+    console.error('❌ Erro ao buscar projeto:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -61,7 +60,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('📝 PUT /api/pages/[id] - Atualizando página:', params.id);
+    console.log('📝 PUT /api/projects/[id] - Atualizando projeto:', params.id);
     
     const session = await getServerSession(authOptions);
     
@@ -80,69 +79,40 @@ export async function PUT(
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 401 });
     }
 
-    console.log('✅ Usuário encontrado:', user.email);
-
     const body = await request.json();
-    const { title, slug, content, isPublished } = body;
+    const { name, description } = body;
 
-    console.log('📦 Dados recebidos:', { title, slug, isPublished });
+    console.log('📦 Dados recebidos:', { name, description });
 
-    // Buscar página
-    const page = await Page.findOne({
+    // Buscar projeto
+    const project = await Project.findOne({
       _id: params.id,
       userId: user._id,
       isActive: true
     });
 
-    if (!page) {
-      console.log('❌ Página não encontrada ou não pertence ao usuário');
-      return NextResponse.json({ error: 'Página não encontrada' }, { status: 404 });
+    if (!project) {
+      console.log('❌ Projeto não encontrado ou não pertence ao usuário');
+      return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 });
     }
 
-    console.log('✅ Página encontrada:', page.title);
+    console.log('✅ Projeto encontrado:', project.name);
 
-    // Se está mudando o slug, verificar se não existe outro com o mesmo slug no projeto
-    if (slug && slug !== page.slug) {
-      const existingPage = await Page.findOne({
-        projectId: page.projectId,
-        slug: slug.toLowerCase(),
-        isActive: true,
-        _id: { $ne: params.id }
-      });
-
-      if (existingPage) {
-        console.log('❌ Slug já existe no projeto');
-        return NextResponse.json({ 
-          error: 'Este slug já está em uso neste projeto' 
-        }, { status: 400 });
-      }
-
-      // Validar slug
-      const slugRegex = /^[a-z0-9-]+$/;
-      if (!slugRegex.test(slug) || slug.length < 2 || slug.length > 50) {
-        return NextResponse.json({ 
-          error: 'Slug inválido. Use apenas letras minúsculas, números e hífens (2-50 caracteres)' 
-        }, { status: 400 });
-      }
-    }
-
-    // Atualizar página
-    const updatedPage = await Page.findByIdAndUpdate(
+    // Atualizar projeto
+    const updatedProject = await Project.findByIdAndUpdate(
       params.id,
       {
-        ...(title && { title }),
-        ...(slug && { slug: slug.toLowerCase() }),
-        ...(content && { content }),
-        ...(isPublished !== undefined && { isPublished }),
+        ...(name && { name }),
+        ...(description !== undefined && { description }),
       },
       { new: true }
     ).lean();
 
-    console.log('✅ Página atualizada com sucesso!');
+    console.log('✅ Projeto atualizado com sucesso!');
 
-    return NextResponse.json(updatedPage);
+    return NextResponse.json(updatedProject);
   } catch (error) {
-    console.error('❌ Erro ao atualizar página:', error);
+    console.error('❌ Erro ao atualizar projeto:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -155,7 +125,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🗑️ DELETE /api/pages/[id] - Excluindo página:', params.id);
+    console.log('🗑️ DELETE /api/projects/[id] - Excluindo projeto:', params.id);
     
     const session = await getServerSession(authOptions);
     
@@ -174,37 +144,36 @@ export async function DELETE(
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 401 });
     }
 
-    console.log('✅ Usuário encontrado:', user.email);
-
-    // Buscar página
-    const page = await Page.findOne({
+    // Buscar projeto
+    const project = await Project.findOne({
       _id: params.id,
       userId: user._id,
       isActive: true
     });
 
-    if (!page) {
-      console.log('❌ Página não encontrada ou não pertence ao usuário');
-      return NextResponse.json({ error: 'Página não encontrada' }, { status: 404 });
+    if (!project) {
+      console.log('❌ Projeto não encontrado ou não pertence ao usuário');
+      return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 });
     }
 
-    console.log('✅ Página encontrada:', page.title);
+    console.log('✅ Projeto encontrado:', project.name);
 
-    // Desativar página (soft delete)
-    await Page.findByIdAndUpdate(params.id, { isActive: false });
+    // Desativar projeto (soft delete)
+    await Project.findByIdAndUpdate(params.id, { isActive: false });
 
-    console.log('✅ Página desativada com sucesso!');
+    console.log('✅ Projeto desativado com sucesso!');
 
     return NextResponse.json({ 
-      message: 'Página excluída com sucesso',
+      message: 'Projeto excluído com sucesso',
       deletedId: params.id,
-      deletedTitle: page.title
+      deletedName: project.name
     });
   } catch (error) {
-    console.error('❌ Erro ao excluir página:', error);
+    console.error('❌ Erro ao excluir projeto:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }
 }
+

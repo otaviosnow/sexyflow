@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Check, Star, Crown, Phone } from 'lucide-react';
 import { PLANS } from '@/lib/models/Plan';
 
 export default function PricingPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const plans = [
     {
       id: 'starter',
@@ -154,8 +158,14 @@ export default function PricingPage() {
                   if (plan.isEnterprise) {
                     window.open('https://wa.me/5531997783097?text=Olá, gostaria de conversar sobre o plano Enterprise do SexyFlow', '_blank');
                   } else {
-                    // Redirecionar para escolha de plano
-                    window.location.href = '/choose-plan';
+                    // Verificar se usuário está logado
+                    if (session) {
+                      // Se logado, ir direto para choose-plan
+                      router.push('/choose-plan');
+                    } else {
+                      // Se não logado, ir para registro
+                      router.push('/register');
+                    }
                   }
                 }}
                 className={`w-full py-4 px-6 rounded-xl font-medium transition-all duration-300 shadow-lg hover:scale-105 ${

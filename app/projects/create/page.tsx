@@ -88,8 +88,9 @@ export default function CreateProject() {
         toast.success('Projeto criado com sucesso!');
         router.push(`/projects/${data.project._id}`);
       } else if (response.status === 402) {
-        toast.error('Você precisa de uma assinatura ativa para criar projetos');
-        router.push('/pricing');
+        toast.error('Você precisa escolher um plano primeiro');
+        // Redirecionar direto para choose-plan (não pricing)
+        router.push('/choose-plan');
       } else {
         toast.error(data.error || 'Erro ao criar projeto');
       }

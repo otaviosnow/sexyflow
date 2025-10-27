@@ -20,6 +20,7 @@ export default function ProjectsPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -31,7 +32,26 @@ export default function ProjectsPage() {
     if (status === 'authenticated' && session?.user?.role === 'ADMIN') {
       router.push('/admin');
     }
+
+    if (status === 'authenticated' && session?.user?.role !== 'ADMIN') {
+      loadProjects();
+    }
   }, [status, session, router]);
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/projects');
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar projetos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut({ redirect: false });
@@ -217,9 +237,9 @@ export default function ProjectsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {projects.map((project) => (
                   <div
-                    key={project.id}
+                    key={project._id}
                     className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-md p-6 hover:shadow-xl transition-all hover:scale-105 border border-gray-200 cursor-pointer"
-                    onClick={() => router.push(`/projects/${project.id}`)}
+                    onClick={() => router.push(`/projects/${project._id}`)}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -228,7 +248,7 @@ export default function ProjectsPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Adicionar ação de configurações
+                          router.push(`/projects/${project._id}`);
                         }}
                         className="p-2 hover:bg-white rounded-lg transition-colors"
                       >
@@ -236,7 +256,10 @@ export default function ProjectsPage() {
                       </button>
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
-                    <p className="text-sm text-gray-600 mb-4">{project.description || 'Sem descrição'}</p>
+                    <p className="text-sm text-gray-600 mb-2">{project.description || 'Sem descrição'}</p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      {project.subdomain}.sexyflow.onrender.com
+                    </p>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                       <BarChart3 className="h-3 w-3" />
                       <span>0 visualizações</span>
