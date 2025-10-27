@@ -33,7 +33,7 @@ export async function GET(
     console.log('✅ Usuário encontrado:', user.email);
 
     // Verificar se projeto pertence ao usuário
-    const project = await Project.findOne({
+    const project: any = await Project.findOne({
       _id: params.id,
       userId: user._id,
       isActive: true
@@ -91,7 +91,7 @@ export async function POST(
     console.log('✅ Usuário encontrado:', user.email);
 
     // Verificar se projeto pertence ao usuário
-    const project = await Project.findOne({
+    const project: any = await Project.findOne({
       _id: params.id,
       userId: user._id,
       isActive: true
