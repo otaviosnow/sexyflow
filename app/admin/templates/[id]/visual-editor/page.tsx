@@ -180,21 +180,43 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             .catch(error => console.error('Erro ao carregar template da API:', error));
         }
       } else {
+        console.log('🌐 Carregando template do servidor...');
         fetch(`/api/admin/templates/${params.id}`)
           .then(res => res.json())
           .then(data => {
+            console.log('📦 Dados recebidos da API:', data);
+            console.log('📋 Content:', data.content);
+            console.log('🔍 Elements:', data.content?.elements);
+            console.log('🎨 Background:', data.content?.background);
+            
             if (data._id) {
+              const elementsToLoad = data.content?.elements || [];
+              const backgroundToLoad = data.content?.background || { type: 'color', value: '#ffffff', opacity: 1, image: '' };
+              
+              console.log('✅ Carregando elementos:', elementsToLoad);
+              console.log('✅ Carregando background:', backgroundToLoad);
+              
               setTemplateData({
                 _id: data._id,
                 name: data.name || 'Template sem nome',
-                content: data.content?.elements || [],
+                type: data.type,
+                description: data.description,
+                previewImage: data.previewImage,
+                isActive: data.isActive,
+                content: elementsToLoad,
                 createdAt: data.createdAt || new Date().toISOString(),
                 updatedAt: data.updatedAt || new Date().toISOString()
               });
-              setElements(data.content?.elements || []);
+              setElements(elementsToLoad);
+              setBackground(backgroundToLoad);
+              
+              console.log('✅ Template carregado com sucesso!');
+              console.log('📊 Total de elementos:', elementsToLoad.length);
+            } else {
+              console.error('❌ Template não encontrado');
             }
           })
-          .catch(error => console.error('Erro ao carregar template:', error));
+          .catch(error => console.error('❌ Erro ao carregar template:', error));
       }
       
       hasLoadedRef.current = true;
@@ -248,13 +270,19 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       toast.success('Template salvo localmente!');
     } else {
       try {
+        console.log('💾 Salvando no servidor...');
+        console.log('📋 Elementos:', elements);
+        console.log('🎨 Background:', background);
+        
         const response = await fetch(`/api/admin/templates/${params.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             name: templateData.name,
-            content: elements,
-            background: background,
+            content: {
+              elements: elements,
+              background: background
+            },
             type: templateData.type || 'presell',
             description: templateData.description || '',
             previewImage: templateData.previewImage || '',
@@ -262,15 +290,20 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
           })
         });
         
+        console.log('📥 Resposta do servidor:', response.status);
+        
         if (response.ok) {
           const updatedTemplate = await response.json();
+          console.log('✅ Template atualizado:', updatedTemplate);
           setTemplateData(updatedTemplate);
-          toast.success('Template salvo!');
+          toast.success('Template salvo com sucesso!');
         } else {
+          const errorData = await response.json();
+          console.error('❌ Erro ao salvar:', errorData);
           toast.error('Erro ao salvar template');
         }
       } catch (error) {
-        console.error('Erro ao salvar:', error);
+        console.error('❌ Erro ao salvar:', error);
         toast.error('Erro ao salvar template');
       }
     }

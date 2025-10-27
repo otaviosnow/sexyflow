@@ -46,28 +46,46 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('📝 PUT /api/admin/templates/[id] - Iniciando atualização');
+    console.log('🆔 Template ID:', params.id);
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
+      console.log('❌ Não autorizado - sem sessão');
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
     await connectDB();
+    console.log('✅ Conectado ao MongoDB');
 
     // Verificar se é admin
     const user = await User.findById(session.user.id);
     if (!user || user.role !== 'ADMIN') {
+      console.log('❌ Acesso negado - não é admin');
       return NextResponse.json({ error: 'Acesso negado. Apenas administradores.' }, { status: 403 });
     }
+
+    console.log('✅ Usuário é admin:', user.email);
 
     const body = await request.json();
     const { name, type, description, content, previewImage, isActive } = body;
 
+    console.log('📦 Dados recebidos:');
+    console.log('  - name:', name);
+    console.log('  - type:', type);
+    console.log('  - content:', content);
+    console.log('  - content.elements:', content?.elements?.length || 0, 'elementos');
+    console.log('  - content.background:', content?.background);
+
     const template = await Template.findById(params.id);
 
     if (!template) {
+      console.log('❌ Template não encontrado:', params.id);
       return NextResponse.json({ error: 'Template não encontrado' }, { status: 404 });
     }
+
+    console.log('📄 Template encontrado:', template.name);
 
     // Atualizar template
     const updatedTemplate = await Template.findByIdAndUpdate(
@@ -82,6 +100,9 @@ export async function PUT(
       },
       { new: true }
     ).populate('createdBy', 'name email');
+
+    console.log('✅ Template atualizado com sucesso!');
+    console.log('📊 Elementos salvos:', updatedTemplate.content?.elements?.length || 0);
 
     return NextResponse.json(updatedTemplate);
   } catch (error) {
