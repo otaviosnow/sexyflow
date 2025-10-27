@@ -1,18 +1,16 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Globe, CheckCircle, XCircle, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function CreateProject() {
-  const { data: session, status } = useSession();
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [checkingSubdomain, setCheckingSubdomain] = useState(false);
   const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null);
-  const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -21,10 +19,13 @@ export default function CreateProject() {
   });
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    const userData = localStorage.getItem('user');
+    if (!userData) {
       router.push('/login');
+      return;
     }
-  }, [status, router]);
+    setUser(JSON.parse(userData));
+  }, [router]);
 
   const checkSubdomainAvailability = async (subdomain: string) => {
     if (subdomain.length < 3) {
@@ -101,31 +102,27 @@ export default function CreateProject() {
     }
   };
 
-  if (status === 'loading') {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
       </div>
     );
   }
 
-  if (!session) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-sexy-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white shadow-md border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => router.push('/dashboard')}
-                className="flex items-center text-gray-600 hover:text-red-600 transition-colors"
+                onClick={() => router.push('/projects')}
+                className="flex items-center text-gray-600 hover:text-pink-600 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
-                Voltar ao Dashboard
+                Voltar aos Projetos
               </button>
               <h1 className="text-2xl font-bold text-gray-900">
                 Criar Novo Projeto
@@ -157,7 +154,7 @@ export default function CreateProject() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                 placeholder="Ex: Meu Negócio Online"
                 required
               />
@@ -173,7 +170,7 @@ export default function CreateProject() {
                   type="text"
                   value={formData.subdomain}
                   onChange={(e) => handleSubdomainChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 pr-20"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 pr-20"
                   placeholder="seunegocio"
                   required
                 />
@@ -218,7 +215,7 @@ export default function CreateProject() {
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                 placeholder="Descreva seu projeto..."
               />
             </div>
@@ -241,7 +238,7 @@ export default function CreateProject() {
             <button
               type="submit"
               disabled={loading || subdomainAvailable === false || checkingSubdomain}
-              className="w-full bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              className="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white py-3 px-6 rounded-lg hover:from-pink-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center font-semibold"
             >
               {loading ? (
                 <>
