@@ -4,47 +4,67 @@ import { useState } from 'react';
 import { Check, Star, Zap } from 'lucide-react';
 
 export default function PricingPage() {
-  const [isAnnual, setIsAnnual] = useState(false);
-
   const plans = [
     {
-      id: 'monthly',
-      name: 'Plano Mensal',
-      price: isAnnual ? 97 : 97,
-      originalPrice: null,
+      id: 'starter',
+      name: 'STARTER',
+      price: 97,
       period: 'mês',
       description: 'Perfeito para começar',
       features: [
-        '1 projeto único',
-        '5 páginas por mês',
+        '3 páginas de vendas',
         'Subdomínio personalizado',
         'Editor visual drag & drop',
+        'Templates profissionais',
         'Hospedagem automática',
         'Analytics básicos',
         'Suporte por email'
       ],
       popular: false,
-      cta: 'Começar Agora'
+      cta: 'Começar Agora',
+      highlight: false
     },
     {
-      id: 'annual',
-      name: 'Plano Anual',
-      price: isAnnual ? 970 : 970,
-      originalPrice: isAnnual ? 1164 : 1164,
-      period: 'ano',
-      description: 'Economize 2 meses',
+      id: 'pro',
+      name: 'PRO',
+      price: 197,
+      period: 'mês',
+      description: 'Mais recursos e controle',
       features: [
-        '1 projeto único',
-        '10 páginas por ano',
+        '8 páginas de vendas',
         'Subdomínio personalizado',
         'Editor visual drag & drop',
+        'Templates premium',
         'Hospedagem automática',
         'Analytics avançados',
-        'Suporte prioritário',
-        'Domínio customizado'
+        'Relatórios detalhados',
+        'Suporte prioritário por email'
       ],
       popular: true,
-      cta: 'Escolher Plano Anual'
+      cta: 'Escolher PRO',
+      highlight: true
+    },
+    {
+      id: 'enterprise',
+      name: 'ENTERPRISE',
+      price: null,
+      period: '',
+      description: 'Solução personalizada',
+      features: [
+        'Páginas ilimitadas',
+        'Domínio customizado',
+        'Editor visual avançado',
+        'Templates exclusivos',
+        'Hospedagem dedicada',
+        'Analytics empresarial',
+        'API de integração',
+        'Suporte prioritário WhatsApp',
+        'Gerente de conta dedicado'
+      ],
+      popular: false,
+      cta: 'Contato',
+      highlight: false,
+      isEnterprise: true
     }
   ];
 
@@ -54,47 +74,19 @@ export default function PricingPage() {
       <div className="bg-gray-900/95 backdrop-blur-xl shadow-2xl border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
-              Planos que cabem no seu bolso
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent mb-6">
+              Escolha o plano perfeito para você
             </h1>
-            <p className="text-xl text-gray-300 mb-10">
-              Escolha o plano ideal para suas necessidades
+            <p className="text-xl text-gray-300">
+              Crie páginas de vendas profissionais com nosso editor visual drag & drop
             </p>
-            
-            {/* Toggle */}
-            <div className="flex items-center justify-center space-x-6 mb-10">
-              <span className={`text-lg ${!isAnnual ? 'text-white font-medium' : 'text-gray-400'}`}>
-                Mensal
-              </span>
-              <button
-                onClick={() => setIsAnnual(!isAnnual)}
-                className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${
-                  isAnnual ? 'bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-gray-700'
-                }`}
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform shadow-lg ${
-                    isAnnual ? 'translate-x-9' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <span className={`text-lg ${isAnnual ? 'text-white font-medium' : 'text-gray-400'}`}>
-                Anual
-              </span>
-              {isAnnual && (
-                <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30">
-                  <Zap className="w-4 h-4 mr-2" />
-                  2 meses grátis
-                </span>
-              )}
-            </div>
           </div>
         </div>
       </div>
 
       {/* Pricing Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {plans.map((plan) => (
             <div
               key={plan.id}
@@ -118,22 +110,19 @@ export default function PricingPage() {
                 <p className="text-gray-400 mb-6">{plan.description}</p>
                 
                 <div className="mb-6">
-                  <span className="text-6xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                    R$ {plan.price}
-                  </span>
-                  <span className="text-gray-400 ml-2 text-xl">/{plan.period}</span>
+                  {plan.price ? (
+                    <>
+                      <span className="text-6xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+                        R$ {plan.price}
+                      </span>
+                      <span className="text-gray-400 ml-2 text-xl">/{plan.period}</span>
+                    </>
+                  ) : (
+                    <span className="text-3xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+                      Sob Consulta
+                    </span>
+                  )}
                 </div>
-                
-                {plan.originalPrice && (
-                  <div className="flex items-center justify-center space-x-3">
-                    <span className="text-xl text-gray-500 line-through">
-                      R$ {plan.originalPrice}
-                    </span>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30">
-                      Economia de R$ {plan.originalPrice - plan.price}
-                    </span>
-                  </div>
-                )}
               </div>
 
               <ul className="space-y-4 mb-8">

@@ -48,17 +48,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nome e subdomínio são obrigatórios' }, { status: 400 });
     }
 
-    // Verificar se o usuário tem assinatura ativa
-    const subscription = await Subscription.findOne({
-      userId: session.user.id,
-      status: { $in: ['active', 'past_due'] }
-    });
+    // Buscar usuário para verificar o role
+    const user = await User.findById(session.user.id);
+    
+    // Admins não precisam de assinatura
+    if (user?.role !== 'ADMIN') {
+      // Verificar se o usuário tem assinatura ativa
+      const subscription = await Subscription.findOne({
+        userId: session.user.id,
+        status: { $in: ['active', 'past_due'] }
+      });
 
-    if (!subscription) {
-      return NextResponse.json({ 
-        error: 'Você precisa de uma assinatura ativa para criar projetos',
-        requiresSubscription: true
-      }, { status: 402 });
+      if (!subscription) {
+        return NextResponse.json({ 
+          error: 'Você precisa de uma assinatura ativa para criar projetos',
+          requiresSubscription: true
+        }, { status: 402 });
+      }
     }
 
     // Verificar se o subdomínio já existe
