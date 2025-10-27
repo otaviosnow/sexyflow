@@ -78,12 +78,13 @@ export async function POST(request: NextRequest) {
 
       console.log('📋 Subscription encontrada:', subscription ? 'Sim' : 'Não');
 
+      // TEMPORÁRIO: Permitir criação sem assinatura para debug
       if (!subscription) {
-        console.log('❌ Usuário sem assinatura ativa');
-        return NextResponse.json({ 
-          error: 'Você precisa de uma assinatura ativa para criar projetos',
-          requiresSubscription: true
-        }, { status: 402 });
+        console.log('⚠️ Usuário sem assinatura - permitindo criar projeto (DEBUG MODE)');
+        // return NextResponse.json({ 
+        //   error: 'Você precisa de uma assinatura ativa para criar projetos',
+        //   requiresSubscription: true
+        // }, { status: 402 });
       }
     } else {
       console.log('✅ Admin - pulando verificação de assinatura');
