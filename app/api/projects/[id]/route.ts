@@ -32,7 +32,7 @@ export async function GET(
     console.log('✅ Usuário encontrado:', user.email);
 
     // Buscar projeto
-    const project = await Project.findOne({
+    const project: any = await Project.findOne({
       _id: params.id,
       userId: user._id,
       isActive: true
@@ -99,7 +99,7 @@ export async function PUT(
     console.log('✅ Projeto encontrado:', project.name);
 
     // Atualizar projeto
-    const updatedProject = await Project.findByIdAndUpdate(
+    const updatedProject: any = await Project.findByIdAndUpdate(
       params.id,
       {
         ...(name && { name }),
