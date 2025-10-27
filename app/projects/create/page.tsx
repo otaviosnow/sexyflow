@@ -81,7 +81,10 @@ export default function CreateProject() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          userEmail: user.email // Adicionar email do usuário para autenticação
+        }),
       });
 
       const data = await response.json();
