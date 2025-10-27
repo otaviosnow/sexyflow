@@ -369,64 +369,28 @@ body {
 
     setLoading(true);
     try {
-      // Em modo de desenvolvimento, salvar no localStorage
-      const isLocalDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-      
-      if (isLocalDev) {
-        // Criar template mock
-        const newTemplate = {
-          _id: `template-${Date.now()}`,
-          name: templateData.name,
-          type: templateData.type,
-          description: templateData.description,
-          content: templateData.content,
-          previewImage: templateData.previewImage,
-          createdBy: {
-            _id: session.user.id,
-            name: session.user.name || 'Admin',
-            email: session.user.email
-          },
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+      // Sempre usar API real para criar templates no banco de dados
+      const response = await fetch('/api/admin/templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(templateData),
+      });
 
-        // Salvar no localStorage
-        const existingTemplates = JSON.parse(localStorage.getItem('mockTemplates') || '[]');
-        const updatedTemplates = [...existingTemplates, newTemplate];
-        localStorage.setItem('mockTemplates', JSON.stringify(updatedTemplates));
-        
-        // Salvar dados iniciais para o editor visual
-        localStorage.setItem(`template_${newTemplate._id}`, JSON.stringify({
-          ...newTemplate,
-          content: [], // Iniciar com array vazio de elementos
-          background: { type: 'color', value: '#ffffff', opacity: 1, image: '' }
-        }));
-        
-        console.log('Template criado e salvo no localStorage:', newTemplate);
-        
+      if (response.ok) {
+        const createdTemplate = await response.json();
+        console.log('Template criado com sucesso:', createdTemplate);
         // Redirecionar para o editor visual
-        router.push(`/admin/templates/${newTemplate._id}/visual-editor`);
+        router.push(`/admin/templates/${createdTemplate._id}/visual-editor`);
       } else {
-        // Modo produção - usar API
-        const response = await fetch('/api/admin/templates', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(templateData),
-        });
-
-        if (response.ok) {
-          const createdTemplate = await response.json();
-          // Redirecionar para o editor visual
-          router.push(`/admin/templates/${createdTemplate._id}/visual-editor`);
-        } else {
-          console.error('Erro ao criar template');
-        }
+        const errorData = await response.json();
+        console.error('Erro ao criar template:', errorData);
+        alert(errorData.error || 'Erro ao criar template');
       }
     } catch (error) {
       console.error('Erro:', error);
+      alert('Erro ao criar template. Verifique a conexão.');
     } finally {
       setLoading(false);
     }
