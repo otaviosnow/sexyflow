@@ -9,7 +9,7 @@ interface SubdomainPageProps {
   };
 }
 
-async function getProject(subdomain: string) {
+async function getProject(subdomain: string): Promise<any> {
   try {
     await connectDB();
     
@@ -25,7 +25,7 @@ async function getProject(subdomain: string) {
   }
 }
 
-async function getHomePage(projectId: string) {
+async function getHomePage(projectId: string): Promise<any> {
   try {
     await connectDB();
     
