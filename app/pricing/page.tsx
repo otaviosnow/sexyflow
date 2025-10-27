@@ -1,69 +1,79 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Star, Zap } from 'lucide-react';
+import { Check, Star, Crown, Phone } from 'lucide-react';
+import { PLANS } from '@/lib/models/Plan';
 
 export default function PricingPage() {
   const plans = [
     {
       id: 'starter',
       name: 'STARTER',
-      price: 97,
+      displayName: 'Plano Starter',
+      price: 29.90,
       period: 'mês',
       description: 'Perfeito para começar',
       features: [
-        '3 páginas de vendas',
-        'Subdomínio personalizado',
+        '1 subdomínio personalizado',
+        '3 páginas por subdomínio',
+        '10 fotos',
+        '10 vídeos',
         'Editor visual drag & drop',
-        'Templates profissionais',
-        'Hospedagem automática',
+        'Hospedagem inclusa',
         'Analytics básicos',
         'Suporte por email'
       ],
       popular: false,
-      cta: 'Começar Agora',
-      highlight: false
+      icon: Star,
+      cta: 'Começar Agora'
     },
     {
       id: 'pro',
       name: 'PRO',
-      price: 197,
+      displayName: 'Plano Pro',
+      price: 47.00,
       period: 'mês',
-      description: 'Mais recursos e controle',
+      description: '90% das pessoas escolhem',
       features: [
-        '8 páginas de vendas',
-        'Subdomínio personalizado',
+        '3 subdomínios personalizados',
+        '8 páginas por subdomínio',
+        '30 fotos',
+        '20 vídeos',
+        'Domínio customizado',
         'Editor visual drag & drop',
         'Templates premium',
-        'Hospedagem automática',
+        'Hospedagem inclusa',
         'Analytics avançados',
-        'Relatórios detalhados',
-        'Suporte prioritário por email'
+        'Suporte por WhatsApp'
       ],
       popular: true,
-      cta: 'Escolher PRO',
-      highlight: true
+      icon: Crown,
+      cta: 'Escolher PRO'
     },
     {
       id: 'enterprise',
       name: 'ENTERPRISE',
+      displayName: 'Plano Enterprise',
       price: null,
       period: '',
       description: 'Solução personalizada',
       features: [
+        'Subdomínios ilimitados',
         'Páginas ilimitadas',
+        'Fotos ilimitadas',
+        'Vídeos ilimitados',
         'Domínio customizado',
         'Editor visual avançado',
         'Templates exclusivos',
         'Hospedagem dedicada',
         'Analytics empresarial',
         'API de integração',
-        'Suporte prioritário WhatsApp',
+        'Suporte por telefone',
         'Gerente de conta dedicado'
       ],
       popular: false,
-      cta: 'Contato',
-      highlight: false,
+      icon: Phone,
+      cta: 'Falar com Vendas',
       isEnterprise: true
     }
   ];
@@ -104,8 +114,13 @@ export default function PricingPage() {
               )}
 
               <div className="text-center mb-8">
+                <div className="flex justify-center mb-4">
+                  {plan.id === 'starter' && <Star className="w-8 h-8 text-blue-400" />}
+                  {plan.id === 'pro' && <Crown className="w-8 h-8 text-purple-400" />}
+                  {plan.id === 'enterprise' && <Phone className="w-8 h-8 text-green-400" />}
+                </div>
                 <h3 className="text-2xl font-bold text-white mb-3">
-                  {plan.name}
+                  {plan.displayName}
                 </h3>
                 <p className="text-gray-400 mb-6">{plan.description}</p>
                 
@@ -135,9 +150,19 @@ export default function PricingPage() {
               </ul>
 
               <button
+                onClick={() => {
+                  if (plan.isEnterprise) {
+                    window.open('https://wa.me/5531997783097?text=Olá, gostaria de conversar sobre o plano Enterprise do SexyFlow', '_blank');
+                  } else {
+                    // Redirecionar para escolha de plano
+                    window.location.href = '/choose-plan';
+                  }
+                }}
                 className={`w-full py-4 px-6 rounded-xl font-medium transition-all duration-300 shadow-lg hover:scale-105 ${
                   plan.popular
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 hover:shadow-blue-500/25'
+                    ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white hover:from-pink-600 hover:via-purple-600 hover:to-blue-600 hover:shadow-purple-500/25'
+                    : plan.isEnterprise
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 hover:shadow-green-500/25'
                     : 'bg-gray-800 text-white hover:bg-gray-700 border border-gray-600'
                 }`}
               >
