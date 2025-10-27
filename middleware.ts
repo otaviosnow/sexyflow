@@ -17,7 +17,6 @@ export function middleware(request: NextRequest) {
     url.pathname.startsWith('/register') ||
     url.pathname.startsWith('/projects') ||
     url.pathname.startsWith('/choose-plan') ||
-    url.pathname.startsWith('/pricing') ||
     url.pathname.startsWith('/payment') ||
     url.pathname.includes('.')  // arquivos com extensão (css, js, etc)
   ) {
