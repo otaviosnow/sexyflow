@@ -34,6 +34,15 @@ export async function PATCH(
 
     console.log('📦 Novo plano:', plan);
 
+    // Mapear plano para o formato do modelo Subscription
+    const planMapping: { [key: string]: string } = {
+      'STARTER': 'monthly',
+      'PRO': 'annual',
+      'ENTERPRISE': 'annual'
+    };
+
+    const mappedPlan = planMapping[plan] || 'monthly';
+
     // Verificar se usuário existe
     const user = await User.findById(params.id);
     if (!user) {
@@ -44,39 +53,47 @@ export async function PATCH(
     // Buscar ou criar assinatura
     let subscription = await Subscription.findOne({ userId: params.id });
     
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 dias
+
     if (!subscription) {
       // Criar nova assinatura
       subscription = new Subscription({
         userId: params.id,
-        plan: plan,
+        planId: mappedPlan,
+        planName: mappedPlan,
         status: 'active',
-        startDate: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 dias
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        cancelAtPeriodEnd: false
       });
     } else {
       // Atualizar plano existente
-      subscription.plan = plan;
+      subscription.planId = mappedPlan;
+      subscription.planName = mappedPlan;
       subscription.status = 'active';
-      subscription.startDate = new Date();
-      subscription.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 dias
+      subscription.currentPeriodStart = now;
+      subscription.currentPeriodEnd = periodEnd;
+      subscription.cancelAtPeriodEnd = false;
     }
 
     await subscription.save();
 
-    console.log(`✅ Plano do usuário ${user.email} alterado para: ${plan}`);
+    console.log(`✅ Plano do usuário ${user.email} alterado para: ${plan} (${mappedPlan})`);
 
     return NextResponse.json({ 
       message: `Plano alterado para ${plan} com sucesso`,
       subscription: {
-        plan: subscription.plan,
+        plan: plan,
+        planName: mappedPlan,
         status: subscription.status,
-        expiresAt: subscription.expiresAt
+        currentPeriodEnd: subscription.currentPeriodEnd
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao alterar plano do usuário:', error);
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: 'Erro interno do servidor', details: error.message },
       { status: 500 }
     );
   }
