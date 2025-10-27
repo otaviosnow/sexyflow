@@ -90,10 +90,23 @@ export async function POST(request: NextRequest) {
       console.log('✅ Admin - pulando verificação de assinatura');
     }
 
-    // Verificar se o subdomínio já existe
-    const existingProject = await Project.findOne({ subdomain: subdomain.toLowerCase() });
+    // Verificar se o subdomínio já existe (apenas projetos ativos)
+    const existingProject = await Project.findOne({ 
+      subdomain: subdomain.toLowerCase(),
+      isActive: true 
+    });
+    
+    // Log para debug: verificar se existe projeto inativo com mesmo subdomínio
+    const inactiveProject = await Project.findOne({ 
+      subdomain: subdomain.toLowerCase(),
+      isActive: false 
+    });
+    if (inactiveProject) {
+      console.log('ℹ️ Existe projeto INATIVO com esse subdomínio (será reutilizado)');
+    }
+    
     if (existingProject) {
-      console.log('❌ Subdomínio já existe:', subdomain);
+      console.log('❌ Subdomínio já existe (projeto ativo):', subdomain);
       return NextResponse.json({ error: 'Este subdomínio já está em uso' }, { status: 400 });
     }
 
