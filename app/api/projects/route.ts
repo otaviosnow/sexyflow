@@ -33,19 +33,26 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('📝 POST /api/projects - Criando projeto');
+    
     // Usar NextAuth para autenticação segura
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
+      console.log('❌ Não autorizado - sem sessão');
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
     await connectDB();
+    console.log('✅ Conectado ao MongoDB');
 
     const body = await request.json();
     const { name, subdomain, description } = body;
 
+    console.log('📦 Dados recebidos:', { name, subdomain, description });
+
     if (!name || !subdomain) {
+      console.log('❌ Dados obrigatórios faltando');
       return NextResponse.json({ error: 'Nome e subdomínio são obrigatórios' }, { status: 400 });
     }
 
@@ -53,34 +60,46 @@ export async function POST(request: NextRequest) {
     const user = await User.findById(session.user.id);
     
     if (!user) {
+      console.log('❌ Usuário não encontrado');
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 401 });
     }
+
+    console.log('✅ Usuário encontrado:', user.email, 'Role:', user.role);
     
     // Admins não precisam de assinatura
     if (user.role !== 'ADMIN') {
+      console.log('🔍 Verificando assinatura do usuário...');
+      
       // Verificar se o usuário tem assinatura ativa
       const subscription = await Subscription.findOne({
         userId: user._id,
         status: { $in: ['active', 'past_due'] }
       });
 
+      console.log('📋 Subscription encontrada:', subscription ? 'Sim' : 'Não');
+
       if (!subscription) {
+        console.log('❌ Usuário sem assinatura ativa');
         return NextResponse.json({ 
           error: 'Você precisa de uma assinatura ativa para criar projetos',
           requiresSubscription: true
         }, { status: 402 });
       }
+    } else {
+      console.log('✅ Admin - pulando verificação de assinatura');
     }
 
     // Verificar se o subdomínio já existe
     const existingProject = await Project.findOne({ subdomain: subdomain.toLowerCase() });
     if (existingProject) {
+      console.log('❌ Subdomínio já existe:', subdomain);
       return NextResponse.json({ error: 'Este subdomínio já está em uso' }, { status: 400 });
     }
 
     // Validar subdomínio
     const subdomainRegex = /^[a-z0-9-]+$/;
     if (!subdomainRegex.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
+      console.log('❌ Subdomínio inválido:', subdomain);
       return NextResponse.json({ 
         error: 'Subdomínio inválido. Use apenas letras minúsculas, números e hífens (3-50 caracteres)' 
       }, { status: 400 });
@@ -93,10 +112,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUserProject) {
+      console.log('❌ Usuário já possui projeto ativo');
       return NextResponse.json({ 
         error: 'Você já possui um projeto ativo. Cada usuário pode ter apenas 1 projeto.' 
       }, { status: 400 });
     }
+
+    console.log('✅ Validações passaram, criando projeto...');
 
     // Criar projeto
     const project = new Project({
@@ -109,6 +131,7 @@ export async function POST(request: NextRequest) {
     });
 
     await project.save();
+    console.log('✅ Projeto criado com sucesso:', project.name);
 
     return NextResponse.json({
       success: true,
@@ -117,10 +140,10 @@ export async function POST(request: NextRequest) {
       url: project.getFullUrl()
     });
 
-  } catch (error) {
-    console.error('Erro ao criar projeto:', error);
+  } catch (error: any) {
+    console.error('❌ Erro ao criar projeto:', error);
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: 'Erro interno do servidor', details: error.message },
       { status: 500 }
     );
   }
