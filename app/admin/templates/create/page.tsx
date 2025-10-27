@@ -465,11 +465,11 @@ body {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => router.push('/admin')}
+                onClick={() => router.push('/projects')}
                 className="flex items-center text-gray-600 hover:text-red-600 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
-                Voltar ao Painel Admin
+                Voltar aos Projetos
               </button>
               <h1 className="text-2xl font-bold text-gray-900">
                 Criar Novo Template
@@ -550,7 +550,7 @@ body {
                 <div className="flex space-x-4 pt-6">
                   <button
                     type="button"
-                    onClick={() => router.push('/admin')}
+                    onClick={() => router.push('/projects')}
                     className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Cancelar
