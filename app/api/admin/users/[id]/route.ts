@@ -42,6 +42,24 @@ export async function GET(
 
     console.log('✅ Usuário encontrado:', user.email);
 
+    // Buscar subscription do usuário
+    const Subscription = require('@/models/Subscription').default;
+    const subscription = await Subscription.findOne({ userId: params.id }).lean();
+
+    if (subscription) {
+      // Mapear de volta para o formato de exibição
+      const planDisplayMapping: { [key: string]: string } = {
+        'monthly': 'STARTER',
+        'annual': 'PRO'
+      };
+
+      user.subscription = {
+        plan: planDisplayMapping[subscription.planName] || subscription.planName,
+        status: subscription.status,
+        currentPeriodEnd: subscription.currentPeriodEnd
+      };
+    }
+
     return NextResponse.json(user);
   } catch (error) {
     console.error('❌ Erro ao buscar usuário:', error);

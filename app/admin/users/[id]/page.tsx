@@ -337,30 +337,57 @@ export default function AdminUserDetailsPage({ params }: { params: { id: string 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white mb-4">Gerenciar Plano</h3>
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CreditCard className="h-5 w-5 text-yellow-400" />
-                  <span className="text-gray-300">
-                    Plano: {user.subscription?.plan || 'Nenhum'}
+                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
+                  <div className="flex items-center gap-3 mb-2">
+                    <CreditCard className="h-5 w-5 text-yellow-400" />
+                    <span className="text-sm text-gray-400">Plano Atual:</span>
+                  </div>
+                  <span className="text-xl font-bold text-white">
+                    {user.subscription?.plan || 'Nenhum'}
                   </span>
+                  {user.subscription?.status && (
+                    <div className="mt-2">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                        user.subscription.status === 'active' 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {user.subscription.status === 'active' ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </div>
+                  )}
                 </div>
+                
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => changeUserPlan('STARTER')}
-                    className="w-full px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors text-sm"
+                    className={`w-full px-3 py-2 rounded-lg transition-all text-sm font-medium ${
+                      user.subscription?.plan === 'STARTER'
+                        ? 'bg-blue-500 text-white ring-2 ring-blue-400'
+                        : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400'
+                    }`}
                   >
-                    Definir como STARTER
+                    {user.subscription?.plan === 'STARTER' ? '✓ STARTER (Atual)' : 'Definir como STARTER'}
                   </button>
                   <button
                     onClick={() => changeUserPlan('PRO')}
-                    className="w-full px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-colors text-sm"
+                    className={`w-full px-3 py-2 rounded-lg transition-all text-sm font-medium ${
+                      user.subscription?.plan === 'PRO'
+                        ? 'bg-purple-500 text-white ring-2 ring-purple-400'
+                        : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-400'
+                    }`}
                   >
-                    Definir como PRO
+                    {user.subscription?.plan === 'PRO' ? '✓ PRO (Atual)' : 'Definir como PRO'}
                   </button>
                   <button
                     onClick={() => changeUserPlan('ENTERPRISE')}
-                    className="w-full px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors text-sm"
+                    className={`w-full px-3 py-2 rounded-lg transition-all text-sm font-medium ${
+                      user.subscription?.plan === 'ENTERPRISE'
+                        ? 'bg-green-500 text-white ring-2 ring-green-400'
+                        : 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
+                    }`}
                   >
-                    Definir como ENTERPRISE
+                    {user.subscription?.plan === 'ENTERPRISE' ? '✓ ENTERPRISE (Atual)' : 'Definir como ENTERPRISE'}
                   </button>
                 </div>
               </div>
