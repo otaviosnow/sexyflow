@@ -190,6 +190,38 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     setHasUnsavedChanges(true);
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione um arquivo de imagem válido');
+      return;
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    try {
+      // Converter para base64 para preview imediato
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setBackground({ ...background, image: result });
+        setHasUnsavedChanges(true);
+        toast.success('Imagem carregada com sucesso!');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Erro ao processar imagem:', error);
+      toast.error('Erro ao processar a imagem');
+    }
+  };
+
   const getDefaultContent = (type: string) => {
     switch (type) {
       case 'title': return { text: 'Título', fontSize: 30, fontFamily: 'Arial', fontWeight: 'bold', color: '#000000', alignment: 'center' };
@@ -620,13 +652,161 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
               </div>
               
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Background</label>
-                <input
-                  type="color"
-                  value={background.value}
-                  onChange={(e) => setBackground({ ...background, value: e.target.value })}
-                  className="w-full h-10 bg-gray-800 border border-gray-700 rounded"
-                />
+                <label className="block text-xs text-gray-400 mb-1">Fundo da Página</label>
+                
+                {/* Tipo de Background */}
+                <div className="flex space-x-2 mb-3">
+                  <button
+                    onClick={() => setBackground({ ...background, type: 'color' })}
+                    className={`px-3 py-1 text-xs rounded ${
+                      background.type === 'color' 
+                        ? 'bg-pink-500 text-white' 
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    Cor
+                  </button>
+                  <button
+                    onClick={() => setBackground({ ...background, type: 'gradient' })}
+                    className={`px-3 py-1 text-xs rounded ${
+                      background.type === 'gradient' 
+                        ? 'bg-pink-500 text-white' 
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    Gradiente
+                  </button>
+                  <button
+                    onClick={() => setBackground({ ...background, type: 'image' })}
+                    className={`px-3 py-1 text-xs rounded ${
+                      background.type === 'image' 
+                        ? 'bg-pink-500 text-white' 
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    Imagem
+                  </button>
+                </div>
+
+                {/* Configuração por tipo */}
+                {background.type === 'color' && (
+                  <input
+                    type="color"
+                    value={background.value}
+                    onChange={(e) => setBackground({ ...background, value: e.target.value })}
+                    className="w-full h-10 bg-gray-800 border border-gray-700 rounded"
+                  />
+                )}
+
+                {background.type === 'gradient' && (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Ex: 45deg, #ff6b6b, #4ecdc4"
+                      value={background.value}
+                      onChange={(e) => setBackground({ ...background, value: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Formato: ângulo, cor1, cor2
+                    </p>
+                  </div>
+                )}
+
+                {background.type === 'image' && (
+                  <div className="space-y-3">
+                    {/* Upload de arquivo */}
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Upload de Imagem</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-pink-500 file:text-white hover:file:bg-pink-600"
+                      />
+                    </div>
+
+                    {/* URL da imagem */}
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Ou cole uma URL</label>
+                      <input
+                        type="url"
+                        placeholder="https://exemplo.com/imagem.jpg"
+                        value={background.image}
+                        onChange={(e) => setBackground({ ...background, image: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                      />
+                    </div>
+
+                    {/* Preview da imagem */}
+                    {background.image && (
+                      <div className="mt-2">
+                        <img
+                          src={background.image}
+                          alt="Preview"
+                          className="w-full h-20 object-cover rounded border border-gray-700"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Opções adicionais para imagem */}
+                    {background.image && (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Opacidade</label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={background.opacity || 1}
+                            onChange={(e) => setBackground({ ...background, opacity: parseFloat(e.target.value) })}
+                            className="w-full"
+                          />
+                          <div className="text-xs text-gray-500 text-center">
+                            {Math.round((background.opacity || 1) * 100)}%
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Posição</label>
+                          <select
+                            value={background.position || 'center'}
+                            onChange={(e) => setBackground({ ...background, position: e.target.value })}
+                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                          >
+                            <option value="center">Centralizado</option>
+                            <option value="top">Superior</option>
+                            <option value="bottom">Inferior</option>
+                            <option value="left">Esquerda</option>
+                            <option value="right">Direita</option>
+                            <option value="top left">Superior Esquerda</option>
+                            <option value="top right">Superior Direita</option>
+                            <option value="bottom left">Inferior Esquerda</option>
+                            <option value="bottom right">Inferior Direita</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Tamanho</label>
+                          <select
+                            value={background.size || 'cover'}
+                            onChange={(e) => setBackground({ ...background, size: e.target.value })}
+                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                          >
+                            <option value="cover">Cobrir (Cover)</option>
+                            <option value="contain">Conter (Contain)</option>
+                            <option value="100% 100%">Esticar</option>
+                            <option value="auto">Automático</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -686,7 +866,11 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
                   ? `linear-gradient(${background.value})`
                   : background.type === 'image'
                   ? `url(${background.image})`
-                  : '#ffffff'
+                  : '#ffffff',
+                backgroundSize: background.type === 'image' ? (background.size || 'cover') : 'auto',
+                backgroundPosition: background.type === 'image' ? (background.position || 'center') : 'initial',
+                backgroundRepeat: background.type === 'image' ? 'no-repeat' : 'initial',
+                opacity: background.type === 'image' ? (background.opacity || 1) : 1
               }}
             >
               {elements.map(renderElement)}
