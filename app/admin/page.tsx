@@ -29,6 +29,8 @@ export default function AdminDashboard() {
     console.log('🔍 Admin page - Status:', status);
     console.log('🔍 Admin page - Session:', session);
     console.log('🔍 Admin page - User role:', session?.user?.role);
+    console.log('🔍 Admin page - User ID:', session?.user?.id);
+    console.log('🔍 Admin page - User email:', session?.user?.email);
     
     if (status === 'loading') return;
 
@@ -44,8 +46,13 @@ export default function AdminDashboard() {
     console.log('🔍 Admin page - Role === "admin":', session.user.role === 'admin');
     console.log('🔍 Admin page - Role toUpperCase():', session.user.role?.toUpperCase());
     
-    if (session.user.role?.toUpperCase() !== 'ADMIN') {
+    // Verificar se o role é ADMIN (case insensitive)
+    const isAdmin = session.user.role?.toUpperCase() === 'ADMIN';
+    console.log('🔍 Admin page - É admin?', isAdmin);
+    
+    if (!isAdmin) {
       console.log('❌ Admin page - Role não é ADMIN, redirecionando para projects');
+      console.log('❌ Admin page - Role atual:', session.user.role);
       router.push('/projects');
       return;
     }
