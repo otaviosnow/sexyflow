@@ -14,7 +14,10 @@ import {
   Settings,
   ExternalLink,
   Calendar,
-  Users
+  Users,
+  X,
+  FileText,
+  Palette
 } from 'lucide-react';
 
 interface Project {
@@ -38,6 +41,15 @@ interface Page {
   updatedAt: string;
 }
 
+interface Template {
+  _id: string;
+  name: string;
+  description: string;
+  content: any;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export default function ProjectDashboard({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -45,6 +57,10 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingPageId, setDeletingPageId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -78,6 +94,85 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
       console.error('Erro ao carregar projeto:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      setTemplatesLoading(true);
+      const response = await fetch('/api/admin/templates');
+      if (response.ok) {
+        const data = await response.json();
+        setTemplates(data.filter((template: Template) => template.isActive));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar templates:', error);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  const handleCreateBlankPage = async () => {
+    try {
+      const response = await fetch(`/api/projects/${params.id}/pages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: 'Nova Página',
+          slug: `pagina-${Date.now()}`,
+          content: {
+            background: {
+              type: 'color',
+              value: '#ffffff'
+            },
+            sections: []
+          },
+          isPublished: false
+        }),
+      });
+
+      if (response.ok) {
+        const newPage = await response.json();
+        router.push(`/projects/${params.id}/pages/${newPage._id}/editor`);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao criar página');
+      }
+    } catch (error) {
+      console.error('Erro ao criar página:', error);
+      alert('Erro ao criar página');
+    }
+  };
+
+  const handleCreateFromTemplate = async (template: Template) => {
+    try {
+      const response = await fetch(`/api/projects/${params.id}/pages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: template.name,
+          slug: template.name.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+          content: template.content,
+          isPublished: false
+        }),
+      });
+
+      if (response.ok) {
+        const newPage = await response.json();
+        setShowCreateModal(false);
+        setShowTemplates(false);
+        router.push(`/projects/${params.id}/pages/${newPage._id}/editor`);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao criar página');
+      }
+    } catch (error) {
+      console.error('Erro ao criar página:', error);
+      alert('Erro ao criar página');
     }
   };
 
@@ -263,7 +358,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-white">Minhas Páginas</h2>
             <button
-              onClick={() => router.push(`/projects/${params.id}/pages/create`)}
+              onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
             >
               <Plus className="h-4 w-4" />
@@ -283,7 +378,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
                 Crie sua primeira página para que ela apareça no seu site.
               </p>
               <button
-                onClick={() => router.push(`/projects/${params.id}/pages/create`)}
+                onClick={() => setShowCreateModal(true)}
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-semibold"
               >
                 <Plus className="h-5 w-5" />
@@ -368,6 +463,114 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
           )}
         </div>
       </div>
+
+      {/* Modal de Criação de Página */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">Criar Nova Página</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  handleCreateBlankPage();
+                }}
+                className="w-full flex items-center gap-3 p-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition-colors text-left"
+              >
+                <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-gray-300" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-white">Criar do Zero</h4>
+                  <p className="text-sm text-gray-400">Comece com uma página em branco</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setShowTemplates(true);
+                  loadTemplates();
+                }}
+                className="w-full flex items-center gap-3 p-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition-colors text-left"
+              >
+                <div className="w-10 h-10 bg-pink-600 rounded-lg flex items-center justify-center">
+                  <Palette className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-white">Usar Template</h4>
+                  <p className="text-sm text-gray-400">Escolha um template criado por nossos especialistas</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Seleção de Templates */}
+      {showTemplates && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">Escolher Template</h3>
+              <button
+                onClick={() => setShowTemplates(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {templatesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Palette className="h-8 w-8 text-gray-400" />
+                </div>
+                <h4 className="text-lg font-medium text-white mb-2">Nenhum template disponível</h4>
+                <p className="text-gray-400 mb-6">Nossos especialistas ainda não criaram templates para você.</p>
+                <button
+                  onClick={() => {
+                    setShowTemplates(false);
+                    setShowCreateModal(true);
+                  }}
+                  className="text-pink-600 hover:text-pink-500 font-medium"
+                >
+                  Voltar para opções
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {templates.map((template) => (
+                  <div
+                    key={template._id}
+                    onClick={() => handleCreateFromTemplate(template)}
+                    className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg p-4 cursor-pointer transition-colors"
+                  >
+                    <div className="w-full h-32 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-lg mb-3 flex items-center justify-center">
+                      <Palette className="h-8 w-8 text-pink-400" />
+                    </div>
+                    <h4 className="font-medium text-white mb-1">{template.name}</h4>
+                    <p className="text-sm text-gray-400 line-clamp-2">{template.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
