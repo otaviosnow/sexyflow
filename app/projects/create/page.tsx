@@ -114,20 +114,20 @@ export default function CreateProject() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-md border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => router.push('/projects')}
-                className="flex items-center text-gray-600 hover:text-pink-600 transition-colors"
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors text-sm"
               >
-                <ArrowLeft className="h-5 w-5 mr-2" />
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Voltar aos Projetos
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl font-semibold text-gray-900">
                 Criar Novo Projeto
               </h1>
             </div>
@@ -135,19 +135,19 @@ export default function CreateProject() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
               Crie seu primeiro projeto
             </h2>
-            <p className="text-gray-600">
+            <p className="text-sm text-gray-600">
               Cada usuário pode ter um projeto único com seu próprio subdomínio. 
-              Exemplo: <span className="font-mono bg-gray-100 px-2 py-1 rounded">seunegocio.sexyflow.onrender.com</span>
+              Exemplo: <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">seunegocio.sexyflow.onrender.com</span>
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Nome do Projeto */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -157,7 +157,7 @@ export default function CreateProject() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-pink-500 focus:border-pink-500 text-sm"
                 placeholder="Ex: Meu Negócio Online"
                 required
               />
@@ -173,12 +173,12 @@ export default function CreateProject() {
                   type="text"
                   value={formData.subdomain}
                   onChange={(e) => handleSubdomainChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 pr-20"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-pink-500 focus:border-pink-500 pr-20 text-sm"
                   placeholder="seunegocio"
                   required
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <span className="text-gray-500 text-sm">.sexyflow.onrender.com</span>
+                  <span className="text-gray-500 text-xs">.sexyflow.onrender.com</span>
                 </div>
               </div>
               
@@ -218,18 +218,18 @@ export default function CreateProject() {
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-pink-500 focus:border-pink-500 text-sm"
                 placeholder="Descreva seu projeto..."
               />
             </div>
 
             {/* Aviso importante */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <Globe className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <div className="flex items-start space-x-2">
+                <Globe className="h-4 w-4 text-blue-600 mt-0.5" />
                 <div>
                   <h4 className="text-sm font-medium text-blue-900">Importante</h4>
-                  <p className="text-sm text-blue-700 mt-1">
+                  <p className="text-xs text-blue-700 mt-1">
                     O subdomínio não poderá ser alterado após a criação. 
                     Certifique-se de escolher um nome que represente bem seu negócio.
                   </p>
@@ -241,21 +241,21 @@ export default function CreateProject() {
             <button
               type="submit"
               disabled={loading || subdomainAvailable === false || checkingSubdomain || !formData.name || !formData.subdomain}
-              className="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white py-3 px-6 rounded-lg hover:from-pink-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center font-semibold"
+              className="w-full bg-pink-600 text-white py-2.5 px-4 rounded-md hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center text-sm font-medium"
             >
               {loading ? (
                 <>
-                  <Loader className="h-5 w-5 animate-spin mr-2" />
+                  <Loader className="h-4 w-4 animate-spin mr-2" />
                   Criando Projeto...
                 </>
               ) : subdomainAvailable === false ? (
                 <>
-                  <XCircle className="h-5 w-5 mr-2" />
+                  <XCircle className="h-4 w-4 mr-2" />
                   Subdomínio Indisponível
                 </>
               ) : checkingSubdomain ? (
                 <>
-                  <Loader className="h-5 w-5 animate-spin mr-2" />
+                  <Loader className="h-4 w-4 animate-spin mr-2" />
                   Verificando...
                 </>
               ) : (
@@ -265,12 +265,12 @@ export default function CreateProject() {
 
             {/* Mensagem de erro para subdomínio em uso */}
             {subdomainAvailable === false && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
                 <div className="flex items-center space-x-2">
-                  <XCircle className="h-5 w-5 text-red-500" />
+                  <XCircle className="h-4 w-4 text-red-500" />
                   <div>
                     <h4 className="text-sm font-medium text-red-900">Subdomínio Indisponível</h4>
-                    <p className="text-sm text-red-700 mt-1">
+                    <p className="text-xs text-red-700 mt-1">
                       O subdomínio <span className="font-mono bg-red-100 px-1 rounded">{formData.subdomain}</span> já está em uso. 
                       Escolha outro subdomínio para continuar.
                     </p>
