@@ -66,7 +66,7 @@ export default function ProjectsPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
       </div>
     );
@@ -82,58 +82,37 @@ export default function ProjectsPage() {
     {
       label: 'Dashboard',
       icon: LayoutDashboard,
-      path: '/projects',
-      color: 'text-pink-600',
-      bgColor: 'bg-pink-50',
-      hoverColor: 'hover:bg-pink-100'
+      path: '/projects'
     },
     {
       label: 'Páginas',
       icon: FileText,
-      path: projects.length > 0 ? `/projects/${projects[0]._id}` : '/projects/create',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      hoverColor: 'hover:bg-purple-100'
+      path: projects.length > 0 ? `/projects/${projects[0]._id}` : '/projects/create'
     },
     {
       label: 'Templates',
       icon: Palette,
-      path: '/choose-plan',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      hoverColor: 'hover:bg-blue-100'
+      path: '/choose-plan'
     },
     {
       label: 'Meu Plano',
       icon: Crown,
-      path: '/my-plan',
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
-      hoverColor: 'hover:bg-yellow-100'
+      path: '/my-plan'
     },
     {
-      label: 'Configurações',
-      icon: Settings,
-      path: projects.length > 0 ? `/projects/${projects[0]._id}` : '/projects/create',
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50',
-      hoverColor: 'hover:bg-gray-100'
+      label: 'Domínio Próprio',
+      icon: Globe,
+      path: '/custom-domain'
     },
     {
       label: 'Perfil',
       icon: User,
-      path: '/projects',
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50',
-      hoverColor: 'hover:bg-indigo-100'
+      path: '/projects'
     },
     {
       label: 'Ajuda',
       icon: HelpCircle,
       path: 'https://wa.me/5531997783097',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      hoverColor: 'hover:bg-green-100',
       external: true
     }
   ];
@@ -173,29 +152,25 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-          {menuItems.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => {
-                if (item.external) {
-                  window.open(item.path, '_blank');
-                } else {
-                  router.push(item.path);
-                }
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium ${
-                item.external 
-                  ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+              {menuItems.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    if (item.external) {
+                      window.open(item.path, '_blank');
+                    } else {
+                      router.push(item.path);
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
 
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-200">
@@ -209,74 +184,72 @@ export default function ProjectsPage() {
         </div>
       </aside>
 
-      {/* Mobile Sidebar */}
-      {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)}>
-          <aside className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-            {/* Logo */}
-            <div className="flex items-center justify-between h-20 px-6 border-b border-gray-200 bg-gradient-to-r from-pink-600 to-purple-600">
-              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Layout className="h-6 w-6" />
-                SexyFlow
-              </h1>
-              <button onClick={() => setSidebarOpen(false)} className="text-white">
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* User Info */}
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-br from-pink-50 to-purple-50">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                  {session.user.name?.charAt(0).toUpperCase()}
+          {/* Mobile Sidebar */}
+          {sidebarOpen && (
+            <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)}>
+              <aside className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+                {/* Logo */}
+                <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+                  <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                    <Layout className="h-6 w-6" />
+                    SexyFlow
+                  </h1>
+                  <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-gray-600">
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {session.user.name}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {session.user.email}
-                  </p>
+
+                {/* User Info */}
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 font-medium text-sm">
+                      {session.user.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {session.user.name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {session.user.email}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-              {menuItems.map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => {
-                    if (item.external) {
-                      window.open(item.path, '_blank');
-                    } else {
-                      router.push(item.path);
-                    }
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${item.hoverColor} ${item.bgColor} hover:shadow-md`}
-                >
-                  <item.icon className={`h-5 w-5 ${item.color}`} />
-                  <span className={`text-sm font-medium ${item.color}`}>
-                    {item.label}
-                  </span>
-                </button>
-              ))}
-            </nav>
+                {/* Navigation */}
+                <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+                  {menuItems.map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => {
+                        if (item.external) {
+                          window.open(item.path, '_blank');
+                        } else {
+                          router.push(item.path);
+                        }
+                        setSidebarOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </nav>
 
-            {/* Logout Button */}
-            <div className="p-4 border-t border-gray-200">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 hover:bg-red-100 transition-all text-red-600 hover:shadow-md"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="text-sm font-medium">Sair</span>
-              </button>
+                {/* Logout Button */}
+                <div className="p-4 border-t border-gray-200">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Sair</span>
+                  </button>
+                </div>
+              </aside>
             </div>
-          </aside>
-        </div>
-      )}
+          )}
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-64">

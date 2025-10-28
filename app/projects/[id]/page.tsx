@@ -320,10 +320,10 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
-          <p className="text-gray-400">Carregando projeto...</p>
+          <p className="text-gray-600">Carregando projeto...</p>
         </div>
       </div>
     );
@@ -331,9 +331,9 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Projeto não encontrado</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Projeto não encontrado</h1>
           <button
             onClick={() => router.push('/projects')}
             className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg transition-colors"
@@ -348,22 +348,22 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
   const projectUrl = `https://${project.subdomain}.sexyflow.onrender.com`;
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => router.push('/projects')}
-                className="flex items-center text-gray-400 hover:text-white transition-colors"
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
                 Voltar aos Projetos
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-white">{project.name}</h1>
-                <p className="text-gray-400 text-sm">{projectUrl}</p>
+                <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
+                <p className="text-gray-600 text-sm">{projectUrl}</p>
               </div>
             </div>
             
@@ -391,66 +391,66 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total de Páginas</p>
-                <p className="text-2xl font-bold text-white">{pages.length}</p>
+                <p className="text-gray-600 text-sm">Total de Páginas</p>
+                <p className="text-2xl font-bold text-gray-900">{pages.length}</p>
               </div>
-              <div className="p-3 bg-blue-500/10 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-blue-400" />
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Páginas Publicadas</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-gray-600 text-sm">Páginas Publicadas</p>
+                <p className="text-2xl font-bold text-gray-900">
                   {pages.filter(p => p.isPublished).length}
                 </p>
               </div>
-              <div className="p-3 bg-green-500/10 rounded-lg">
-                <Globe className="h-6 w-6 text-green-400" />
+              <div className="p-3 bg-green-100 rounded-lg">
+                <Globe className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Visualizações</p>
-                <p className="text-2xl font-bold text-white">0</p>
+                <p className="text-gray-600 text-sm">Visualizações</p>
+                <p className="text-2xl font-bold text-gray-900">0</p>
               </div>
-              <div className="p-3 bg-purple-500/10 rounded-lg">
-                <Eye className="h-6 w-6 text-purple-400" />
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Eye className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Criado em</p>
-                <p className="text-sm font-medium text-white">
+                <p className="text-gray-600 text-sm">Criado em</p>
+                <p className="text-sm font-medium text-gray-900">
                   {new Date(project.createdAt).toLocaleDateString('pt-BR')}
                 </p>
               </div>
-              <div className="p-3 bg-pink-500/10 rounded-lg">
-                <Calendar className="h-6 w-6 text-pink-400" />
+              <div className="p-3 bg-pink-100 rounded-lg">
+                <Calendar className="h-6 w-6 text-pink-600" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Pages Section */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-white">Minhas Páginas</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Minhas Páginas</h2>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+              className="flex items-center gap-2 bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors"
             >
               <Plus className="h-4 w-4" />
               Nova Página
@@ -459,18 +459,18 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
 
           {pages.length === 0 ? (
             <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-full mb-6">
-                <Plus className="h-10 w-10 text-pink-500" />
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-pink-100 rounded-full mb-6">
+                <Plus className="h-10 w-10 text-pink-600" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 Nenhuma página criada
               </h3>
-              <p className="text-gray-400 mb-6 max-w-md mx-auto">
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
                 Crie sua primeira página para que ela apareça no seu site.
               </p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-semibold"
+                className="inline-flex items-center gap-2 bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors font-semibold"
               >
                 <Plus className="h-5 w-5" />
                 Criar Primeira Página
@@ -481,27 +481,27 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
               {pages.map((page) => (
                 <div
                   key={page._id}
-                  className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-pink-500/50 transition-colors"
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:border-pink-300 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     {/* Informações da página */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-white truncate">
+                        <h3 className="text-lg font-semibold text-gray-900 truncate">
                           {page.title}
                         </h3>
                         <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
                           page.isPublished 
-                            ? 'bg-green-500/10 text-green-400' 
-                            : 'bg-yellow-500/10 text-yellow-400'
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
                         }`}>
                           {page.isPublished ? 'Publicada' : 'Rascunho'}
                         </span>
-                        <span className="text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
+                        <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
                           {page.type}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-400 truncate">
+                      <p className="text-sm text-gray-600 truncate">
                         /{page.slug}
                       </p>
                     </div>
