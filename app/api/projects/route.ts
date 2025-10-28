@@ -8,22 +8,39 @@ import Subscription from '@/models/Subscription';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('📋 GET /api/projects - Listando projetos');
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
+      console.log('❌ Não autorizado - sem sessão');
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
+    console.log('✅ Usuário autenticado:', session.user.email);
+
     await connectDB();
 
-    const projects = await Project.find({ 
-      userId: session.user.id,
-      isActive: true 
-    }).populate('pages').sort({ createdAt: -1 });
+    // Buscar TODOS os projetos do usuário (incluindo inativos para debug)
+    const allProjects = await Project.find({ 
+      userId: session.user.id
+    }).sort({ createdAt: -1 });
+
+    console.log('🔍 Todos os projetos do usuário:', allProjects.map(p => ({
+      id: p._id,
+      name: p.name,
+      isActive: p.isActive,
+      createdAt: p.createdAt
+    })));
+
+    // Filtrar apenas os ativos
+    const projects = allProjects.filter(p => p.isActive === true);
+
+    console.log(`📊 Projetos ativos encontrados: ${projects.length}`);
 
     return NextResponse.json(projects);
   } catch (error) {
-    console.error('Erro ao buscar projetos:', error);
+    console.error('❌ Erro ao buscar projetos:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -143,16 +160,39 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Verificar se já tem um projeto (limite de 1 por usuário)
-    const existingUserProject = await Project.findOne({ 
+    // Verificar limite de projetos baseado no plano
+    const userProjects = await Project.find({ 
       userId: user._id,
       isActive: true 
     });
 
-    if (existingUserProject) {
-      console.log('❌ Usuário já possui projeto ativo');
+    console.log(`📊 Usuário possui ${userProjects.length} projeto(s) ativo(s)`);
+
+    // Buscar assinatura para verificar limite
+    const subscription = await Subscription.findOne({
+      userId: user._id,
+      status: { $in: ['active', 'past_due'] }
+    });
+
+    let projectLimit = 1; // Padrão: 1 projeto
+
+    if (subscription) {
+      // Mapear plano para limite de projetos
+      const planLimits: { [key: string]: number } = {
+        'starter': 1,
+        'pro': 3,
+        'enterprise': -1 // Ilimitado
+      };
+
+      projectLimit = planLimits[subscription.planId] || 1;
+      console.log(`📋 Plano ${subscription.planId}: limite de ${projectLimit === -1 ? 'ilimitados' : projectLimit} projetos`);
+    }
+
+    // Verificar se atingiu o limite (exceto para planos ilimitados)
+    if (projectLimit !== -1 && userProjects.length >= projectLimit) {
+      console.log(`❌ Usuário atingiu limite de projetos (${userProjects.length}/${projectLimit})`);
       return NextResponse.json({ 
-        error: 'Você já possui um projeto ativo. Cada usuário pode ter apenas 1 projeto.' 
+        error: `Você atingiu o limite de ${projectLimit} projeto(s) do seu plano. Faça upgrade para criar mais projetos.` 
       }, { status: 400 });
     }
 
@@ -169,7 +209,22 @@ export async function POST(request: NextRequest) {
     });
 
     await project.save();
-    console.log('✅ Projeto criado com sucesso:', project.name);
+    console.log('✅ Projeto criado com sucesso:', {
+      id: project._id,
+      name: project.name,
+      subdomain: project.subdomain,
+      isActive: project.isActive,
+      userId: project.userId
+    });
+
+    // Verificar se o projeto foi salvo corretamente
+    const savedProject = await Project.findById(project._id);
+    console.log('🔍 Projeto verificado no banco:', {
+      id: savedProject?._id,
+      name: savedProject?.name,
+      isActive: savedProject?.isActive,
+      userId: savedProject?.userId
+    });
 
     console.log('✅ Projeto salvo, gerando URL...');
     
