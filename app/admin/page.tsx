@@ -26,18 +26,26 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
+    console.log('🔍 Admin page - Status:', status);
+    console.log('🔍 Admin page - Session:', session);
+    console.log('🔍 Admin page - User role:', session?.user?.role);
+    
     if (status === 'loading') return;
 
     if (!session) {
+      console.log('❌ Admin page - Sem sessão, redirecionando para login');
       router.push('/login');
       return;
     }
 
+    console.log('🔍 Admin page - Verificando role:', session.user.role);
     if (session.user.role !== 'ADMIN') {
+      console.log('❌ Admin page - Role não é ADMIN, redirecionando para projects');
       router.push('/projects');
       return;
     }
 
+    console.log('✅ Admin page - Acesso autorizado, carregando estatísticas');
     // Carregar estatísticas
     loadStats();
   }, [session, status, router]);
