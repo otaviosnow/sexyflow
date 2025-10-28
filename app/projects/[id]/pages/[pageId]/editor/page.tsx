@@ -65,6 +65,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activeTab, setActiveTab] = useState<'elements' | 'design' | 'settings'>('elements');
+  const [dataLoaded, setDataLoaded] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,10 +74,11 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
       return;
     }
 
-    if (status === 'authenticated' && session) {
+    // Só carregar dados se ainda não foram carregados
+    if (status === 'authenticated' && session && !dataLoaded) {
       loadData();
     }
-  }, [status, session, router]);
+  }, [status, session, router, dataLoaded]);
 
   const loadData = async () => {
     try {
@@ -97,6 +99,9 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
         setElements(pageData.content?.elements || []);
         setBackground(pageData.content?.background || { type: 'color', value: '#ffffff', opacity: 1, image: '' });
       }
+      
+      // Marcar dados como carregados
+      setDataLoaded(true);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -174,7 +179,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
       id: `element-${Date.now()}`,
       type,
       content: getDefaultContent(type),
-      position: { x: 50, y: elements.length * 100 + 50 },
+      position: { x: 300, y: elements.length * 100 + 50 }, // Centralizado horizontalmente
       size: getDefaultSize(type),
       style: {},
       spacing: { top: 0, bottom: 20 }
