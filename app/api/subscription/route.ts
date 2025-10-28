@@ -27,21 +27,42 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Usuário encontrado:', user.email);
+    console.log('📊 Dados do plano do usuário:', {
+      planType: user.planType,
+      planStartDate: user.planStartDate,
+      planEndDate: user.planEndDate
+    });
 
-    // Buscar assinatura ativa
-    const subscription = await Subscription.findOne({
-      userId: user._id,
-      status: { $in: ['active', 'past_due', 'canceled'] }
-    }).sort({ createdAt: -1 });
-
-    if (!subscription) {
-      console.log('❌ Nenhuma assinatura encontrada');
-      return NextResponse.json({ error: 'Nenhuma assinatura encontrada' }, { status: 404 });
+    // Verificar se o usuário tem plano ativo
+    if (!user.planType || !user.planEndDate) {
+      console.log('❌ Usuário sem plano ativo');
+      return NextResponse.json({ error: 'Nenhum plano ativo' }, { status: 404 });
     }
 
-    console.log('✅ Assinatura encontrada:', subscription.planId);
+    // Verificar se o plano não expirou
+    const now = new Date();
+    const endDate = new Date(user.planEndDate);
+    
+    if (endDate < now) {
+      console.log('❌ Plano expirado');
+      return NextResponse.json({ error: 'Plano expirado' }, { status: 404 });
+    }
 
-    return NextResponse.json(subscription);
+    console.log('✅ Plano ativo encontrado:', user.planType);
+
+    // Retornar dados do plano no formato esperado
+    const subscriptionData = {
+      _id: user._id,
+      planId: user.planType.toLowerCase(),
+      planName: user.planType,
+      status: 'active',
+      currentPeriodStart: user.planStartDate,
+      currentPeriodEnd: user.planEndDate,
+      cancelAtPeriodEnd: false,
+      createdAt: user.createdAt
+    };
+
+    return NextResponse.json(subscriptionData);
   } catch (error) {
     console.error('❌ Erro ao buscar assinatura:', error);
     return NextResponse.json(
