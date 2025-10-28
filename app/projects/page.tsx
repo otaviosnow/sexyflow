@@ -93,7 +93,7 @@ export default function ProjectsPage() {
     {
       label: 'Templates',
       icon: Palette,
-      path: '/choose-plan'
+      path: '/templates'
     },
     {
       label: 'Meu Plano',
