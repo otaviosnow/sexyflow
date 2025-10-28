@@ -126,7 +126,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
         body: JSON.stringify({
           title: `Minha Página ${pageNumber}`,
           slug: `minha-pagina-${pageNumber}-${timestamp}`,
-          type: 'page',
+          type: 'presell',
           content: {
             background: {
               type: 'color',
@@ -164,7 +164,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
         body: JSON.stringify({
           title: template.name,
           slug: `${template.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-${pageNumber}-${timestamp}`,
-          type: 'page',
+          type: 'presell',
           content: template.content,
           isPublished: false
         }),
