@@ -114,14 +114,19 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
 
   const handleCreateBlankPage = async () => {
     try {
+      // Gerar dados automáticos
+      const timestamp = Date.now();
+      const pageNumber = pages.length + 1;
+      
       const response = await fetch(`/api/projects/${params.id}/pages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: 'Nova Página',
-          slug: `pagina-${Date.now()}`,
+          title: `Minha Página ${pageNumber}`,
+          slug: `minha-pagina-${pageNumber}-${timestamp}`,
+          type: 'page',
           content: {
             background: {
               type: 'color',
@@ -148,6 +153,9 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
 
   const handleCreateFromTemplate = async (template: Template) => {
     try {
+      const timestamp = Date.now();
+      const pageNumber = pages.length + 1;
+      
       const response = await fetch(`/api/projects/${params.id}/pages`, {
         method: 'POST',
         headers: {
@@ -155,7 +163,8 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
         },
         body: JSON.stringify({
           title: template.name,
-          slug: template.name.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+          slug: `${template.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-${pageNumber}-${timestamp}`,
+          type: 'page',
           content: template.content,
           isPublished: false
         }),
