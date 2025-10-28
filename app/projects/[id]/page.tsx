@@ -317,29 +317,6 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
     }
   };
 
-  const handleTogglePublish = async (pageId: string, currentStatus: boolean) => {
-    try {
-      const response = await fetch(`/api/pages/${pageId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPublished: !currentStatus }),
-      });
-
-      if (response.ok) {
-        setPages(pages.map(p => 
-          p._id === pageId 
-            ? { ...p, isPublished: !currentStatus }
-            : p
-        ));
-        alert(`Página ${!currentStatus ? 'publicada' : 'despublicada'} com sucesso!`);
-      } else {
-        alert('Erro ao alterar status da página');
-      }
-    } catch (error) {
-      console.error('Erro ao alterar status:', error);
-      alert('Erro ao alterar status da página');
-    }
-  };
 
   if (status === 'loading' || loading) {
     return (
