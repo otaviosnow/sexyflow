@@ -23,9 +23,9 @@ const templateData: { [key: string]: TemplateData } = {
       sections: []
     }
   },
-  'landing-sales': {
-    id: 'landing-sales',
-    name: 'Landing de Vendas',
+  'admin-template': {
+    id: 'admin-template',
+    name: 'Template do Admin',
     content: {
       background: {
         type: 'gradient',
@@ -65,71 +65,15 @@ const templateData: { [key: string]: TemplateData } = {
               }
             ]
           }
-        }
-      ]
-    }
-  },
-  'hot-niche': {
-    id: 'hot-niche',
-    name: 'Nicho Hot',
-    content: {
-      background: {
-        type: 'gradient',
-        value: '135deg, #ff6b9d 0%, #c44569 100%'
-      },
-      sections: [
+        },
         {
-          id: 'hero',
-          type: 'hero',
+          id: 'cta',
+          type: 'cta',
           content: {
-            title: '🔥 Conteúdo Exclusivo',
-            subtitle: 'Acesso VIP ao melhor conteúdo',
-            buttonText: 'Acessar Agora',
-            buttonColor: '#ff4757'
-          }
-        }
-      ]
-    }
-  },
-  'fitness': {
-    id: 'fitness',
-    name: 'Fitness & Saúde',
-    content: {
-      background: {
-        type: 'color',
-        value: '#f8f9fa'
-      },
-      sections: [
-        {
-          id: 'hero',
-          type: 'hero',
-          content: {
-            title: 'Transforme Seu Corpo',
-            subtitle: 'Programa de treino personalizado para seus objetivos',
-            buttonText: 'Começar Treino',
-            buttonColor: '#00b894'
-          }
-        }
-      ]
-    }
-  },
-  'luxury': {
-    id: 'luxury',
-    name: 'Luxo & Premium',
-    content: {
-      background: {
-        type: 'gradient',
-        value: '135deg, #2c3e50 0%, #34495e 100%'
-      },
-      sections: [
-        {
-          id: 'hero',
-          type: 'hero',
-          content: {
-            title: 'Exclusividade Redefinida',
-            subtitle: 'Experimente o luxo em sua forma mais pura',
-            buttonText: 'Descobrir',
-            buttonColor: '#f39c12'
+            title: 'Pronto para começar?',
+            subtitle: 'Junte-se a milhares de pessoas que já transformaram suas vidas',
+            buttonText: 'Começar Agora',
+            buttonColor: '#ff6b6b'
           }
         }
       ]

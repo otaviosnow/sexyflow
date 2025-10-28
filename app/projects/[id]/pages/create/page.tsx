@@ -18,54 +18,24 @@ interface Template {
 
 const templates: Template[] = [
   {
+    id: 'admin-template',
+    name: 'Template do Admin',
+    description: 'Use um template profissional criado por nossos especialistas',
+    category: 'Profissional',
+    preview: '/templates/admin-preview.jpg',
+    icon: Palette,
+    color: 'bg-pink-500',
+    isPremium: false
+  },
+  {
     id: 'blank',
-    name: 'Página em Branco',
-    description: 'Comece do zero com total liberdade criativa',
-    category: 'Básico',
+    name: 'Criar Página em Branco',
+    description: 'Comece do zero com total liberdade criativa no editor',
+    category: 'Personalizado',
     preview: '/templates/blank-preview.jpg',
     icon: FileText,
     color: 'bg-gray-500',
     isPremium: false
-  },
-  {
-    id: 'landing-sales',
-    name: 'Landing de Vendas',
-    description: 'Página otimizada para conversão e vendas',
-    category: 'Vendas',
-    preview: '/templates/sales-preview.jpg',
-    icon: Zap,
-    color: 'bg-green-500',
-    isPremium: false
-  },
-  {
-    id: 'hot-niche',
-    name: 'Nicho Hot',
-    description: 'Template especializado para nichos adultos',
-    category: 'Adulto',
-    preview: '/templates/hot-preview.jpg',
-    icon: Sparkles,
-    color: 'bg-pink-500',
-    isPremium: true
-  },
-  {
-    id: 'fitness',
-    name: 'Fitness & Saúde',
-    description: 'Perfeito para coaches e produtos fitness',
-    category: 'Fitness',
-    preview: '/templates/fitness-preview.jpg',
-    icon: Star,
-    color: 'bg-blue-500',
-    isPremium: true
-  },
-  {
-    id: 'luxury',
-    name: 'Luxo & Premium',
-    description: 'Design elegante para produtos de alto valor',
-    category: 'Luxo',
-    preview: '/templates/luxury-preview.jpg',
-    icon: Crown,
-    color: 'bg-purple-500',
-    isPremium: true
   }
 ];
 
@@ -94,8 +64,13 @@ export default function CreatePage({ params }: { params: { id: string } }) {
   const handleCreatePage = () => {
     if (!selectedTemplate) return;
     
-    // Redirecionar para o editor com o template selecionado
-    router.push(`/projects/${params.id}/pages/create/editor?template=${selectedTemplate}`);
+    if (selectedTemplate === 'blank') {
+      // Para página em branco, redirecionar diretamente para o editor
+      router.push(`/projects/${params.id}/pages/create/editor?template=blank`);
+    } else if (selectedTemplate === 'admin-template') {
+      // Para template do admin, redirecionar para o editor com template do admin
+      router.push(`/projects/${params.id}/pages/create/editor?template=admin-template`);
+    }
   };
 
   return (
@@ -131,7 +106,7 @@ export default function CreatePage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Templates Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 max-w-4xl mx-auto">
           {templates.map((template) => (
             <div
               key={template.id}
