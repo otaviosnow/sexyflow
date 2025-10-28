@@ -60,7 +60,14 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   const [page, setPage] = useState<Page | null>(null);
   const [elements, setElements] = useState<Element[]>([]);
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const [background, setBackground] = useState({ type: 'color', value: '#ffffff', opacity: 1, image: '' });
+  const [background, setBackground] = useState({ 
+    type: 'color', 
+    value: '#ffffff', 
+    opacity: 1, 
+    image: '', 
+    position: 'center', 
+    size: 'cover' 
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -97,7 +104,14 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
         const pageData = await pageResponse.json();
         setPage(pageData);
         setElements(pageData.content?.elements || []);
-        setBackground(pageData.content?.background || { type: 'color', value: '#ffffff', opacity: 1, image: '' });
+        setBackground(pageData.content?.background || { 
+          type: 'color', 
+          value: '#ffffff', 
+          opacity: 1, 
+          image: '', 
+          position: 'center', 
+          size: 'cover' 
+        });
       }
       
       // Marcar dados como carregados
