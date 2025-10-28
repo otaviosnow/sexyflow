@@ -18,7 +18,8 @@ import {
   User,
   LayoutDashboard,
   Menu,
-  X
+  X,
+  Globe
 } from 'lucide-react';
 
 export default function ProjectsPage() {
