@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o subdomínio já existe (apenas projetos ativos)
+    console.log('🔍 Verificando projetos ativos com subdomínio:', subdomain.toLowerCase());
     const existingActiveProject = await Project.findOne({ 
       subdomain: subdomain.toLowerCase(),
       isActive: true 
@@ -100,8 +101,10 @@ export async function POST(request: NextRequest) {
       console.log('❌ Subdomínio já existe (projeto ativo):', subdomain);
       return NextResponse.json({ error: 'Este subdomínio já está em uso' }, { status: 400 });
     }
+    console.log('✅ Nenhum projeto ativo encontrado com esse subdomínio');
 
     // Verificar se existe projeto inativo com mesmo subdomínio (para reutilizar)
+    console.log('🔍 Verificando projetos inativos com subdomínio:', subdomain.toLowerCase());
     const existingInactiveProject = await Project.findOne({ 
       subdomain: subdomain.toLowerCase(),
       isActive: false 
@@ -109,6 +112,7 @@ export async function POST(request: NextRequest) {
     
     if (existingInactiveProject) {
       console.log('ℹ️ Existe projeto INATIVO com esse subdomínio - reutilizando...');
+      console.log('📋 Projeto inativo encontrado:', existingInactiveProject._id, existingInactiveProject.name);
       
       // Reativar o projeto existente
       existingInactiveProject.userId = user._id;
@@ -128,6 +132,7 @@ export async function POST(request: NextRequest) {
         url: `https://${existingInactiveProject.subdomain}.sexyflow.onrender.com`
       });
     }
+    console.log('✅ Nenhum projeto inativo encontrado com esse subdomínio');
 
     // Validar subdomínio
     const subdomainRegex = /^[a-z0-9-]+$/;
