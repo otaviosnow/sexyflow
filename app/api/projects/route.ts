@@ -90,49 +90,49 @@ export async function POST(request: NextRequest) {
       console.log('✅ Admin - pulando verificação de assinatura');
     }
 
-    // Verificar se o subdomínio já existe (apenas projetos ativos)
-    console.log('🔍 Verificando projetos ativos com subdomínio:', subdomain.toLowerCase());
-    const existingActiveProject = await Project.findOne({ 
-      subdomain: subdomain.toLowerCase(),
-      isActive: true 
+    // Verificar se existe QUALQUER projeto com esse subdomínio (independente do isActive)
+    console.log('🔍 Verificando QUALQUER projeto com subdomínio:', subdomain.toLowerCase());
+    const anyExistingProject = await Project.findOne({ 
+      subdomain: subdomain.toLowerCase()
     });
     
-    if (existingActiveProject) {
-      console.log('❌ Subdomínio já existe (projeto ativo):', subdomain);
-      return NextResponse.json({ error: 'Este subdomínio já está em uso' }, { status: 400 });
-    }
-    console.log('✅ Nenhum projeto ativo encontrado com esse subdomínio');
-
-    // Verificar se existe projeto inativo com mesmo subdomínio (para reutilizar)
-    console.log('🔍 Verificando projetos inativos com subdomínio:', subdomain.toLowerCase());
-    const existingInactiveProject = await Project.findOne({ 
-      subdomain: subdomain.toLowerCase(),
-      isActive: false 
-    });
-    
-    if (existingInactiveProject) {
-      console.log('ℹ️ Existe projeto INATIVO com esse subdomínio - reutilizando...');
-      console.log('📋 Projeto inativo encontrado:', existingInactiveProject._id, existingInactiveProject.name);
+    if (anyExistingProject) {
+      console.log('📋 Projeto encontrado no banco:', {
+        id: anyExistingProject._id,
+        name: anyExistingProject.name,
+        subdomain: anyExistingProject.subdomain,
+        isActive: anyExistingProject.isActive,
+        userId: anyExistingProject.userId
+      });
+      
+      // Se o projeto está ativo, retornar erro
+      if (anyExistingProject.isActive === true) {
+        console.log('❌ Subdomínio já existe (projeto ativo):', subdomain);
+        return NextResponse.json({ error: 'Este subdomínio já está em uso' }, { status: 400 });
+      }
+      
+      // Se o projeto não está ativo (false, null, undefined), reutilizar
+      console.log('ℹ️ Projeto encontrado mas não ativo - reutilizando...');
       
       // Reativar o projeto existente
-      existingInactiveProject.userId = user._id;
-      existingInactiveProject.name = name;
-      existingInactiveProject.description = description;
-      existingInactiveProject.isActive = true;
-      existingInactiveProject.pages = [];
-      existingInactiveProject.updatedAt = new Date();
+      anyExistingProject.userId = user._id;
+      anyExistingProject.name = name;
+      anyExistingProject.description = description;
+      anyExistingProject.isActive = true;
+      anyExistingProject.pages = [];
+      anyExistingProject.updatedAt = new Date();
       
-      await existingInactiveProject.save();
-      console.log('✅ Projeto reutilizado com sucesso:', existingInactiveProject.name);
+      await anyExistingProject.save();
+      console.log('✅ Projeto reutilizado com sucesso:', anyExistingProject.name);
 
       return NextResponse.json({
         success: true,
-        project: existingInactiveProject,
+        project: anyExistingProject,
         message: 'Projeto criado com sucesso! (reutilizando subdomínio)',
-        url: `https://${existingInactiveProject.subdomain}.sexyflow.onrender.com`
+        url: `https://${anyExistingProject.subdomain}.sexyflow.onrender.com`
       });
     }
-    console.log('✅ Nenhum projeto inativo encontrado com esse subdomínio');
+    console.log('✅ Nenhum projeto encontrado com esse subdomínio');
 
     // Validar subdomínio
     const subdomainRegex = /^[a-z0-9-]+$/;
