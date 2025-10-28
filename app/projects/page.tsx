@@ -138,26 +138,32 @@ export default function ProjectsPage() {
     }
   ];
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex">
+      return (
+        <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r border-gray-200 shadow-xl">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r border-gray-200">
         {/* Logo */}
-        <div className="flex items-center justify-center h-20 border-b border-gray-200 bg-gradient-to-r from-pink-600 to-purple-600">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Layout className="h-6 w-6" />
-            SexyFlow
-          </h1>
+        <div className="flex items-center justify-center h-16 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 28C16 28 4 18 4 12C4 8 7 5 11 5C13 5 15 6 16 8C17 6 19 5 21 5C25 5 28 8 28 12C28 18 16 28 16 28Z" fill="#ec4899" stroke="#ec4899" strokeWidth="1"/>
+                <path d="M16 28 Q12 24 8 20 Q6 16 10 14 Q14 12 16 16 Q18 20 22 18 Q26 16 24 20 Q20 24 16 28" stroke="#be185d" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                <path d="M16 26 Q13 22 10 19 Q8 17 11 16 Q14 15 16 18 Q18 21 21 19 Q24 17 22 19 Q19 22 16 26" stroke="#be185d" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <h1 className="text-xl font-semibold text-gray-900">SexyFlow</h1>
+          </div>
         </div>
 
         {/* User Info */}
-        <div className="p-6 border-b border-gray-200 bg-gradient-to-br from-pink-50 to-purple-50">
+        <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 font-medium text-sm">
               {session.user.name?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">
+              <p className="text-sm font-medium text-gray-900 truncate">
                 {session.user.name}
               </p>
               <p className="text-xs text-gray-500 truncate">
@@ -168,7 +174,7 @@ export default function ProjectsPage() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {menuItems.map((item) => (
             <button
               key={item.label}
@@ -179,12 +185,14 @@ export default function ProjectsPage() {
                   router.push(item.path);
                 }
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${item.hoverColor} ${item.bgColor} hover:shadow-md`}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium ${
+                item.external 
+                  ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
             >
-              <item.icon className={`h-5 w-5 ${item.color}`} />
-              <span className={`text-sm font-medium ${item.color}`}>
-                {item.label}
-              </span>
+              <item.icon className="h-4 w-4" />
+              <span>{item.label}</span>
             </button>
           ))}
         </nav>
@@ -193,10 +201,10 @@ export default function ProjectsPage() {
         <div className="p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 hover:bg-red-100 transition-all text-red-600 hover:shadow-md"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
           >
-            <LogOut className="h-5 w-5" />
-            <span className="text-sm font-medium">Sair</span>
+            <LogOut className="h-4 w-4" />
+            <span>Sair</span>
           </button>
         </div>
       </aside>
@@ -288,93 +296,93 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="p-4 sm:p-6 lg:p-8">
-          {/* Welcome Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-8 mb-8 border border-gray-100">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                  Bem-vindo, {session.user.name}! 👋
-                </h2>
-                <p className="text-gray-600">
-                  {isAdmin ? 'Você tem acesso total ao sistema como administrador.' : 'Gerencie suas páginas de vendas em um só lugar.'}
-                </p>
+          {/* Content Area */}
+          <div className="p-6">
+            {/* Welcome Section */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                    Bem-vindo, {session.user.name}!
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    {isAdmin ? 'Você tem acesso total ao sistema como administrador.' : 'Gerencie suas páginas de vendas em um só lugar.'}
+                  </p>
+                </div>
+                {!isAdmin && (
+                  <button
+                    onClick={() => router.push('/projects/create')}
+                    className="flex items-center gap-2 bg-pink-600 text-white px-4 py-2 rounded-md hover:bg-pink-700 transition-colors text-sm font-medium"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo Projeto
+                  </button>
+                )}
               </div>
-              {!isAdmin && (
-                <button
-                  onClick={() => router.push('/projects/create')}
-                  className="flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-6 lg:px-8 py-3 lg:py-4 rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold"
-                >
-                  <Plus className="h-5 w-5" />
-                  Novo Projeto
-                </button>
-              )}
             </div>
-          </div>
 
           {/* Projects Section - Only for non-admin users */}
           {!isAdmin && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-8 border border-gray-100">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl lg:text-2xl font-bold text-gray-900">Meus Projetos</h3>
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Meus Projetos</h3>
                 <span className="text-sm text-gray-500">{projects.length} projeto(s)</span>
               </div>
 
               {projects.length === 0 ? (
-                <div className="text-center py-12 lg:py-16">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full mb-6">
-                    <FileText className="h-10 w-10 text-pink-600" />
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-4">
+                    <FileText className="h-6 w-6 text-gray-600" />
                   </div>
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
                     Nenhum projeto ainda
                   </h4>
-                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">
                     Crie seu primeiro projeto e comece a construir suas páginas de vendas de alto impacto!
                   </p>
                   <button
                     onClick={() => router.push('/projects/create')}
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-semibold"
+                    className="inline-flex items-center gap-2 bg-pink-600 text-white px-4 py-2 rounded-md hover:bg-pink-700 transition-colors text-sm font-medium"
                   >
-                    <Plus className="h-5 w-5" />
+                    <Plus className="h-4 w-4" />
                     Criar Primeiro Projeto
                   </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {projects.map((project) => (
                     <div
                       key={project._id}
-                      className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-md p-6 hover:shadow-xl transition-all hover:scale-105 border border-gray-200 cursor-pointer"
+                      className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:bg-gray-100 transition-colors cursor-pointer"
                       onClick={() => router.push(`/projects/${project._id}`)}
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="p-2 bg-white rounded-lg shadow-sm">
-                          <Layout className="h-6 w-6 text-pink-600" />
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="p-2 bg-white rounded border">
+                          <Layout className="h-4 w-4 text-gray-600" />
                         </div>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/projects/${project._id}`);
                           }}
-                          className="p-2 hover:bg-white rounded-lg transition-colors"
+                          className="p-1 hover:bg-white rounded transition-colors"
                         >
-                          <Settings className="h-4 w-4 text-gray-400" />
+                          <Settings className="h-3 w-3 text-gray-400" />
                         </button>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.name}</h3>
+                      <h3 className="font-medium text-gray-900 mb-1">{project.name}</h3>
                       <p className="text-sm text-gray-600 mb-2">{project.description || 'Sem descrição'}</p>
-                      <p className="text-xs text-gray-500 mb-4">
+                      <p className="text-xs text-gray-500 mb-3">
                         {project.subdomain}.sexyflow.onrender.com
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
                         <BarChart3 className="h-3 w-3" />
                         <span>0 visualizações</span>
                       </div>
-              </div>
-            ))}
-          </div>
-        )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
