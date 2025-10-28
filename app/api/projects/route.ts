@@ -147,17 +147,35 @@ export async function POST(request: NextRequest) {
     await project.save();
     console.log('✅ Projeto criado com sucesso:', project.name);
 
+    console.log('✅ Projeto salvo, gerando URL...');
+    
+    let projectUrl = '';
+    try {
+      projectUrl = project.getFullUrl();
+      console.log('✅ URL gerada:', projectUrl);
+    } catch (urlError) {
+      console.error('❌ Erro ao gerar URL:', urlError);
+      projectUrl = `https://${project.subdomain}.sexyflow.onrender.com`;
+    }
+
     return NextResponse.json({
       success: true,
       project,
       message: 'Projeto criado com sucesso!',
-      url: project.getFullUrl()
+      url: projectUrl
     });
 
   } catch (error: any) {
     console.error('❌ Erro ao criar projeto:', error);
+    console.error('❌ Stack trace:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
     return NextResponse.json(
-      { error: 'Erro interno do servidor', details: error.message },
+      { 
+        error: 'Erro interno do servidor', 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
