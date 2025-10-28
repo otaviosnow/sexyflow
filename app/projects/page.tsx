@@ -106,7 +106,7 @@ export default function ProjectsPage() {
     {
       label: 'Meu Plano',
       icon: Crown,
-      path: '/choose-plan',
+      path: '/my-plan',
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-50',
       hoverColor: 'hover:bg-yellow-100'
