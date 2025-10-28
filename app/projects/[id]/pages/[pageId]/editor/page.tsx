@@ -65,8 +65,8 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     value: '#ffffff', 
     opacity: 1, 
     image: '', 
-    position: 'center', 
-    size: 'cover' 
+    position: 'center' as string, 
+    size: 'cover' as string 
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -111,8 +111,8 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
           value: '#ffffff', 
           opacity: 1, 
           image: '', 
-          position: 'center', 
-          size: 'cover' 
+          position: 'center' as string, 
+          size: 'cover' as string 
         });
       }
       
