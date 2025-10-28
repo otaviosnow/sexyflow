@@ -91,23 +91,42 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o subdomínio já existe (apenas projetos ativos)
-    const existingProject = await Project.findOne({ 
+    const existingActiveProject = await Project.findOne({ 
       subdomain: subdomain.toLowerCase(),
       isActive: true 
     });
     
-    // Log para debug: verificar se existe projeto inativo com mesmo subdomínio
-    const inactiveProject = await Project.findOne({ 
+    if (existingActiveProject) {
+      console.log('❌ Subdomínio já existe (projeto ativo):', subdomain);
+      return NextResponse.json({ error: 'Este subdomínio já está em uso' }, { status: 400 });
+    }
+
+    // Verificar se existe projeto inativo com mesmo subdomínio (para reutilizar)
+    const existingInactiveProject = await Project.findOne({ 
       subdomain: subdomain.toLowerCase(),
       isActive: false 
     });
-    if (inactiveProject) {
-      console.log('ℹ️ Existe projeto INATIVO com esse subdomínio (será reutilizado)');
-    }
     
-    if (existingProject) {
-      console.log('❌ Subdomínio já existe (projeto ativo):', subdomain);
-      return NextResponse.json({ error: 'Este subdomínio já está em uso' }, { status: 400 });
+    if (existingInactiveProject) {
+      console.log('ℹ️ Existe projeto INATIVO com esse subdomínio - reutilizando...');
+      
+      // Reativar o projeto existente
+      existingInactiveProject.userId = user._id;
+      existingInactiveProject.name = name;
+      existingInactiveProject.description = description;
+      existingInactiveProject.isActive = true;
+      existingInactiveProject.pages = [];
+      existingInactiveProject.updatedAt = new Date();
+      
+      await existingInactiveProject.save();
+      console.log('✅ Projeto reutilizado com sucesso:', existingInactiveProject.name);
+
+      return NextResponse.json({
+        success: true,
+        project: existingInactiveProject,
+        message: 'Projeto criado com sucesso! (reutilizando subdomínio)',
+        url: `https://${existingInactiveProject.subdomain}.sexyflow.onrender.com`
+      });
     }
 
     // Validar subdomínio
