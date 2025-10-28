@@ -61,6 +61,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
   const [showTemplates, setShowTemplates] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -68,10 +69,11 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
       return;
     }
 
-    if (status === 'authenticated' && session) {
+    // Só carregar dados se ainda não foram carregados
+    if (status === 'authenticated' && session && !dataLoaded) {
       loadProject();
     }
-  }, [status, session, router]);
+  }, [status, session, router, dataLoaded]);
 
   const loadProject = async () => {
     try {
@@ -90,6 +92,9 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
         const pagesData = await pagesResponse.json();
         setPages(pagesData);
       }
+      
+      // Marcar dados como carregados
+      setDataLoaded(true);
     } catch (error) {
       console.error('Erro ao carregar projeto:', error);
     } finally {
@@ -110,6 +115,11 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
     } finally {
       setTemplatesLoading(false);
     }
+  };
+
+  const refreshData = async () => {
+    setDataLoaded(false);
+    await loadProject();
   };
 
   const handleCreateBlankPage = async () => {
@@ -218,7 +228,8 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
       });
 
       if (response.ok) {
-        setPages(pages.filter(p => p._id !== pageId));
+        // Recarregar dados para garantir consistência
+        await refreshData();
         alert('Página excluída com sucesso!');
       } else {
         const errorData = await response.json();
