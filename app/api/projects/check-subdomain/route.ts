@@ -32,16 +32,24 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Verificar se o subdomínio já existe
-    const existingProject = await Project.findOne({ 
-      subdomain: subdomain.toLowerCase(),
-      isActive: true 
+    // Verificar se existe QUALQUER projeto com esse subdomínio (independente do isActive)
+    const anyExistingProject = await Project.findOne({ 
+      subdomain: subdomain.toLowerCase()
     });
 
-    if (existingProject) {
+    if (anyExistingProject) {
+      // Se o projeto está ativo, retornar indisponível
+      if (anyExistingProject.isActive === true) {
+        return NextResponse.json({ 
+          available: false,
+          message: 'Este subdomínio já está em uso'
+        });
+      }
+      
+      // Se o projeto não está ativo (false, null, undefined), considerar disponível para reutilização
       return NextResponse.json({ 
-        available: false,
-        message: 'Este subdomínio já está em uso'
+        available: true,
+        message: 'Subdomínio disponível (pode reutilizar)'
       });
     }
 
