@@ -79,7 +79,16 @@ export async function PATCH(
 
     await subscription.save();
 
+    // Atualizar também o modelo User
+    const userPlanType = mappedPlan === 'monthly' ? 'MONTHLY' : 'YEARLY';
+    await User.findByIdAndUpdate(params.id, {
+      planType: userPlanType,
+      planStartDate: now,
+      planEndDate: periodEnd
+    });
+
     console.log(`✅ Plano do usuário ${user.email} alterado para: ${plan} (${mappedPlan})`);
+    console.log(`📊 Atualizado no modelo User: ${userPlanType}`);
 
     return NextResponse.json({ 
       message: `Plano alterado para ${plan} com sucesso`,

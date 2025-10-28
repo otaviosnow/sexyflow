@@ -35,33 +35,8 @@ export async function GET(request: NextRequest) {
 
     // Verificar se o usuário tem plano ativo
     if (!user.planType || !user.planEndDate) {
-      console.log('❌ Usuário sem plano ativo - atribuindo plano de teste');
-      
-      // Atribuir plano de teste (1 mês)
-      const now = new Date();
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1); // 1 mês a partir de agora
-
-      const updatedUser = await User.findByIdAndUpdate(
-        user._id,
-        {
-          planType: 'MONTHLY',
-          planStartDate: now,
-          planEndDate: endDate
-        },
-        { new: true }
-      );
-
-      console.log('✅ Plano de teste atribuído:', {
-        planType: updatedUser.planType,
-        planStartDate: updatedUser.planStartDate,
-        planEndDate: updatedUser.planEndDate
-      });
-
-      // Usar os dados atualizados
-      user.planType = updatedUser.planType;
-      user.planStartDate = updatedUser.planStartDate;
-      user.planEndDate = updatedUser.planEndDate;
+      console.log('❌ Usuário sem plano ativo');
+      return NextResponse.json({ error: 'Nenhum plano ativo' }, { status: 404 });
     }
 
     // Verificar se o plano não expirou
