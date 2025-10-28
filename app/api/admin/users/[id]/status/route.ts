@@ -50,10 +50,15 @@ export async function PATCH(
     }
 
     // Atualizar status
+    const oldStatus = user.isActive;
     user.isActive = isActive;
     await user.save();
 
-    console.log(`✅ Status do usuário ${user.email} alterado para: ${isActive ? 'ativo' : 'inativo'}`);
+    console.log(`✅ Status do usuário ${user.email} alterado de ${oldStatus} para: ${isActive ? 'ativo' : 'inativo'}`);
+
+    // Verificar se a atualização foi persistida
+    const updatedUser = await User.findById(params.id).select('isActive').lean();
+    console.log(`🔍 Verificação pós-atualização - Status no banco: ${updatedUser?.isActive}`);
 
     return NextResponse.json({ 
       message: `Usuário ${isActive ? 'ativado' : 'desativado'} com sucesso`,

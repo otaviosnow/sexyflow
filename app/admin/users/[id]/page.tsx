@@ -122,6 +122,8 @@ export default function AdminUserDetailsPage({ params }: { params: { id: string 
     if (!user) return;
 
     try {
+      console.log('🔄 Alterando status do usuário:', user.email, 'de', user.isActive, 'para', !user.isActive);
+      
       const response = await fetch(`/api/admin/users/${user._id}/status`, {
         method: 'PATCH',
         headers: {
@@ -131,13 +133,26 @@ export default function AdminUserDetailsPage({ params }: { params: { id: string 
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Resposta da API:', result);
+        
         toast.success(`Usuário ${!user.isActive ? 'ativado' : 'desativado'} com sucesso!`);
+        
+        // Atualizar estado local
         setUser({ ...user, isActive: !user.isActive });
+        
+        // Recarregar dados do servidor para garantir consistência
+        setTimeout(() => {
+          console.log('🔄 Recarregando dados do usuário...');
+          loadUserData();
+        }, 1000);
       } else {
+        const error = await response.json();
+        console.error('❌ Erro na API:', error);
         toast.error('Erro ao alterar status do usuário');
       }
     } catch (error) {
-      console.error('Erro ao alterar status:', error);
+      console.error('❌ Erro ao alterar status:', error);
       toast.error('Erro ao alterar status do usuário');
     }
   };
