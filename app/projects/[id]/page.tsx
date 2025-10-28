@@ -62,6 +62,10 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [quickEditPage, setQuickEditPage] = useState<Page | null>(null);
+  const [quickEditTitle, setQuickEditTitle] = useState('');
+  const [quickEditSlug, setQuickEditSlug] = useState('');
+  const [quickEditLoading, setQuickEditLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -74,6 +78,14 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
       loadProject();
     }
   }, [status, session, router, dataLoaded]);
+
+  // Preencher campos quando abrir edição rápida
+  useEffect(() => {
+    if (quickEditPage) {
+      setQuickEditTitle(quickEditPage.title);
+      setQuickEditSlug(quickEditPage.slug);
+    }
+  }, [quickEditPage]);
 
   const loadProject = async () => {
     try {
@@ -120,6 +132,68 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
   const refreshData = async () => {
     setDataLoaded(false);
     await loadProject();
+  };
+
+  const handleTogglePublish = async (pageId: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`/api/pages/${pageId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isPublished: !currentStatus
+        }),
+      });
+
+      if (response.ok) {
+        await refreshData();
+        alert(`Página ${!currentStatus ? 'publicada' : 'despublicada'} com sucesso!`);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao alterar status da página');
+      }
+    } catch (error) {
+      console.error('Erro ao alterar status da página:', error);
+      alert('Erro ao alterar status da página');
+    }
+  };
+
+  const handleQuickEdit = async () => {
+    if (!quickEditPage || !quickEditTitle || !quickEditSlug) {
+      alert('Título e URL são obrigatórios');
+      return;
+    }
+
+    try {
+      setQuickEditLoading(true);
+      const response = await fetch(`/api/pages/${quickEditPage._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: quickEditTitle,
+          slug: quickEditSlug
+        }),
+      });
+
+      if (response.ok) {
+        await refreshData();
+        setQuickEditPage(null);
+        setQuickEditTitle('');
+        setQuickEditSlug('');
+        alert('Página atualizada com sucesso!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao atualizar página');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar página:', error);
+      alert('Erro ao atualizar página');
+    } finally {
+      setQuickEditLoading(false);
+    }
   };
 
   const handleCreateBlankPage = async () => {
@@ -426,21 +500,19 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-3">
               {pages.map((page) => (
                 <div
                   key={page._id}
-                  className="bg-gray-800 border border-gray-700 rounded-xl p-6 hover:border-pink-500/50 transition-colors"
+                  className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-pink-500/50 transition-colors"
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-white mb-1">
-                        {page.title}
-                      </h3>
-                      <p className="text-sm text-gray-400 mb-2">
-                        /{page.slug}
-                      </p>
-                      <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between">
+                    {/* Informações da página */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-white truncate">
+                          {page.title}
+                        </h3>
                         <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
                           page.isPublished 
                             ? 'bg-green-500/10 text-green-400' 
@@ -448,54 +520,78 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
                         }`}>
                           {page.isPublished ? 'Publicada' : 'Rascunho'}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
                           {page.type}
                         </span>
                       </div>
+                      <p className="text-sm text-gray-400 truncate">
+                        /{page.slug}
+                      </p>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => router.push(`/projects/${params.id}/pages/${page._id}/editor`)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
-                    >
-                      <Edit className="h-4 w-4" />
-                      <span className="text-sm font-medium">Editar</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => window.open(`${projectUrl}/${page.slug}`, '_blank')}
-                      className="flex items-center justify-center gap-2 px-3 py-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-colors"
-                      title="Visualizar"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    
-                    <button
-                      onClick={() => handleTogglePublish(page._id, page.isPublished)}
-                      className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                        page.isPublished
-                          ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'
-                          : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
-                      }`}
-                      title={page.isPublished ? 'Despublicar' : 'Publicar'}
-                    >
-                      <Globe className="h-4 w-4" />
-                    </button>
-                    
-                    <button
-                      onClick={() => handleDeletePage(page._id)}
-                      disabled={deletingPageId === page._id}
-                      className="flex items-center justify-center gap-2 px-3 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Excluir"
-                    >
-                      {deletingPageId === page._id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </button>
+                    {/* Botões de ação */}
+                    <div className="flex items-center gap-2 ml-4">
+                      {/* Editar */}
+                      <button
+                        onClick={() => router.push(`/projects/${params.id}/pages/${page._id}/editor`)}
+                        className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors text-sm"
+                        title="Editar página no editor"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span className="hidden sm:inline">Editar</span>
+                      </button>
+                      
+                      {/* Ver */}
+                      <button
+                        onClick={() => window.open(`${projectUrl}/${page.slug}`, '_blank')}
+                        className="flex items-center gap-2 px-3 py-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-colors text-sm"
+                        title="Ver página no navegador"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="hidden sm:inline">Ver</span>
+                      </button>
+                      
+                      {/* Despublicar/Publicar */}
+                      <button
+                        onClick={() => handleTogglePublish(page._id, page.isPublished)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+                          page.isPublished
+                            ? 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20'
+                            : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                        }`}
+                        title={page.isPublished ? 'Despublicar página' : 'Publicar página'}
+                      >
+                        <Globe className="h-4 w-4" />
+                        <span className="hidden sm:inline">
+                          {page.isPublished ? 'Despublicar' : 'Publicar'}
+                        </span>
+                      </button>
+                      
+                      {/* Editar Rapidamente */}
+                      <button
+                        onClick={() => setQuickEditPage(page)}
+                        className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-400 rounded-lg hover:bg-purple-500/20 transition-colors text-sm"
+                        title="Editar título e URL rapidamente"
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span className="hidden sm:inline">Editar Rapidamente</span>
+                      </button>
+                      
+                      {/* Excluir */}
+                      <button
+                        onClick={() => handleDeletePage(page._id)}
+                        disabled={deletingPageId === page._id}
+                        className="flex items-center gap-2 px-3 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors text-sm disabled:opacity-50"
+                        title="Excluir página"
+                      >
+                        {deletingPageId === page._id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        <span className="hidden sm:inline">Excluir</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -608,6 +704,85 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição Rápida */}
+      {quickEditPage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">Editar Página</h3>
+              <button
+                onClick={() => {
+                  setQuickEditPage(null);
+                  setQuickEditTitle('');
+                  setQuickEditSlug('');
+                }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Título da Página
+                </label>
+                <input
+                  type="text"
+                  value={quickEditTitle}
+                  onChange={(e) => setQuickEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                  placeholder="Digite o título da página"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  URL da Página
+                </label>
+                <div className="flex items-center">
+                  <span className="text-gray-400 text-sm mr-2">{projectUrl}/</span>
+                  <input
+                    type="text"
+                    value={quickEditSlug}
+                    onChange={(e) => setQuickEditSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="url-da-pagina"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Apenas letras minúsculas, números e hífens
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setQuickEditPage(null);
+                    setQuickEditTitle('');
+                    setQuickEditSlug('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleQuickEdit}
+                  disabled={quickEditLoading || !quickEditTitle || !quickEditSlug}
+                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                >
+                  {quickEditLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    'Salvar'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
