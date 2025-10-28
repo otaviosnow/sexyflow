@@ -39,7 +39,12 @@ export default function AdminDashboard() {
     }
 
     console.log('🔍 Admin page - Verificando role:', session.user.role);
-    if (session.user.role !== 'ADMIN') {
+    console.log('🔍 Admin page - Tipo do role:', typeof session.user.role);
+    console.log('🔍 Admin page - Role === "ADMIN":', session.user.role === 'ADMIN');
+    console.log('🔍 Admin page - Role === "admin":', session.user.role === 'admin');
+    console.log('🔍 Admin page - Role toUpperCase():', session.user.role?.toUpperCase());
+    
+    if (session.user.role?.toUpperCase() !== 'ADMIN') {
       console.log('❌ Admin page - Role não é ADMIN, redirecionando para projects');
       router.push('/projects');
       return;
