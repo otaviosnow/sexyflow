@@ -73,6 +73,8 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activeTab, setActiveTab] = useState<'elements' | 'design' | 'settings'>('elements');
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [draggedElement, setDraggedElement] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -234,6 +236,61 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
       console.error('Erro ao processar imagem:', error);
       toast.error('Erro ao processar a imagem');
     }
+  };
+
+  // Funções de Drag & Drop
+  const handleDragStart = (e: React.DragEvent, elementType: string) => {
+    setDraggedElement(elementType);
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text/plain', elementType);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedElement(null);
+    setIsDragging(false);
+  };
+
+  const handleCanvasDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleCanvasDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const elementType = e.dataTransfer.getData('text/plain');
+    
+    if (!elementType) return;
+
+    // Calcular posição no canvas
+    const canvasRect = canvasRef.current?.getBoundingClientRect();
+    if (!canvasRect) return;
+
+    const x = e.clientX - canvasRect.left;
+    const y = e.clientY - canvasRect.top;
+
+    // Adicionar elemento na posição do drop
+    addElementAtPosition(elementType, x, y);
+    
+    setDraggedElement(null);
+    setIsDragging(false);
+  };
+
+  const addElementAtPosition = (type: string, x: number, y: number) => {
+    const newElement: Element = {
+      id: `element-${Date.now()}`,
+      type,
+      content: getDefaultContent(type),
+      position: { x: Math.max(0, x - 150), y: Math.max(0, y - 25) }, // Centralizar o elemento
+      size: getDefaultSize(type),
+      style: {},
+      spacing: { top: 0, bottom: 20 }
+    };
+
+    setElements([...elements, newElement]);
+    setSelectedElement(newElement.id);
+    setHasUnsavedChanges(true);
+    toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} adicionado!`);
   };
 
   const getDefaultContent = (type: string) => {
@@ -455,7 +512,20 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
         <div className="flex-1 overflow-y-auto p-4">
           {activeTab === 'elements' && (
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-white mb-3">Adicionar Elementos</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white">Adicionar Elementos</h3>
+                {isDragging && (
+                  <span className="text-xs text-pink-400 bg-pink-500 bg-opacity-10 px-2 py-1 rounded">
+                    Arrastando...
+                  </span>
+                )}
+              </div>
+              
+              {!isDragging && (
+                <p className="text-xs text-gray-500">
+                  💡 Clique ou arraste os elementos para o canvas
+                </p>
+              )}
               
               <div className="grid grid-cols-2 gap-2">
                 {[
@@ -467,14 +537,20 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
                   { type: 'spacer', label: 'Espaço', icon: Square },
                   { type: 'html', label: 'HTML', icon: Code }
                 ].map(({ type, label, icon: Icon }) => (
-                  <button
+                  <div
                     key={type}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, type)}
+                    onDragEnd={handleDragEnd}
                     onClick={() => addElement(type)}
-                    className="flex flex-col items-center p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                    className={`flex flex-col items-center p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors cursor-grab active:cursor-grabbing ${
+                      draggedElement === type ? 'opacity-50' : ''
+                    }`}
+                    title={`Clique para adicionar ou arraste para o canvas`}
                   >
                     <Icon className="h-5 w-5 text-gray-400 mb-1" />
                     <span className="text-xs text-gray-300">{label}</span>
-                  </button>
+                  </div>
                 ))}
               </div>
 
@@ -872,7 +948,11 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
           <div className="max-w-4xl mx-auto">
             <div 
               ref={canvasRef}
-              className="bg-white shadow-lg rounded-lg min-h-[600px] relative"
+              onDragOver={handleCanvasDragOver}
+              onDrop={handleCanvasDrop}
+              className={`bg-white shadow-lg rounded-lg min-h-[600px] relative ${
+                isDragging ? 'ring-2 ring-pink-500 ring-opacity-50' : ''
+              }`}
               style={{
                 background: background.type === 'color' 
                   ? background.value 
@@ -889,12 +969,24 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
             >
               {elements.map(renderElement)}
               
-              {elements.length === 0 && (
+              {elements.length === 0 && !isDragging && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center text-gray-400">
                     <Type className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p className="text-lg font-medium">Página vazia</p>
                     <p className="text-sm">Adicione elementos usando a barra lateral</p>
+                  </div>
+                </div>
+              )}
+
+              {isDragging && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center text-pink-500">
+                    <div className="bg-pink-500 bg-opacity-10 border-2 border-dashed border-pink-500 rounded-lg p-8">
+                      <Type className="h-12 w-12 mx-auto mb-4 text-pink-500" />
+                      <p className="text-lg font-medium">Solte aqui para adicionar</p>
+                      <p className="text-sm">Arraste o elemento para esta posição</p>
+                    </div>
                   </div>
                 </div>
               )}
