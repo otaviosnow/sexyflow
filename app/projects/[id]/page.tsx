@@ -140,7 +140,17 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
 
       if (response.ok) {
         const newPage = await response.json();
-        router.push(`/projects/${params.id}/pages/${newPage._id}/editor`);
+        console.log('📄 Página criada:', newPage);
+        console.log('📄 ID da página:', newPage.page?._id || newPage._id);
+        
+        const pageId = newPage.page?._id || newPage._id;
+        if (!pageId) {
+          console.error('❌ ID da página não encontrado na resposta:', newPage);
+          alert('Erro: ID da página não encontrado');
+          return;
+        }
+        
+        router.push(`/projects/${params.id}/pages/${pageId}/editor`);
       } else {
         const error = await response.json();
         alert(error.error || 'Erro ao criar página');
@@ -172,9 +182,19 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
 
       if (response.ok) {
         const newPage = await response.json();
+        console.log('📄 Página criada do template:', newPage);
+        console.log('📄 ID da página:', newPage.page?._id || newPage._id);
+        
+        const pageId = newPage.page?._id || newPage._id;
+        if (!pageId) {
+          console.error('❌ ID da página não encontrado na resposta:', newPage);
+          alert('Erro: ID da página não encontrado');
+          return;
+        }
+        
         setShowCreateModal(false);
         setShowTemplates(false);
-        router.push(`/projects/${params.id}/pages/${newPage._id}/editor`);
+        router.push(`/projects/${params.id}/pages/${pageId}/editor`);
       } else {
         const error = await response.json();
         alert(error.error || 'Erro ao criar página');
