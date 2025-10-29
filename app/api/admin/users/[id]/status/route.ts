@@ -49,16 +49,20 @@ export async function PATCH(
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
 
-    // Atualizar status
+    // Atualizar status usando findByIdAndUpdate para garantir persistência
     const oldStatus = user.isActive;
-    user.isActive = isActive;
-    await user.save();
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      params.id,
+      { $set: { isActive: isActive } },
+      { new: true, runValidators: true }
+    );
 
     console.log(`✅ Status do usuário ${user.email} alterado de ${oldStatus} para: ${isActive ? 'ativo' : 'inativo'}`);
 
     // Verificar se a atualização foi persistida
-    const updatedUser: any = await User.findById(params.id).select('isActive').lean();
-    console.log(`🔍 Verificação pós-atualização - Status no banco: ${updatedUser?.isActive}`);
+    const verificationUser: any = await User.findById(params.id).select('isActive').lean();
+    console.log(`🔍 Verificação pós-atualização - Status no banco: ${verificationUser?.isActive}`);
 
     return NextResponse.json({ 
       message: `Usuário ${isActive ? 'ativado' : 'desativado'} com sucesso`,
