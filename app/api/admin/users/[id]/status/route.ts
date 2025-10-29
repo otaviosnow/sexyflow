@@ -57,7 +57,7 @@ export async function PATCH(
     console.log(`✅ Status do usuário ${user.email} alterado de ${oldStatus} para: ${isActive ? 'ativo' : 'inativo'}`);
 
     // Verificar se a atualização foi persistida
-    const updatedUser = await User.findById(params.id).select('isActive').lean();
+    const updatedUser: any = await User.findById(params.id).select('isActive').lean();
     console.log(`🔍 Verificação pós-atualização - Status no banco: ${updatedUser?.isActive}`);
 
     return NextResponse.json({ 
