@@ -49,20 +49,38 @@ export async function PATCH(
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
 
-    // Atualizar status usando findByIdAndUpdate para garantir persistência
+    // Atualizar status usando múltiplas abordagens para garantir persistência
     const oldStatus = user.isActive;
     
-    const updatedUser = await User.findByIdAndUpdate(
+    console.log(`🔧 Tentativa 1: findByIdAndUpdate`);
+    const updatedUser1 = await User.findByIdAndUpdate(
       params.id,
       { $set: { isActive: isActive } },
       { new: true, runValidators: true }
     );
 
+    console.log(`🔧 Tentativa 2: updateOne na collection`);
+    const updateResult = await User.collection.updateOne(
+      { _id: user._id },
+      { $set: { isActive: isActive } }
+    );
+
+    console.log(`🔧 Tentativa 3: replaceOne na collection`);
+    const replaceResult = await User.collection.replaceOne(
+      { _id: user._id },
+      { ...user.toObject(), isActive: isActive }
+    );
+
     console.log(`✅ Status do usuário ${user.email} alterado de ${oldStatus} para: ${isActive ? 'ativo' : 'inativo'}`);
+    console.log(`📊 Resultados: updateOne=${updateResult.modifiedCount}, replaceOne=${replaceResult.modifiedCount}`);
 
     // Verificar se a atualização foi persistida
     const verificationUser: any = await User.findById(params.id).select('isActive').lean();
     console.log(`🔍 Verificação pós-atualização - Status no banco: ${verificationUser?.isActive}`);
+
+    // Verificar diretamente na collection
+    const rawUser: any = await User.collection.findOne({ _id: user._id });
+    console.log(`🔍 Verificação raw - Status na collection: ${rawUser?.isActive}`);
 
     return NextResponse.json({ 
       message: `Usuário ${isActive ? 'ativado' : 'desativado'} com sucesso`,
