@@ -19,7 +19,7 @@ export interface DropboxConfig {
 }
 
 class DropboxService {
-  private dropbox: Dropbox;
+  private dropbox?: Dropbox;
   private config: DropboxConfig;
 
   constructor() {
@@ -105,7 +105,7 @@ class DropboxService {
       }
 
       // Upload para Dropbox
-      const result = await this.dropbox.filesUpload({
+      const result = await this.dropbox!.filesUpload({
         path: dropboxPath,
         contents: fileBuffer,
         mode: 'overwrite' as any,
@@ -113,7 +113,7 @@ class DropboxService {
       });
 
       // Gerar URL pública
-      const shareResult = await this.dropbox.sharingCreateSharedLinkWithSettings({
+      const shareResult = await this.dropbox!.sharingCreateSharedLinkWithSettings({
         path: dropboxPath,
         settings: {
           requested_visibility: 'public' as any,
@@ -146,6 +146,11 @@ class DropboxService {
    * Deletar arquivo do Dropbox
    */
   async deleteFile(path: string): Promise<boolean> {
+    if (!this.dropbox) {
+      console.error('❌ Dropbox não está configurado');
+      return false;
+    }
+
     try {
       console.log('🗑️ Deletando arquivo do Dropbox:', path);
       
@@ -181,6 +186,11 @@ class DropboxService {
    * Listar arquivos por pasta
    */
   async listFiles(folder: string = 'sexyflow', maxResults: number = 100) {
+    if (!this.dropbox) {
+      console.error('❌ Dropbox não está configurado');
+      return [];
+    }
+
     try {
       const result = await this.dropbox.filesListFolder({
         path: `/${folder}`,
@@ -198,6 +208,11 @@ class DropboxService {
    * Obter informações do arquivo
    */
   async getFileInfo(path: string) {
+    if (!this.dropbox) {
+      console.error('❌ Dropbox não está configurado');
+      return null;
+    }
+
     try {
       const result = await this.dropbox.filesGetMetadata({
         path: path
@@ -246,6 +261,11 @@ class DropboxService {
    * Obter estatísticas de uso
    */
   async getUsageStats() {
+    if (!this.dropbox) {
+      console.error('❌ Dropbox não está configurado');
+      return null;
+    }
+
     try {
       const result = await this.dropbox.usersGetSpaceUsage();
       
@@ -264,6 +284,11 @@ class DropboxService {
    * Criar pasta no Dropbox
    */
   async createFolder(path: string): Promise<boolean> {
+    if (!this.dropbox) {
+      console.error('❌ Dropbox não está configurado');
+      return false;
+    }
+
     try {
       await this.dropbox.filesCreateFolderV2({
         path: path,
