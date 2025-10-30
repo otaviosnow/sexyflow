@@ -30,10 +30,10 @@ export default function ChoosePlanPage() {
       if (response.ok) {
         const data = await response.json();
         if (data.hasActiveSubscription) {
-          // Já tem plano, redirecionar para projetos
-          router.push('/projects');
-          return;
-        }
+      // Já tem plano, redirecionar para projetos
+      router.push('/projects');
+      return;
+    }
       }
     } catch (error) {
       console.error('Erro ao verificar assinatura:', error);

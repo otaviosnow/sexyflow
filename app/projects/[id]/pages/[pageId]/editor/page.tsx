@@ -20,7 +20,8 @@ import {
   Plus,
   Move,
   RotateCcw,
-  RotateCw
+  RotateCw,
+  Flame
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -296,13 +297,14 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   const getDefaultContent = (type: string) => {
     switch (type) {
       case 'title': return { text: 'Título', fontSize: 30, fontFamily: 'Arial', fontWeight: 'bold', color: '#000000', alignment: 'center' };
-      case 'text': return { text: 'Texto', fontSize: 16, fontFamily: 'Arial', fontWeight: 'normal', color: '#000000', alignment: 'left' };
+      case 'text': return { text: 'Texto', fontSize: 16, fontFamily: 'Arial', fontWeight: 'normal', color: '#000000', alignment: 'center' };
       case 'button': return { text: 'Botão', fontSize: 16, fontFamily: 'Arial', fontWeight: 'normal', color: '#ffffff', backgroundColor: '#3b82f6', alignment: 'center', paddingTop: 12, paddingBottom: 12, paddingLeft: 24, paddingRight: 24 };
       case 'image': return { src: '', alt: 'Imagem', width: 300, height: 200 };
       case 'video': return { src: '', width: 300, height: 200 };
       case 'spacer': return { height: 50, backgroundColor: '#f3f4f6', borderColor: '#d1d5db' };
       case 'container': return { backgroundColor: '#ffffff', padding: 20 };
       case 'html': return { html: '<p>HTML personalizado</p>' };
+      case 'pixelhot': return { pixelId: '', purchaseValue: 0, currency: 'BRL' };
       default: return {};
     }
   };
@@ -316,6 +318,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
       case 'video': return { width: 300, height: 200 };
       case 'spacer': return { width: 300, height: 50 };
       case 'container': return { width: 300, height: 200 };
+      case 'pixelhot': return { width: 220, height: 40 };
       default: return { width: 200, height: 100 };
     }
   };
@@ -371,7 +374,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
               fontFamily: element.content?.fontFamily || 'Arial',
               fontWeight: element.content?.fontWeight || 'normal',
               color: element.content?.color || '#000000',
-              textAlign: element.content?.alignment || 'left'
+              textAlign: element.content?.alignment || 'center'
             }}
           >
             {element.content?.text || 'Texto'}
@@ -429,6 +432,15 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
         
         {element.type === 'html' && (
           <div dangerouslySetInnerHTML={{ __html: element.content?.html || '' }} />
+        )}
+
+        {element.type === 'pixelhot' && (
+          <div
+            className="w-full h-full flex items-center justify-center rounded border border-pink-500/40 bg-pink-500/10"
+            title="Elemento oculto na página publicada"
+          >
+            <span className="text-xs text-pink-300">Pixel Hot (oculto)</span>
+          </div>
         )}
       </div>
     );
@@ -535,7 +547,8 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
                   { type: 'image', label: 'Imagem', icon: Image },
                   { type: 'video', label: 'Vídeo', icon: Video },
                   { type: 'spacer', label: 'Espaço', icon: Square },
-                  { type: 'html', label: 'HTML', icon: Code }
+                  { type: 'html', label: 'HTML', icon: Code },
+                  { type: 'pixelhot', label: 'Pixel Hot', icon: Flame }
                 ].map(({ type, label, icon: Icon }) => (
                   <div
                     key={type}
@@ -712,6 +725,46 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
                       className="w-full h-10 bg-gray-800 border border-gray-700 rounded"
                     />
                   </div>
+                </div>
+              )}
+
+              {selectedElementData.type === 'pixelhot' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Pixel ID</label>
+                    <input
+                      type="text"
+                      value={selectedElementData.content.pixelId || ''}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...selectedElementData.content, pixelId: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Valor do Purchase</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={selectedElementData.content.purchaseValue ?? 0}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...selectedElementData.content, purchaseValue: parseFloat(e.target.value) }
+                      })}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Moeda</label>
+                    <input
+                      type="text"
+                      value={selectedElementData.content.currency || 'BRL'}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...selectedElementData.content, currency: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-500">Será injetado oculto na página publicada com eventos Lead e Purchase.</p>
                 </div>
               )}
             </div>

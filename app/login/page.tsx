@@ -60,7 +60,7 @@ export default function LoginPage() {
           }
         } else {
           // Fallback para projects se não conseguir buscar dados
-          router.push('/projects');
+      router.push('/projects');
         }
       }
     } catch (error) {
