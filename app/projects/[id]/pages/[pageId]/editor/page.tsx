@@ -76,6 +76,8 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   const [dataLoaded, setDataLoaded] = useState(false);
   const [draggedElement, setDraggedElement] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -216,12 +218,16 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   };
 
   const addElement = (type: string) => {
+    const defaultSize = getDefaultSize(type);
+    // Centralizar horizontalmente: (800px canvas - width) / 2 ≈ 300px para elementos de 300px
+    const centerX = 400 - (defaultSize.width / 2);
+    
     const newElement: Element = {
       id: `element-${Date.now()}`,
       type,
       content: getDefaultContent(type),
-      position: { x: 300, y: elements.length * 100 + 50 }, // Centralizado horizontalmente
-      size: getDefaultSize(type),
+      position: { x: centerX, y: elements.length * 100 + 50 }, // Centralizado horizontalmente
+      size: defaultSize,
       style: {},
       spacing: { top: 0, bottom: 20 }
     };
@@ -338,12 +344,16 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   };
 
   const addElementAtPosition = (type: string, x: number, y: number) => {
+    const defaultSize = getDefaultSize(type);
+    // Centralizar o elemento na posição do drop
+    const centerX = Math.max(0, x - (defaultSize.width / 2));
+    
     const newElement: Element = {
       id: `element-${Date.now()}`,
       type,
       content: getDefaultContent(type),
-      position: { x: Math.max(0, x - 150), y: Math.max(0, y - 25) }, // Centralizar o elemento
-      size: getDefaultSize(type),
+      position: { x: centerX, y: Math.max(0, y - 25) },
+      size: defaultSize,
       style: {},
       spacing: { top: 0, bottom: 20 }
     };
@@ -398,20 +408,110 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     setHasUnsavedChanges(true);
   };
 
+  const handleElementMouseDown = (e: React.MouseEvent, elementId: string) => {
+    e.stopPropagation();
+    const element = elements.find(el => el.id === elementId);
+    if (!element) return;
+    
+    const canvasRect = canvasRef.current?.getBoundingClientRect();
+    if (!canvasRect) return;
+    
+    setDraggedElementId(elementId);
+    setDragOffset({
+      x: e.clientX - canvasRect.left - element.position.x,
+      y: e.clientY - canvasRect.top - element.position.y
+    });
+    setSelectedElement(elementId);
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    if (!draggedElementId || !dragOffset || !canvasRef.current) return;
+    
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const newX = e.clientX - canvasRect.left - dragOffset.x;
+    const newY = e.clientY - canvasRect.top - dragOffset.y;
+    
+    // Atualizar posição do elemento arrastado
+    const updatedElements = elements.map(el => {
+      if (el.id === draggedElementId) {
+        return {
+          ...el,
+          position: {
+            x: Math.max(0, Math.min(newX, 800 - el.size.width)),
+            y: Math.max(0, newY)
+          }
+        };
+      }
+      return el;
+    });
+    
+    // Reorganizar elementos abaixo do elemento arrastado
+    const draggedEl = updatedElements.find(el => el.id === draggedElementId);
+    if (!draggedEl) return;
+    
+    const finalElements = updatedElements.map(el => {
+      if (el.id === draggedElementId) return el;
+      
+      // Se o elemento está na mesma linha (y próximo) e à esquerda, não mexe
+      const sameRow = Math.abs(el.position.y - draggedEl.position.y) < 50;
+      if (sameRow && el.position.x < draggedEl.position.x) return el;
+      
+      // Se o elemento está abaixo da nova posição, mover para cima respeitando espaços
+      if (el.position.y > draggedEl.position.y) {
+        const spacing = draggedEl.spacing?.bottom || 20;
+        const newY = draggedEl.position.y + draggedEl.size.height + spacing;
+        
+        // Verificar se há colisão com outros elementos
+        const hasCollision = updatedElements.some(otherEl => {
+          if (otherEl.id === el.id || otherEl.id === draggedElementId) return false;
+          return (
+            otherEl.position.y < newY + el.size.height &&
+            otherEl.position.y + otherEl.size.height > newY &&
+            Math.abs(otherEl.position.x - el.position.x) < Math.max(el.size.width, otherEl.size.width)
+          );
+        });
+        
+        if (!hasCollision) {
+          return {
+            ...el,
+            position: { ...el.position, y: newY }
+          };
+        }
+      }
+      
+      return el;
+    });
+    
+    setElements(finalElements);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleCanvasMouseUp = () => {
+    setDraggedElementId(null);
+    setDragOffset(null);
+  };
+
   const renderElement = (element: Element) => {
     const isSelected = selectedElement === element.id;
+    const isBeingDragged = draggedElementId === element.id;
     
     return (
       <div
         key={element.id}
-        className={`absolute cursor-pointer ${isSelected ? 'ring-2 ring-pink-500' : ''}`}
+        className={`absolute ${isSelected ? 'ring-2 ring-pink-500' : ''} ${isBeingDragged ? 'cursor-grabbing opacity-75' : 'cursor-move'}`}
         style={{
           left: element.position.x,
           top: element.position.y,
           width: element.size.width,
           height: element.size.height,
+          zIndex: isBeingDragged ? 1000 : isSelected ? 100 : 1,
         }}
-        onClick={() => setSelectedElement(element.id)}
+        onClick={(e) => {
+          if (!isBeingDragged) {
+            setSelectedElement(element.id);
+          }
+        }}
+        onMouseDown={(e) => handleElementMouseDown(e, element.id)}
       >
         {element.type === 'title' && (
           <h1 
@@ -662,11 +762,13 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
             </div>
           )}
 
-          {activeTab === 'design' && selectedElementData && (
+          {activeTab === 'design' && (
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-white mb-3">
-                Editar {selectedElementData.type}
-              </h3>
+              {selectedElementData ? (
+                <>
+                  <h3 className="text-sm font-semibold text-white mb-3">
+                    Editar {selectedElementData.type}
+                  </h3>
               
               {selectedElementData.type === 'title' && (
                 <div className="space-y-3">
@@ -825,6 +927,146 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
                     />
                   </div>
                   <p className="text-[11px] text-gray-500">Será injetado oculto na página publicada com eventos Lead e Purchase.</p>
+                </div>
+              )}
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-white mb-3">
+                    Fundo da Página
+                  </h3>
+                  
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Tipo de Fundo</label>
+                    <div className="flex space-x-2 mb-3">
+                      <button
+                        onClick={() => setBackground({ ...background, type: 'color' })}
+                        className={`px-3 py-1 text-xs rounded ${
+                          background.type === 'color' 
+                            ? 'bg-pink-500 text-white' 
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        Cor
+                      </button>
+                      <button
+                        onClick={() => setBackground({ ...background, type: 'gradient' })}
+                        className={`px-3 py-1 text-xs rounded ${
+                          background.type === 'gradient' 
+                            ? 'bg-pink-500 text-white' 
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        Gradiente
+                      </button>
+                      <button
+                        onClick={() => setBackground({ ...background, type: 'image' })}
+                        className={`px-3 py-1 text-xs rounded ${
+                          background.type === 'image' 
+                            ? 'bg-pink-500 text-white' 
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        Imagem
+                      </button>
+                    </div>
+
+                    {background.type === 'color' && (
+                      <input
+                        type="color"
+                        value={background.value}
+                        onChange={(e) => setBackground({ ...background, value: e.target.value })}
+                        className="w-full h-10 bg-gray-800 border border-gray-700 rounded"
+                      />
+                    )}
+
+                    {background.type === 'gradient' && (
+                      <input
+                        type="text"
+                        placeholder="ex: to right, #ff0000, #0000ff"
+                        value={background.value}
+                        onChange={(e) => setBackground({ ...background, value: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                      />
+                    )}
+
+                    {background.type === 'image' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">URL da Imagem</label>
+                          <input
+                            type="text"
+                            placeholder="https://exemplo.com/imagem.jpg"
+                            value={background.image}
+                            onChange={(e) => setBackground({ ...background, image: e.target.value })}
+                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Ou faça upload</label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                          />
+                        </div>
+                        {background.image && (
+                          <div className="relative">
+                            <img
+                              src={background.image}
+                              alt="Preview"
+                              className="w-full h-32 object-cover rounded border border-gray-700"
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Opacidade</label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={background.opacity || 1}
+                            onChange={(e) => setBackground({ ...background, opacity: parseFloat(e.target.value) })}
+                            className="w-full"
+                          />
+                          <span className="text-xs text-gray-500">{(background.opacity || 1) * 100}%</span>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Posição</label>
+                          <select
+                            value={background.position || 'center'}
+                            onChange={(e) => setBackground({ ...background, position: e.target.value })}
+                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                          >
+                            <option value="center">Centro</option>
+                            <option value="top">Topo</option>
+                            <option value="bottom">Inferior</option>
+                            <option value="left">Esquerda</option>
+                            <option value="right">Direita</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Tamanho</label>
+                          <select
+                            value={background.size || 'cover'}
+                            onChange={(e) => setBackground({ ...background, size: e.target.value })}
+                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                          >
+                            <option value="cover">Cobrir (Cover)</option>
+                            <option value="contain">Conter (Contain)</option>
+                            <option value="100% 100%">Esticar</option>
+                            <option value="auto">Automático</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 mt-4">
+                    💡 Selecione um elemento na página para editá-lo, ou configure o fundo da página aqui.
+                  </p>
                 </div>
               )}
             </div>
@@ -1074,6 +1316,9 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
               ref={canvasRef}
               onDragOver={handleCanvasDragOver}
               onDrop={handleCanvasDrop}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseUp}
               className={`bg-white shadow-lg rounded-lg min-h-[600px] relative ${
                 isDragging ? 'ring-2 ring-pink-500 ring-opacity-50' : ''
               }`}
