@@ -10,6 +10,7 @@ export interface IUser extends Document {
   planEndDate?: Date;
   customDomain?: string;
   subdomain?: string;
+  avatarUrl?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -55,6 +56,9 @@ const UserSchema = new Schema<IUser>({
     type: String,
     sparse: true,
     trim: true,
+  },
+  avatarUrl: {
+    type: String,
   },
   isActive: {
     type: Boolean,
