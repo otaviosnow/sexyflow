@@ -33,31 +33,43 @@ export async function GET(request: NextRequest) {
       planEndDate: user.planEndDate
     });
 
-    // Verificar se o usuário tem plano ativo
-    if (!user.planType || !user.planEndDate) {
-      console.log('❌ Usuário sem plano ativo');
+    // Normalizar tipos de plano e validar datas (aceitar planos sem datas explícitas)
+    const rawPlanType = (user.planType || '').toString().trim().toUpperCase();
+    const planMap: Record<string, string> = {
+      STARTER: 'starter',
+      PRO: 'pro',
+      ENTERPRISE: 'enterprise',
+      MONTHLY: 'pro',
+      YEARLY: 'pro'
+    };
+
+    const planId = planMap[rawPlanType];
+
+    if (!planId) {
+      console.log('❌ Usuário sem plano mapeável:', rawPlanType);
       return NextResponse.json({ error: 'Nenhum plano ativo' }, { status: 404 });
     }
 
-    // Verificar se o plano não expirou
+    // Datas: se não houver datas salvas, criar uma janela padrão de 30 dias para exibição
     const now = new Date();
-    const endDate = new Date(user.planEndDate);
-    
+    const startDate = user.planStartDate ? new Date(user.planStartDate) : now;
+    const endDate = user.planEndDate ? new Date(user.planEndDate) : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
     if (endDate < now) {
-      console.log('❌ Plano expirado');
+      console.log('❌ Plano expirado (endDate < now)');
       return NextResponse.json({ error: 'Plano expirado' }, { status: 404 });
     }
 
-    console.log('✅ Plano ativo encontrado:', user.planType);
+    console.log('✅ Plano ativo encontrado:', rawPlanType, '→', planId);
 
-    // Retornar dados do plano no formato esperado
+    // Retornar dados do plano no formato esperado pela UI
     const subscriptionData = {
       _id: user._id,
-      planId: user.planType.toLowerCase(),
-      planName: user.planType,
+      planId,
+      planName: rawPlanType,
       status: 'active',
-      currentPeriodStart: user.planStartDate,
-      currentPeriodEnd: user.planEndDate,
+      currentPeriodStart: startDate,
+      currentPeriodEnd: endDate,
       cancelAtPeriodEnd: false,
       createdAt: user.createdAt
     };

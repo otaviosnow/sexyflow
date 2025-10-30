@@ -91,11 +91,6 @@ export default function ProjectsPage() {
       path: projects.length > 0 ? `/projects/${projects[0]._id}` : '/projects/create'
     },
     {
-      label: 'Templates',
-      icon: Palette,
-      path: '/templates'
-    },
-    {
       label: 'Meu Plano',
       icon: Crown,
       path: '/my-plan'
@@ -118,7 +113,7 @@ export default function ProjectsPage() {
     }
   ];
 
-      return (
+  return (
         <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white border-r border-gray-200">
@@ -324,7 +319,7 @@ export default function ProjectsPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {projects.map((project) => (
+            {projects.map((project) => (
                     <div
                       key={project._id}
                       className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:bg-gray-100 transition-colors cursor-pointer"
@@ -353,10 +348,10 @@ export default function ProjectsPage() {
                         <BarChart3 className="h-3 w-3" />
                         <span>0 visualizações</span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              </div>
+            ))}
+          </div>
+        )}
             </div>
           )}
         </div>
