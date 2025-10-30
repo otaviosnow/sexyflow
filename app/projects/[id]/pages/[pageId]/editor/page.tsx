@@ -559,21 +559,23 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     if (draggedElementId) {
       // Ao soltar, reorganizar todos os elementos finalizando posições
       const sortedElements = [...elements].sort((a, b) => a.position.y - b.position.y);
-      const finalElements = sortedElements.map((el, index) => {
+      const finalElements: Element[] = [];
+      
+      sortedElements.forEach((el, index) => {
         const centerX = 400 - (el.size.width / 2);
         
         if (index === 0) {
-          return { ...el, position: { x: centerX, y: Math.max(0, el.position.y) } };
+          finalElements.push({ ...el, position: { x: centerX, y: Math.max(0, el.position.y) } });
+        } else {
+          const prevEl = finalElements[index - 1];
+          const spacing = prevEl.spacing?.bottom || 20;
+          const newY = prevEl.position.y + prevEl.size.height + spacing;
+          
+          finalElements.push({
+            ...el,
+            position: { x: centerX, y: Math.max(0, newY) }
+          });
         }
-        
-        const prevEl = finalElements[index - 1] || sortedElements[index - 1];
-        const spacing = prevEl.spacing?.bottom || 20;
-        const newY = prevEl.position.y + prevEl.size.height + spacing;
-        
-        return {
-          ...el,
-          position: { x: centerX, y: Math.max(0, newY) }
-        };
       });
       
       setElements(finalElements);
