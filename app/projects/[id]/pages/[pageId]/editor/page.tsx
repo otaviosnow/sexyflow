@@ -92,6 +92,24 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     }
   }, [status, session, router, dataLoaded]);
 
+  // Proteção contra saída sem salvar
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Você tem alterações não salvas. Tem certeza que deseja sair?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -737,7 +755,13 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
         <div className="p-4 border-b border-gray-800">
           <div className="flex items-center space-x-2 mb-4">
             <button
-              onClick={() => router.push(`/projects/${params.id}`)}
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  const confirmed = window.confirm('Você tem alterações não salvas. Deseja realmente sair sem salvar?');
+                  if (!confirmed) return;
+                }
+                router.push(`/projects/${params.id}`);
+              }}
               className="flex items-center text-gray-400 hover:text-white transition-colors"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
