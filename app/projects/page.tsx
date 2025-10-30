@@ -96,6 +96,11 @@ export default function ProjectsPage() {
       path: '/my-plan'
     },
     {
+      label: 'Analytics',
+      icon: BarChart3,
+      path: '/analytics'
+    },
+    {
       label: 'Domínio Próprio',
       icon: Globe,
       path: '/custom-domain'

@@ -191,6 +191,30 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     }
   };
 
+  const unpublishPage = async () => {
+    if (!page) return;
+    try {
+      setSaving(true);
+      const response = await fetch(`/api/pages/${params.pageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: false })
+      });
+      if (response.ok) {
+        toast.success('Página despublicada com sucesso!');
+        setPage({ ...page, isPublished: false });
+        setHasUnsavedChanges(false);
+      } else {
+        toast.error('Erro ao despublicar página');
+      }
+    } catch (error) {
+      console.error('Erro ao despublicar:', error);
+      toast.error('Erro ao despublicar página');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const addElement = (type: string) => {
     const newElement: Element = {
       id: `element-${Date.now()}`,
@@ -977,14 +1001,25 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
               <span>{saving ? 'Salvando...' : 'Salvar'}</span>
             </button>
             
-            <button
-              onClick={publishPage}
-              disabled={saving || page.isPublished}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50"
-            >
-              <Globe className="w-4 h-4" />
-              <span>{page.isPublished ? 'Publicada' : 'Publicar'}</span>
-            </button>
+            {page.isPublished ? (
+              <button
+                onClick={unpublishPage}
+                disabled={saving}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50"
+              >
+                <Globe className="w-4 h-4" />
+                <span>Despublicar</span>
+              </button>
+            ) : (
+              <button
+                onClick={publishPage}
+                disabled={saving}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50"
+              >
+                <Globe className="w-4 h-4" />
+                <span>Publicar</span>
+              </button>
+            )}
             
             <button
               onClick={() => window.open(`https://${project.subdomain}.sexyflow.onrender.com/${page.slug}`, '_blank')}

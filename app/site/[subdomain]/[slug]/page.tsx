@@ -61,6 +61,21 @@ export default async function SubdomainSlugPage({ params }: SubdomainSlugPagePro
   }
   
   console.log('✅ Página encontrada:', page.title);
+  // Registrar pageview (básico)
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/analytics/pageview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pageId: page._id,
+        projectId: project._id,
+        subdomain: params.subdomain,
+        slug: params.slug,
+      })
+    });
+  } catch (e) {
+    console.warn('Falha ao registrar pageview');
+  }
   
   // Renderizar página usando template
   const { content } = page;
