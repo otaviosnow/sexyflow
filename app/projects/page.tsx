@@ -108,7 +108,7 @@ export default function ProjectsPage() {
     {
       label: 'Perfil',
       icon: User,
-      path: '/projects'
+      path: '/profile'
     },
     {
       label: 'Ajuda',
