@@ -29,12 +29,47 @@ class DropboxService {
       appSecret: process.env.DROPBOX_APP_SECRET || ''
     };
 
-    // Inicializar Dropbox
-    this.dropbox = new Dropbox({
-      accessToken: this.config.accessToken,
-      clientId: this.config.appKey,
-      clientSecret: this.config.appSecret
-    });
+    // Inicializar Dropbox apenas se estiver configurado
+    const useDropbox = process.env.USE_DROPBOX === 'true';
+    const hasCredentials = !!(
+      this.config.accessToken && 
+      this.config.appKey && 
+      this.config.appSecret
+    );
+    
+    if (useDropbox && hasCredentials) {
+      this.dropbox = new Dropbox({
+        accessToken: this.config.accessToken,
+        clientId: this.config.appKey,
+        clientSecret: this.config.appSecret
+      });
+    }
+  }
+
+  /**
+   * Verificar se Dropbox está configurado e ativo
+   */
+  isConfigured(): boolean {
+    const useDropbox = process.env.USE_DROPBOX === 'true';
+    const hasCredentials = !!(
+      this.config.accessToken && 
+      this.config.appKey && 
+      this.config.appSecret
+    );
+    return useDropbox && hasCredentials;
+  }
+
+  /**
+   * Método estático para verificar se Dropbox está disponível (sem instanciar)
+   */
+  static isAvailable(): boolean {
+    const useDropbox = process.env.USE_DROPBOX === 'true';
+    const hasCredentials = !!(
+      process.env.DROPBOX_ACCESS_TOKEN && 
+      process.env.DROPBOX_APP_KEY && 
+      process.env.DROPBOX_APP_SECRET
+    );
+    return useDropbox && hasCredentials;
   }
 
   /**
@@ -46,6 +81,13 @@ class DropboxService {
     folder: string = 'sexyflow',
     userId?: string
   ): Promise<DropboxUploadResponse> {
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: 'Dropbox não está configurado. Configure as variáveis de ambiente DROPBOX_ACCESS_TOKEN, DROPBOX_APP_KEY, DROPBOX_APP_SECRET e USE_DROPBOX=true'
+      };
+    }
+
     try {
       console.log('📤 Iniciando upload para Dropbox:', fileName);
 

@@ -241,25 +241,61 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
       return;
     }
 
-    // Validar tamanho (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('A imagem deve ter no máximo 5MB');
+    // Validar tamanho (máximo 150MB para Dropbox ou 5MB para local)
+    const maxSize = 150 * 1024 * 1024; // 150MB
+    if (file.size > maxSize) {
+      toast.error('A imagem deve ter no máximo 150MB');
       return;
     }
 
     try {
-      // Converter para base64 para preview imediato
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setBackground({ ...background, image: result });
+      // Tentar upload para Dropbox primeiro, fallback para base64
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'sexyflow-backgrounds');
+      if (session?.user?.id) {
+        formData.append('userId', session.user.id);
+      }
+
+      const uploadResponse = await fetch('/api/upload/dropbox', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const uploadResult = await uploadResponse.json();
+
+      if (uploadResult.success && uploadResult.url) {
+        // Usar URL do Dropbox
+        setBackground({ ...background, image: uploadResult.url });
         setHasUnsavedChanges(true);
-        toast.success('Imagem carregada com sucesso!');
-      };
-      reader.readAsDataURL(file);
+        toast.success('Imagem enviada para Dropbox com sucesso!');
+      } else {
+        // Fallback: converter para base64 se Dropbox não estiver disponível
+        console.log('Dropbox não disponível, usando base64:', uploadResult.error);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          setBackground({ ...background, image: result });
+          setHasUnsavedChanges(true);
+          toast.success('Imagem carregada localmente!');
+        };
+        reader.readAsDataURL(file);
+      }
     } catch (error) {
       console.error('Erro ao processar imagem:', error);
-      toast.error('Erro ao processar a imagem');
+      // Fallback para base64 em caso de erro
+      try {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          setBackground({ ...background, image: result });
+          setHasUnsavedChanges(true);
+          toast.success('Imagem carregada localmente!');
+        };
+        reader.readAsDataURL(file);
+      } catch (fallbackError) {
+        toast.error('Erro ao processar a imagem');
+      }
     }
   };
 
