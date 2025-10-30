@@ -394,9 +394,40 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   };
 
   const updateElement = (elementId: string, updates: Partial<Element>) => {
-    setElements(elements.map(el => 
-      el.id === elementId ? { ...el, ...updates } : el
-    ));
+    const updatedElements = elements.map(el => {
+      if (el.id === elementId) {
+        const updated = { ...el, ...updates };
+        // Garantir que X sempre fica centralizado após atualização
+        const centerX = 400 - (updated.size.width / 2);
+        return {
+          ...updated,
+          position: { ...updated.position, x: centerX }
+        };
+      }
+      return el;
+    });
+    
+    // Reorganizar elementos respeitando espaços após atualização
+    const sortedElements = [...updatedElements].sort((a, b) => a.position.y - b.position.y);
+    const finalElements = sortedElements.map((el, index) => {
+      if (index === 0) {
+        // Primeiro elemento: manter Y, centralizar X
+        const centerX = 400 - (el.size.width / 2);
+        return { ...el, position: { ...el.position, x: centerX } };
+      }
+      
+      const prevEl = sortedElements[index - 1];
+      const spacing = prevEl.spacing?.bottom || 20;
+      const newY = prevEl.position.y + prevEl.size.height + spacing;
+      const centerX = 400 - (el.size.width / 2);
+      
+      return {
+        ...el,
+        position: { x: centerX, y: newY }
+      };
+    });
+    
+    setElements(finalElements);
     setHasUnsavedChanges(true);
   };
 
@@ -416,70 +447,90 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     const canvasRect = canvasRef.current?.getBoundingClientRect();
     if (!canvasRect) return;
     
+    // Mudar para aba Design quando clicar em um elemento
+    setActiveTab('design');
+    setSelectedElement(elementId);
+    
     setDraggedElementId(elementId);
     setDragOffset({
       x: e.clientX - canvasRect.left - element.position.x,
       y: e.clientY - canvasRect.top - element.position.y
     });
-    setSelectedElement(elementId);
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent) => {
     if (!draggedElementId || !dragOffset || !canvasRef.current) return;
     
     const canvasRect = canvasRef.current.getBoundingClientRect();
-    const newX = e.clientX - canvasRect.left - dragOffset.x;
-    const newY = e.clientY - canvasRect.top - dragOffset.y;
+    // Apenas mover no eixo Y (vertical), X sempre centralizado
+    const newY = Math.max(0, e.clientY - canvasRect.top - dragOffset.y);
     
-    // Atualizar posição do elemento arrastado
-    const updatedElements = elements.map(el => {
-      if (el.id === draggedElementId) {
-        return {
-          ...el,
-          position: {
-            x: Math.max(0, Math.min(newX, 800 - el.size.width)),
-            y: Math.max(0, newY)
-          }
-        };
-      }
-      return el;
-    });
-    
-    // Reorganizar elementos abaixo do elemento arrastado
-    const draggedEl = updatedElements.find(el => el.id === draggedElementId);
+    const draggedEl = elements.find(el => el.id === draggedElementId);
     if (!draggedEl) return;
     
-    const finalElements = updatedElements.map(el => {
-      if (el.id === draggedElementId) return el;
+    // X sempre centralizado: (800px canvas - width) / 2
+    const centerX = 400 - (draggedEl.size.width / 2);
+    
+    // Ordenar elementos por Y para reorganização correta
+    const sortedElements = [...elements].sort((a, b) => a.position.y - b.position.y);
+    const draggedIndex = sortedElements.findIndex(el => el.id === draggedElementId);
+    
+    // Reorganizar todos os elementos respeitando espaços
+    const finalElements = sortedElements.map((el, index) => {
+      if (el.id === draggedElementId) {
+        // Elemento sendo arrastado: manter X centralizado, atualizar Y
+        return {
+          ...el,
+          position: { x: centerX, y: newY }
+        };
+      }
       
-      // Se o elemento está na mesma linha (y próximo) e à esquerda, não mexe
-      const sameRow = Math.abs(el.position.y - draggedEl.position.y) < 50;
-      if (sameRow && el.position.x < draggedEl.position.x) return el;
+      // Reorganizar outros elementos
+      let newYPos = el.position.y;
       
-      // Se o elemento está abaixo da nova posição, mover para cima respeitando espaços
-      if (el.position.y > draggedEl.position.y) {
-        const spacing = draggedEl.spacing?.bottom || 20;
-        const newY = draggedEl.position.y + draggedEl.size.height + spacing;
+      if (index < draggedIndex) {
+        // Elementos acima do arrastado
+        if (newY < el.position.y + el.size.height + (el.spacing?.bottom || 20)) {
+          // Elemento arrastado está entrando no espaço deste elemento
+          const spacing = el.spacing?.bottom || 20;
+          newYPos = newY - el.size.height - spacing;
+          newYPos = Math.max(0, newYPos);
+        }
+      } else {
+        // Elementos abaixo do arrastado
+        const draggedY = newY;
+        const draggedHeight = draggedEl.size.height;
+        const draggedSpacing = draggedEl.spacing?.bottom || 20;
+        const requiredY = draggedY + draggedHeight + draggedSpacing;
         
-        // Verificar se há colisão com outros elementos
-        const hasCollision = updatedElements.some(otherEl => {
-          if (otherEl.id === el.id || otherEl.id === draggedElementId) return false;
-          return (
-            otherEl.position.y < newY + el.size.height &&
-            otherEl.position.y + otherEl.size.height > newY &&
-            Math.abs(otherEl.position.x - el.position.x) < Math.max(el.size.width, otherEl.size.width)
-          );
-        });
-        
-        if (!hasCollision) {
-          return {
-            ...el,
-            position: { ...el.position, y: newY }
-          };
+        if (el.position.y < requiredY) {
+          newYPos = requiredY;
         }
       }
       
-      return el;
+      // Verificar colisão com outros elementos (exceto o arrastado)
+      const hasCollision = sortedElements.some(otherEl => {
+        if (otherEl.id === el.id || otherEl.id === draggedElementId) return false;
+        const otherY = otherEl.id === draggedElementId ? newY : otherEl.position.y;
+        const otherSpacing = otherEl.spacing?.bottom || 20;
+        
+        // Verificar se há sobreposição vertical
+        return (
+          (newYPos < otherY + otherEl.size.height + otherSpacing &&
+           newYPos + el.size.height + (el.spacing?.bottom || 20) > otherY) ||
+          (otherY < newYPos + el.size.height + (el.spacing?.bottom || 20) &&
+           otherY + otherEl.size.height + otherSpacing > newYPos)
+        );
+      });
+      
+      if (hasCollision && el.id !== draggedElementId) {
+        return el; // Manter posição original se houver colisão
+      }
+      
+      return {
+        ...el,
+        position: { x: centerX, y: newYPos } // X sempre centralizado para todos
+      };
     });
     
     setElements(finalElements);
@@ -487,28 +538,71 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   };
 
   const handleCanvasMouseUp = () => {
+    if (draggedElementId) {
+      // Ao soltar, reorganizar todos os elementos finalizando posições
+      const sortedElements = [...elements].sort((a, b) => a.position.y - b.position.y);
+      const finalElements = sortedElements.map((el, index) => {
+        const centerX = 400 - (el.size.width / 2);
+        
+        if (index === 0) {
+          return { ...el, position: { x: centerX, y: Math.max(0, el.position.y) } };
+        }
+        
+        const prevEl = finalElements[index - 1] || sortedElements[index - 1];
+        const spacing = prevEl.spacing?.bottom || 20;
+        const newY = prevEl.position.y + prevEl.size.height + spacing;
+        
+        return {
+          ...el,
+          position: { x: centerX, y: Math.max(0, newY) }
+        };
+      });
+      
+      setElements(finalElements);
+    }
+    
     setDraggedElementId(null);
     setDragOffset(null);
+  };
+
+  // Calcular altura mínima do canvas baseada nos elementos
+  const calculateCanvasHeight = () => {
+    if (elements.length === 0) return 600; // Altura mínima padrão
+    
+    const bottomElement = elements.reduce((prev, current) => {
+      const prevBottom = prev.position.y + prev.size.height + (prev.spacing?.bottom || 20);
+      const currentBottom = current.position.y + current.size.height + (current.spacing?.bottom || 20);
+      return currentBottom > prevBottom ? current : prev;
+    });
+    
+    const bottomPosition = bottomElement.position.y + bottomElement.size.height + (bottomElement.spacing?.bottom || 20);
+    // Adicionar padding de 100px no final
+    return Math.max(600, bottomPosition + 100);
   };
 
   const renderElement = (element: Element) => {
     const isSelected = selectedElement === element.id;
     const isBeingDragged = draggedElementId === element.id;
     
+    // X sempre centralizado: (800px canvas - width) / 2
+    const centerX = 400 - (element.size.width / 2);
+    const actualX = isBeingDragged ? centerX : element.position.x;
+    
     return (
       <div
         key={element.id}
-        className={`absolute ${isSelected ? 'ring-2 ring-pink-500' : ''} ${isBeingDragged ? 'cursor-grabbing opacity-75' : 'cursor-move'}`}
+        className={`absolute ${isSelected ? 'ring-2 ring-pink-500' : ''} ${isBeingDragged ? 'cursor-grabbing opacity-75' : 'cursor-ns-resize'}`}
         style={{
-          left: element.position.x,
+          left: actualX,
           top: element.position.y,
           width: element.size.width,
           height: element.size.height,
           zIndex: isBeingDragged ? 1000 : isSelected ? 100 : 1,
         }}
         onClick={(e) => {
-          if (!isBeingDragged) {
+          if (!isBeingDragged && !draggedElementId) {
             setSelectedElement(element.id);
+            setActiveTab('design'); // Mudar para aba Design ao clicar
           }
         }}
         onMouseDown={(e) => handleElementMouseDown(e, element.id)}
@@ -1319,10 +1413,11 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseUp}
-              className={`bg-white shadow-lg rounded-lg min-h-[600px] relative ${
+              className={`bg-white shadow-lg rounded-lg relative ${
                 isDragging ? 'ring-2 ring-pink-500 ring-opacity-50' : ''
               }`}
               style={{
+                minHeight: `${calculateCanvasHeight()}px`,
                 background: background.type === 'color' 
                   ? background.value 
                   : background.type === 'gradient'
