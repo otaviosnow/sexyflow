@@ -345,7 +345,8 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
     );
   }
 
-  const projectUrl = `https://${project.subdomain}.sexyflow.onrender.com`;
+  // Usar rota path-based em vez de subdomínio dinâmico no Render
+  const projectUrl = `/site/${project.subdomain}`;
 
   return (
     <div className="min-h-screen bg-gray-50">

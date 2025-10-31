@@ -21,7 +21,9 @@ import {
   Move,
   RotateCcw,
   RotateCw,
-  Flame
+  Flame,
+  Layout,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -79,6 +81,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const [showStructure, setShowStructure] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -847,38 +850,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
                 ))}
               </div>
 
-              {elements.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-semibold text-white mb-3">Elementos na Página</h3>
-                  <div className="space-y-2">
-                    {elements.map((element) => (
-                      <div
-                        key={element.id}
-                        className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
-                          selectedElement === element.id 
-                            ? 'bg-pink-500/10 border border-pink-500/20' 
-                            : 'bg-gray-800 hover:bg-gray-700'
-                        }`}
-                        onClick={() => setSelectedElement(element.id)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
-                          <span className="text-sm text-gray-300 capitalize">{element.type}</span>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteElement(element.id);
-                          }}
-                          className="text-gray-400 hover:text-red-400 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Estrutura movida para painel lateral à direita */}
             </div>
           )}
 
@@ -1382,8 +1354,15 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
       <div className="flex-1 flex flex-col">
         {/* Toolbar */}
         <div className="bg-gray-900 border-b border-gray-800 p-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             <h2 className="text-lg font-semibold text-white">Editor de Página</h2>
+            <button
+              onClick={() => setShowStructure((v) => !v)}
+              className={`p-2 rounded-md border transition-colors ${showStructure ? 'bg-pink-600 border-pink-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'}`}
+              title="Estrutura (lista de elementos)"
+            >
+              <Layout className="w-4 h-4" />
+            </button>
             {hasUnsavedChanges && (
               <span className="text-xs text-yellow-400">• Não salvo</span>
             )}
@@ -1420,7 +1399,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
             )}
             
             <button
-              onClick={() => window.open(`https://${project.subdomain}.sexyflow.onrender.com/${page.slug}`, '_blank')}
+              onClick={() => window.open(`/site/${project.subdomain}/${page.slug}`, '_blank')}
               className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
             >
               <Eye className="w-4 h-4" />
@@ -1483,6 +1462,63 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
             </div>
           </div>
         </div>
+        {/* Painel de Estrutura (direita) */}
+        {showStructure && (
+          <div className="fixed inset-0 z-40" onClick={() => setShowStructure(false)}>
+            <div className="absolute inset-0 bg-black/30"></div>
+            <aside
+              className="absolute right-0 top-0 h-full w-80 bg-gray-900 border-l border-gray-800 p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-white">Estrutura</h3>
+                <button
+                  onClick={() => setShowStructure(false)}
+                  className="p-2 rounded-md bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700"
+                  title="Fechar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {elements.length === 0 ? (
+                <p className="text-xs text-gray-400">Nenhum elemento adicionado.</p>
+              ) : (
+                <div className="space-y-2">
+                  {elements.map((element) => (
+                    <div
+                      key={element.id}
+                      className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                        selectedElement === element.id 
+                          ? 'bg-pink-500/10 border border-pink-500/20' 
+                          : 'bg-gray-800 hover:bg-gray-700'
+                      }`}
+                      onClick={() => {
+                        setSelectedElement(element.id);
+                        setActiveTab('design');
+                      }}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
+                        <span className="text-sm text-gray-300 capitalize">{element.type}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteElement(element.id);
+                        }}
+                        className="text-gray-400 hover:text-red-400 transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </aside>
+          </div>
+        )}
       </div>
     </div>
   );
