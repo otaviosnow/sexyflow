@@ -149,6 +149,49 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     }
   };
 
+  // Upload de imagem para um elemento específico (Dropbox com fallback)
+  const handleElementImageUpload = async (elementId: string, file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'sexyflow-images');
+      if (session?.user?.id) formData.append('userId', session.user.id);
+
+      const uploadResponse = await fetch('/api/upload/dropbox', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await uploadResponse.json();
+
+      if (result.success && result.url) {
+        updateElement(elementId, {
+          content: {
+            ...(elements.find((e) => e.id === elementId)?.content || {}),
+            src: result.url
+          }
+        });
+        toast.success('Imagem enviada com sucesso!');
+      } else {
+        // Fallback base64
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = e.target?.result as string;
+          updateElement(elementId, {
+            content: {
+              ...(elements.find((e) => e.id === elementId)?.content || {}),
+              src: data
+            }
+          });
+          toast.success('Imagem carregada localmente!');
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (error) {
+      console.error('Erro ao enviar imagem do elemento:', error);
+      toast.error('Erro ao enviar imagem');
+    }
+  };
+
   const savePage = async () => {
     if (!page) return;
 
@@ -614,7 +657,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     return (
       <div
         key={element.id}
-        className={`absolute ${isSelected ? 'ring-2 ring-pink-500' : ''} ${isBeingDragged ? 'cursor-grabbing opacity-75' : 'cursor-ns-resize'}`}
+        className={`absolute relative ${isSelected ? 'ring-2 ring-pink-500' : ''} ${isBeingDragged ? 'cursor-grabbing opacity-75' : 'cursor-ns-resize'}`}
         style={{
           left: actualX,
           top: element.position.y,
@@ -630,6 +673,18 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
         }}
         onMouseDown={(e) => handleElementMouseDown(e, element.id)}
       >
+        {isSelected && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteElement(element.id);
+            }}
+            title="Excluir"
+            className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
         {element.type === 'title' && (
           <h1 
             style={{
@@ -659,32 +714,36 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
         )}
         
         {element.type === 'button' && (
-          <button
-            style={{
-              fontSize: element.content?.fontSize || 16,
-              fontFamily: element.content?.fontFamily || 'Arial',
-              fontWeight: element.content?.fontWeight || 'normal',
-              color: element.content?.color || '#ffffff',
-              backgroundColor: element.content?.backgroundColor || '#3b82f6',
-              padding: `${element.content?.paddingTop || 12}px ${element.content?.paddingRight || 24}px ${element.content?.paddingBottom || 12}px ${element.content?.paddingLeft || 24}px`,
-              borderRadius: element.content?.borderRadius || '8px',
-              textAlign: element.content?.alignment || 'center'
-            }}
-          >
-            {element.content?.text || 'Botão'}
-          </button>
+          <div className="w-full h-full flex items-center justify-center">
+            <button
+              style={{
+                fontSize: element.content?.fontSize || 16,
+                fontFamily: element.content?.fontFamily || 'Arial',
+                fontWeight: element.content?.fontWeight || 'normal',
+                color: element.content?.color || '#ffffff',
+                backgroundColor: element.content?.backgroundColor || '#3b82f6',
+                padding: `${element.content?.paddingTop || 12}px ${element.content?.paddingRight || 24}px ${element.content?.paddingBottom || 12}px ${element.content?.paddingLeft || 24}px`,
+                borderRadius: element.content?.borderRadius || '8px',
+                textAlign: element.content?.alignment || 'center'
+              }}
+            >
+              {element.content?.text || 'Botão'}
+            </button>
+          </div>
         )}
         
         {element.type === 'image' && (
-          <img
-            src={element.content?.src || '/placeholder.jpg'}
-            alt={element.content?.alt || 'Imagem'}
-            style={{
-              width: element.content?.width || '100%',
-              height: element.content?.height || 'auto',
-              objectFit: 'cover'
-            }}
-          />
+          <div className="w-full h-full flex items-center justify-center overflow-hidden">
+            <img
+              src={element.content?.src || '/placeholder.jpg'}
+              alt={element.content?.alt || 'Imagem'}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'cover'
+              }}
+            />
+          </div>
         )}
         
         {element.type === 'video' && (
@@ -978,6 +1037,58 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
                       })}
                       className="w-full h-10 bg-gray-800 border border-gray-700 rounded"
                     />
+                  </div>
+                </div>
+              )}
+
+              {selectedElementData.type === 'image' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">URL da Imagem</label>
+                    <input
+                      type="text"
+                      value={selectedElementData.content.src || ''}
+                      onChange={(e) => updateElement(selectedElementData.id, {
+                        content: { ...selectedElementData.content, src: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Upload</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleElementImageUpload(selectedElementData.id, file);
+                      }}
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Largura</label>
+                      <input
+                        type="number"
+                        value={selectedElementData.size.width || 300}
+                        onChange={(e) => updateElement(selectedElementData.id, {
+                          size: { ...selectedElementData.size, width: parseInt(e.target.value) || 0 }
+                        })}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Altura</label>
+                      <input
+                        type="number"
+                        value={selectedElementData.size.height || 200}
+                        onChange={(e) => updateElement(selectedElementData.id, {
+                          size: { ...selectedElementData.size, height: parseInt(e.target.value) || 0 }
+                        })}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
