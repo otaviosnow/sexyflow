@@ -82,16 +82,17 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [showStructure, setShowStructure] = useState(false);
-  // Espaço fixo no topo do canvas antes do primeiro elemento
-  const TOP_PADDING = 120;
+  // Layout constants
+  const GAP = 16; // espaçamento vertical fixo entre elementos
+  const TOP_PADDING = 40; // margem superior fixa
+  const BOTTOM_PADDING = 100; // padding inferior do canvas
 
-  // Helpers de centralização dinâmica
-  const getCanvasWidth = () => {
+  const getCenterX = (elementWidth: number): number => {
     const rect = canvasRef.current?.getBoundingClientRect();
-    return rect?.width || 800;
-  };
-  const getCenterX = (elementWidth: number) => {
-    return Math.max(0, Math.round((getCanvasWidth() - elementWidth) / 2));
+    if (rect && rect.width) {
+      return Math.max(0, (rect.width - elementWidth) / 2);
+    }
+    return 400 - elementWidth / 2; // fallback
   };
 
   useEffect(() => {
@@ -294,13 +295,12 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
 
   const addElement = (type: string) => {
     const defaultSize = getDefaultSize(type);
-    // Centralizar horizontalmente dinamicamente
     const centerX = getCenterX(defaultSize.width);
-    // Posicionar no fim da página respeitando espaçamentos
+    // Posicionar no fim da página respeitando espaçamentos fixos
     let nextY = TOP_PADDING;
     if (elements.length > 0) {
       const last = [...elements].sort((a, b) => a.position.y - b.position.y)[elements.length - 1];
-      nextY = last.position.y + last.size.height + (last.spacing?.bottom || 20);
+      nextY = last.position.y + last.size.height + GAP;
     }
     const newElement: Element = {
       id: `element-${Date.now()}`,
@@ -425,13 +425,13 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
 
   const addElementAtPosition = (type: string, x: number, y: number) => {
     const defaultSize = getDefaultSize(type);
-    // Centralizar horizontalmente dinamicamente
+    // Centralizar o elemento na posição do drop
     const centerX = getCenterX(defaultSize.width);
     // Sempre adicionar no final da pilha, independentemente do Y solto
     let nextY = TOP_PADDING;
     if (elements.length > 0) {
       const last = [...elements].sort((a, b) => a.position.y - b.position.y)[elements.length - 1];
-      nextY = last.position.y + last.size.height + (last.spacing?.bottom || 20);
+      nextY = last.position.y + last.size.height + GAP;
     }
     const newElement: Element = {
       id: `element-${Date.now()}`,
@@ -495,21 +495,13 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     // Reorganizar elementos respeitando espaços após atualização
     const sortedElements = [...updatedElements].sort((a, b) => a.position.y - b.position.y);
     const finalElements = sortedElements.map((el, index) => {
+      const centerX = getCenterX(el.size.width);
       if (index === 0) {
-        // Primeiro elemento: manter Y, centralizar X
-        const centerX = 400 - (el.size.width / 2);
-        return { ...el, position: { ...el.position, x: centerX } };
+        return { ...el, position: { x: centerX, y: TOP_PADDING } };
       }
-      
-      const prevEl = sortedElements[index - 1];
-      const spacing = prevEl.spacing?.bottom || 20;
-      const newY = prevEl.position.y + prevEl.size.height + spacing;
-      const centerX = 400 - (el.size.width / 2);
-      
-      return {
-        ...el,
-        position: { x: centerX, y: newY }
-      };
+      const prevEl = finalElements[index - 1] || sortedElements[index - 1];
+      const newY = prevEl.position.y + prevEl.size.height + GAP;
+      return { ...el, position: { x: centerX, y: newY } };
     });
     
     setElements(finalElements);
@@ -566,19 +558,16 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
 
   const handleCanvasMouseUp = () => {
     if (draggedElementId) {
-      // Ao soltar, alinhar verticalmente respeitando espaçamentos individuais
+      // Ao soltar, alinhar verticalmente respeitando GAP fixo
       const sorted = [...elements].sort((a, b) => a.position.y - b.position.y);
       const finalElements: Element[] = [];
 
       let cursorY = TOP_PADDING;
       sorted.forEach((el, index) => {
         const centerX = getCenterX(el.size.width);
-        const topSpace = el.spacing?.top || 0;
-        const bottomSpace = el.spacing?.bottom || 20;
-
-        const y = Math.max(0, cursorY + topSpace);
+        const y = Math.max(0, cursorY);
         finalElements.push({ ...el, position: { x: centerX, y } });
-        cursorY = y + el.size.height + bottomSpace;
+        cursorY = y + el.size.height + GAP;
       });
 
       setElements(finalElements);
@@ -594,15 +583,15 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
 
     const sorted = [...elements].sort((a, b) => a.position.y - b.position.y);
     const last = sorted[sorted.length - 1];
-    const bottom = last.position.y + last.size.height + (last.spacing?.bottom || 20);
-    return Math.max(600, bottom + 100);
+    const bottom = last.position.y + last.size.height + GAP;
+    return Math.max(600, bottom + BOTTOM_PADDING);
   };
 
   const renderElement = (element: Element) => {
     const isSelected = selectedElement === element.id;
     const isBeingDragged = draggedElementId === element.id;
     
-    // X sempre centralizado: (800px canvas - width) / 2
+    // X sempre centralizado baseado na largura do canvas
     const centerX = getCenterX(element.size.width);
     const actualX = isBeingDragged ? centerX : element.position.x;
     

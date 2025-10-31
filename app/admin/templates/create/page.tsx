@@ -370,20 +370,20 @@ body {
     setLoading(true);
     try {
       // Sempre usar API real para criar templates no banco de dados
-      const response = await fetch('/api/admin/templates', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(templateData),
-      });
+        const response = await fetch('/api/admin/templates', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(templateData),
+        });
 
-      if (response.ok) {
+        if (response.ok) {
         const createdTemplate = await response.json();
         console.log('Template criado com sucesso:', createdTemplate);
         // Redirecionar para o editor visual
         router.push(`/admin/templates/${createdTemplate._id}/visual-editor`);
-      } else {
+        } else {
         const errorData = await response.json();
         console.error('Erro ao criar template:', errorData);
         alert(errorData.error || 'Erro ao criar template');
