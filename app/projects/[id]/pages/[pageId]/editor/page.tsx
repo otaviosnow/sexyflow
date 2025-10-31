@@ -492,16 +492,18 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
       return el;
     });
     
-    // Reorganizar elementos respeitando espaços após atualização
+    // Reorganizar elementos respeitando espaços após atualização (construção iterativa)
     const sortedElements = [...updatedElements].sort((a, b) => a.position.y - b.position.y);
-    const finalElements = sortedElements.map((el, index) => {
+    const finalElements: Element[] = [];
+    sortedElements.forEach((el, index) => {
       const centerX = getCenterX(el.size.width);
       if (index === 0) {
-        return { ...el, position: { x: centerX, y: TOP_PADDING } };
+        finalElements.push({ ...el, position: { x: centerX, y: TOP_PADDING } });
+      } else {
+        const prevEl = finalElements[index - 1];
+        const newY = prevEl.position.y + prevEl.size.height + GAP;
+        finalElements.push({ ...el, position: { x: centerX, y: newY } });
       }
-      const prevEl = finalElements[index - 1] || sortedElements[index - 1];
-      const newY = prevEl.position.y + prevEl.size.height + GAP;
-      return { ...el, position: { x: centerX, y: newY } };
     });
     
     setElements(finalElements);
