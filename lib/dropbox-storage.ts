@@ -38,11 +38,11 @@ class DropboxService {
     );
     
     if (useDropbox && hasCredentials) {
-      this.dropbox = new Dropbox({
-        accessToken: this.config.accessToken,
-        clientId: this.config.appKey,
-        clientSecret: this.config.appSecret
-      });
+    this.dropbox = new Dropbox({
+      accessToken: this.config.accessToken,
+      clientId: this.config.appKey,
+      clientSecret: this.config.appSecret
+    });
     }
   }
 

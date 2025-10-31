@@ -82,6 +82,17 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [showStructure, setShowStructure] = useState(false);
+  // Espaço fixo no topo do canvas antes do primeiro elemento
+  const TOP_PADDING = 120;
+
+  // Helpers de centralização dinâmica
+  const getCanvasWidth = () => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    return rect?.width || 800;
+  };
+  const getCenterX = (elementWidth: number) => {
+    return Math.max(0, Math.round((getCanvasWidth() - elementWidth) / 2));
+  };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -283,14 +294,19 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
 
   const addElement = (type: string) => {
     const defaultSize = getDefaultSize(type);
-    // Centralizar horizontalmente: (800px canvas - width) / 2 ≈ 300px para elementos de 300px
-    const centerX = 400 - (defaultSize.width / 2);
-    
+    // Centralizar horizontalmente dinamicamente
+    const centerX = getCenterX(defaultSize.width);
+    // Posicionar no fim da página respeitando espaçamentos
+    let nextY = TOP_PADDING;
+    if (elements.length > 0) {
+      const last = [...elements].sort((a, b) => a.position.y - b.position.y)[elements.length - 1];
+      nextY = last.position.y + last.size.height + (last.spacing?.bottom || 20);
+    }
     const newElement: Element = {
       id: `element-${Date.now()}`,
       type,
       content: getDefaultContent(type),
-      position: { x: centerX, y: elements.length * 100 + 50 }, // Centralizado horizontalmente
+      position: { x: centerX, y: nextY }, // Centralizado e empilhado verticalmente
       size: defaultSize,
       style: {},
       spacing: { top: 0, bottom: 20 }
@@ -409,14 +425,19 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
 
   const addElementAtPosition = (type: string, x: number, y: number) => {
     const defaultSize = getDefaultSize(type);
-    // Centralizar o elemento na posição do drop
-    const centerX = Math.max(0, x - (defaultSize.width / 2));
-    
+    // Centralizar horizontalmente dinamicamente
+    const centerX = getCenterX(defaultSize.width);
+    // Sempre adicionar no final da pilha, independentemente do Y solto
+    let nextY = TOP_PADDING;
+    if (elements.length > 0) {
+      const last = [...elements].sort((a, b) => a.position.y - b.position.y)[elements.length - 1];
+      nextY = last.position.y + last.size.height + (last.spacing?.bottom || 20);
+    }
     const newElement: Element = {
       id: `element-${Date.now()}`,
       type,
       content: getDefaultContent(type),
-      position: { x: centerX, y: Math.max(0, y - 25) },
+      position: { x: centerX, y: nextY },
       size: defaultSize,
       style: {},
       spacing: { top: 0, bottom: 20 }
@@ -462,7 +483,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
       if (el.id === elementId) {
         const updated = { ...el, ...updates };
         // Garantir que X sempre fica centralizado após atualização
-        const centerX = 400 - (updated.size.width / 2);
+        const centerX = getCenterX(updated.size.width);
         return {
           ...updated,
           position: { ...updated.position, x: centerX }
@@ -528,102 +549,38 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     const canvasRect = canvasRef.current.getBoundingClientRect();
     // Apenas mover no eixo Y (vertical), X sempre centralizado
     const newY = Math.max(0, e.clientY - canvasRect.top - dragOffset.y);
-    
+
     const draggedEl = elements.find(el => el.id === draggedElementId);
     if (!draggedEl) return;
-    
-    // X sempre centralizado: (800px canvas - width) / 2
-    const centerX = 400 - (draggedEl.size.width / 2);
-    
-    // Ordenar elementos por Y para reorganização correta
-    const sortedElements = [...elements].sort((a, b) => a.position.y - b.position.y);
-    const draggedIndex = sortedElements.findIndex(el => el.id === draggedElementId);
-    
-    // Reorganizar todos os elementos respeitando espaços
-    const finalElements = sortedElements.map((el, index) => {
-      if (el.id === draggedElementId) {
-        // Elemento sendo arrastado: manter X centralizado, atualizar Y
-        return {
-          ...el,
-          position: { x: centerX, y: newY }
-        };
-      }
-      
-      // Reorganizar outros elementos
-      let newYPos = el.position.y;
-      
-      if (index < draggedIndex) {
-        // Elementos acima do arrastado
-        if (newY < el.position.y + el.size.height + (el.spacing?.bottom || 20)) {
-          // Elemento arrastado está entrando no espaço deste elemento
-          const spacing = el.spacing?.bottom || 20;
-          newYPos = newY - el.size.height - spacing;
-          newYPos = Math.max(0, newYPos);
-        }
-      } else {
-        // Elementos abaixo do arrastado
-        const draggedY = newY;
-        const draggedHeight = draggedEl.size.height;
-        const draggedSpacing = draggedEl.spacing?.bottom || 20;
-        const requiredY = draggedY + draggedHeight + draggedSpacing;
-        
-        if (el.position.y < requiredY) {
-          newYPos = requiredY;
-        }
-      }
-      
-      // Verificar colisão com outros elementos (exceto o arrastado)
-      const hasCollision = sortedElements.some(otherEl => {
-        if (otherEl.id === el.id || otherEl.id === draggedElementId) return false;
-        const otherY = otherEl.id === draggedElementId ? newY : otherEl.position.y;
-        const otherSpacing = otherEl.spacing?.bottom || 20;
-        
-        // Verificar se há sobreposição vertical
-        return (
-          (newYPos < otherY + otherEl.size.height + otherSpacing &&
-           newYPos + el.size.height + (el.spacing?.bottom || 20) > otherY) ||
-          (otherY < newYPos + el.size.height + (el.spacing?.bottom || 20) &&
-           otherY + otherEl.size.height + otherSpacing > newYPos)
-        );
-      });
-      
-      if (hasCollision && el.id !== draggedElementId) {
-        return el; // Manter posição original se houver colisão
-      }
-      
-      return {
-        ...el,
-        position: { x: centerX, y: newYPos } // X sempre centralizado para todos
-      };
-    });
-    
-    setElements(finalElements);
+
+    const centerX = getCenterX(draggedEl.size.width);
+
+    // Atualizar somente o elemento arrastado (sem "empurrar" os demais em tempo real)
+    const updated = elements.map((el) =>
+      el.id === draggedElementId ? { ...el, position: { x: centerX, y: newY } } : el
+    );
+
+    setElements(updated);
     setHasUnsavedChanges(true);
   };
 
   const handleCanvasMouseUp = () => {
     if (draggedElementId) {
-      // Ao soltar, reorganizar todos os elementos finalizando posições
-      const sortedElements = [...elements].sort((a, b) => a.position.y - b.position.y);
+      // Ao soltar, alinhar verticalmente respeitando espaçamentos individuais
+      const sorted = [...elements].sort((a, b) => a.position.y - b.position.y);
       const finalElements: Element[] = [];
-      
-      sortedElements.forEach((el, index) => {
-        const centerX = 400 - (el.size.width / 2);
-        
-        if (index === 0) {
-          finalElements.push({ ...el, position: { x: centerX, y: Math.max(0, el.position.y) } });
-        } else {
-          const prevEl = finalElements[index - 1];
-          const spacing = prevEl.spacing?.bottom || 20;
-          const newY = prevEl.position.y + prevEl.size.height + spacing;
-          
-          finalElements.push({
-            ...el,
-            position: { x: centerX, y: Math.max(0, newY) }
-          });
-        }
+
+      let cursorY = TOP_PADDING;
+      sorted.forEach((el, index) => {
+        const centerX = getCenterX(el.size.width);
+        const topSpace = el.spacing?.top || 0;
+        const bottomSpace = el.spacing?.bottom || 20;
+
+        const y = Math.max(0, cursorY + topSpace);
+        finalElements.push({ ...el, position: { x: centerX, y } });
+        cursorY = y + el.size.height + bottomSpace;
       });
-      
+
       setElements(finalElements);
     }
     
@@ -634,16 +591,11 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
   // Calcular altura mínima do canvas baseada nos elementos
   const calculateCanvasHeight = () => {
     if (elements.length === 0) return 600; // Altura mínima padrão
-    
-    const bottomElement = elements.reduce((prev, current) => {
-      const prevBottom = prev.position.y + prev.size.height + (prev.spacing?.bottom || 20);
-      const currentBottom = current.position.y + current.size.height + (current.spacing?.bottom || 20);
-      return currentBottom > prevBottom ? current : prev;
-    });
-    
-    const bottomPosition = bottomElement.position.y + bottomElement.size.height + (bottomElement.spacing?.bottom || 20);
-    // Adicionar padding de 100px no final
-    return Math.max(600, bottomPosition + 100);
+
+    const sorted = [...elements].sort((a, b) => a.position.y - b.position.y);
+    const last = sorted[sorted.length - 1];
+    const bottom = last.position.y + last.size.height + (last.spacing?.bottom || 20);
+    return Math.max(600, bottom + 100);
   };
 
   const renderElement = (element: Element) => {
@@ -651,7 +603,7 @@ export default function PageEditor({ params }: { params: { id: string; pageId: s
     const isBeingDragged = draggedElementId === element.id;
     
     // X sempre centralizado: (800px canvas - width) / 2
-    const centerX = 400 - (element.size.width / 2);
+    const centerX = getCenterX(element.size.width);
     const actualX = isBeingDragged ? centerX : element.position.x;
     
     return (
