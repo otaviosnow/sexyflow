@@ -271,17 +271,27 @@ export default function MediaLibrary() {
     }
   };
 
-  const deleteFile = async (fileId: string) => {
+  const deleteFile = async (filePath: string) => {
     if (!confirm('Tem certeza que deseja excluir este arquivo?')) return;
 
     try {
-      const response = await fetch(`/api/media/${fileId}`, { method: 'DELETE' });
+      // Usar o endpoint de delete do Dropbox que valida o usuário
+      const response = await fetch('/api/upload/dropbox', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: filePath })
+      });
+      
       if (response.ok) {
         // Recarregar arquivos do Dropbox
         loadMediaFiles();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao excluir arquivo');
       }
     } catch (error) {
       console.error('Erro ao excluir arquivo:', error);
+      alert('Erro ao excluir arquivo');
     }
   };
 
