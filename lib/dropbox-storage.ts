@@ -221,6 +221,10 @@ class DropboxService {
       // Garantir que temos um access_token válido
       await this.ensureValidToken();
 
+      // Criar pastas necessárias antes do upload
+      await this.ensureFolderExists(`/${folder}`);
+      await this.ensureFolderExists(`/${folder}/${userFolder}`);
+
       // Upload para Dropbox (com retry automático se token expirou)
       let result;
       let shareResult;
@@ -463,6 +467,30 @@ class DropboxService {
     } catch (error) {
       console.error('❌ Erro ao obter estatísticas:', error);
       return null;
+    }
+  }
+
+  /**
+   * Garantir que uma pasta existe (cria se não existir)
+   */
+  private async ensureFolderExists(path: string): Promise<void> {
+    if (!this.dropbox) return;
+
+    try {
+      // Tentar criar a pasta
+      await this.dropbox.filesCreateFolderV2({
+        path: path,
+        autorename: false
+      });
+      console.log('✅ Pasta criada:', path);
+    } catch (error: any) {
+      // Se a pasta já existe, ignorar o erro
+      if (error?.error?.error_summary?.includes('path/conflict/folder')) {
+        // Pasta já existe, tudo bem
+        return;
+      }
+      // Outros erros podem ser ignorados (ex: sem permissão, mas tentamos criar)
+      console.log('ℹ️ Pasta pode já existir ou erro ao criar:', path);
     }
   }
 

@@ -66,6 +66,7 @@ export default function MediaLibrary() {
 
   const loadMediaFiles = async () => {
     try {
+      setLoading(true);
       // Sempre carregar da API (que busca do Dropbox)
       const response = await fetch('/api/media/list');
       if (response.ok) {
@@ -82,7 +83,8 @@ export default function MediaLibrary() {
         }));
         setMediaFiles(files);
       } else {
-        console.error('Erro ao carregar arquivos:', await response.text());
+        const errorText = await response.text();
+        console.error('Erro ao carregar arquivos:', response.status, errorText);
         setMediaFiles([]);
       }
     } catch (error) {
@@ -200,7 +202,14 @@ export default function MediaLibrary() {
                 reject(new Error(errorMsg));
               }
             } else {
-              const errorMsg = `Erro HTTP ${xhr.status}`;
+              // Erro HTTP
+              let errorMsg = `Erro HTTP ${xhr.status}`;
+              try {
+                const errorData = JSON.parse(xhr.responseText);
+                errorMsg = errorData.error || errorMsg;
+              } catch (e) {
+                // Manter mensagem padrão
+              }
               setUploadProgress(prev => prev.map(p => 
                 p.id === uploadId 
                   ? { ...p, status: 'error' as const, error: errorMsg }
@@ -212,7 +221,16 @@ export default function MediaLibrary() {
 
           // Erro
           xhr.addEventListener('error', () => {
-            const errorMsg = 'Erro de rede ao fazer upload';
+            let errorMsg = 'Erro de rede ao fazer upload';
+            try {
+              const response = xhr.responseText;
+              if (response) {
+                const errorData = JSON.parse(response);
+                errorMsg = errorData.error || errorMsg;
+              }
+            } catch (e) {
+              // Manter mensagem padrão
+            }
             setUploadProgress(prev => prev.map(p => 
               p.id === uploadId 
                 ? { ...p, status: 'error' as const, error: errorMsg }
