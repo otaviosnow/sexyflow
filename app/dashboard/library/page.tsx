@@ -56,6 +56,7 @@ export default function MediaLibrary() {
   const [filterType, setFilterType] = useState<'all' | 'image' | 'video'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [initialLoad, setInitialLoad] = useState(true);
+  const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -73,7 +74,7 @@ export default function MediaLibrary() {
       if (response.ok) {
         const data = await response.json();
         const files: MediaFile[] = (data.items || []).map((item: any) => ({
-          id: item.path || item.name,
+          id: item.path || item.name, // path_lower do Dropbox (ex: /library/users/{userId}/arquivo.png)
           name: item.name,
           type: item.kind === 'image' ? 'image' as const : 'video' as const,
           url: item.url, // URL do Dropbox
@@ -272,26 +273,46 @@ export default function MediaLibrary() {
   };
 
   const deleteFile = async (filePath: string) => {
-    if (!confirm('Tem certeza que deseja excluir este arquivo?')) return;
+    if (!confirm('Tem certeza que deseja excluir este arquivo? Esta ação não pode ser desfeita.')) return;
+
+    // Garantir que o path começa com /
+    const path = filePath.startsWith('/') ? filePath : `/${filePath}`;
+    
+    setDeletingFiles(prev => new Set(prev).add(path));
 
     try {
       // Usar o endpoint de delete do Dropbox que valida o usuário
       const response = await fetch('/api/upload/dropbox', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: filePath })
+        body: JSON.stringify({ path })
       });
       
       if (response.ok) {
-        // Recarregar arquivos do Dropbox
-        loadMediaFiles();
+        // Remover visualmente o arquivo imediatamente (otimista)
+        setMediaFiles(prev => prev.filter(file => file.id !== filePath && file.id !== path));
+        
+        // Recarregar arquivos do Dropbox para garantir sincronização
+        setTimeout(() => {
+          loadMediaFiles();
+        }, 500);
       } else {
         const error = await response.json();
-        alert(error.error || 'Erro ao excluir arquivo');
+        alert(error.error || 'Erro ao excluir arquivo do Dropbox');
+        // Recarregar para restaurar se houve erro
+        loadMediaFiles();
       }
     } catch (error) {
       console.error('Erro ao excluir arquivo:', error);
-      alert('Erro ao excluir arquivo');
+      alert('Erro ao excluir arquivo. Tente novamente.');
+      // Recarregar para restaurar se houve erro
+      loadMediaFiles();
+    } finally {
+      setDeletingFiles(prev => {
+        const next = new Set(prev);
+        next.delete(path);
+        return next;
+      });
     }
   };
 
@@ -530,9 +551,15 @@ export default function MediaLibrary() {
                         <div className="absolute bottom-3 right-3">
                           <button
                             onClick={() => deleteFile(file.id)}
-                            className="p-2 bg-red-500/90 text-white rounded-xl hover:bg-red-600 transition-all backdrop-blur-sm"
+                            disabled={deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`)}
+                            className="p-2 bg-red-500/90 text-white rounded-xl hover:bg-red-600 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Excluir arquivo"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`) ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </button>
                         </div>
                       </div>
@@ -601,10 +628,15 @@ export default function MediaLibrary() {
                       </button>
                       <button
                         onClick={() => deleteFile(file.id)}
-                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                        title="Excluir"
+                        disabled={deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`)}
+                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Excluir arquivo"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`) ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>

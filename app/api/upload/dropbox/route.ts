@@ -107,13 +107,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { path } = await request.json();
+    let { path } = await request.json();
 
     if (!path) {
       return NextResponse.json(
         { error: 'Caminho do arquivo não fornecido' },
         { status: 400 }
       );
+    }
+
+    // Normalizar path: garantir que começa com /
+    if (!path.startsWith('/')) {
+      path = `/${path}`;
     }
 
     // Validar que o path pertence ao usuário logado
