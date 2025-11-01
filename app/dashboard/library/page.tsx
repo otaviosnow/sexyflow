@@ -1,5 +1,7 @@
 'use client';
 
+// Biblioteca Digital - Design Tech Moderno v2.0
+// Build: 2025-11-01-23:35
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
