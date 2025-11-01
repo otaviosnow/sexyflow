@@ -226,6 +226,33 @@ class DropboxService {
   }
 
   /**
+   * Obter (ou criar) link público de um arquivo
+   */
+  async getPublicUrl(path: string): Promise<string | null> {
+    if (!this.dropbox) {
+      console.error('❌ Dropbox não está configurado');
+      return null;
+    }
+    try {
+      const shareResult = await this.dropbox.sharingCreateSharedLinkWithSettings({
+        path,
+        settings: { requested_visibility: 'public' as any, audience: 'public' as any }
+      });
+      return shareResult.result.url.replace('?dl=0', '?raw=1');
+    } catch (err: any) {
+      // Se já existe, listar link existente
+      try {
+        const list = await this.dropbox.sharingListSharedLinks({ path });
+        const link = list.result.links?.[0]?.url;
+        return link ? link.replace('?dl=0', '?raw=1') : null;
+      } catch (e) {
+        console.error('❌ Erro ao obter link público:', e);
+        return null;
+      }
+    }
+  }
+
+  /**
    * Migrar arquivos existentes do local para Dropbox
    */
   async migrateLocalFiles(): Promise<{

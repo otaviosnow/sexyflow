@@ -19,7 +19,8 @@ import {
   LayoutDashboard,
   Menu,
   X,
-  Globe
+  Globe,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export default function ProjectsPage() {
@@ -84,6 +85,11 @@ export default function ProjectsPage() {
       label: 'Dashboard',
       icon: LayoutDashboard,
       path: '/projects'
+    },
+    {
+      label: 'Biblioteca',
+      icon: ImageIcon,
+      path: '/library'
     },
     {
       label: 'Páginas',
