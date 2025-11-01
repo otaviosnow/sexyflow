@@ -41,6 +41,8 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
   const [viewport, setViewport] = useState<'desktop'|'tablet'|'mobile'>('desktop');
   const previewOuterRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [showBgSettings, setShowBgSettings] = useState(false);
+  const [background, setBackground] = useState<{ type: 'color' | 'image'; value: string }>({ type: 'color', value: '#ffffff' });
 
   const CONTENT_MAX = 1140; // largura do conteúdo
   const COL_GUTTER = 24;
@@ -63,6 +65,10 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
         // Se existir builder v2, usa; caso contrário inicia vazio
         const v2 = data.content?.sections as Section[] | undefined;
         setSections(Array.isArray(v2) ? v2 : []);
+        const bg = data.content?.background as any;
+        if (bg && (bg.type === 'color' || bg.type === 'image')) {
+          setBackground({ type: bg.type, value: bg.value || bg.image || '#ffffff' });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -190,7 +196,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: page.title,
-          content: { builder: 'v2', sections }
+          content: { builder: 'v2', sections, background }
         })
       });
       if (res.ok) { toast.success('Salvo'); setHasUnsaved(false); }
@@ -214,7 +220,33 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
     <div className="min-h-screen bg-gray-950 text-white flex">
       {/* Sidebar Esquerda - Widgets */}
       <aside className="w-72 border-r border-gray-800 bg-gray-900 p-4">
-        <h3 className="text-sm font-semibold mb-3">Seções</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Seções</h3>
+          <button
+            onClick={() => setShowBgSettings(v => !v)}
+            className={`p-1.5 rounded border text-xs ${showBgSettings? 'bg-pink-600 border-pink-500 text-white':'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'}`}
+            title="Fundo da página"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        </div>
+        {showBgSettings && (
+          <div className="mb-4 p-3 rounded border border-gray-800 bg-gray-850 bg-gray-800/40">
+            <div className="text-xs text-gray-400 mb-2">Fundo da página</div>
+            <div className="flex gap-2 mb-3">
+              <button onClick={()=>{setBackground(b=>({ ...b, type:'color' })); setHasUnsaved(true);}} className={`px-2 py-1 rounded text-xs ${background.type==='color'?'bg-pink-600 text-white':'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>Cor</button>
+              <button onClick={()=>{setBackground(b=>({ ...b, type:'image' })); setHasUnsaved(true);}} className={`px-2 py-1 rounded text-xs ${background.type==='image'?'bg-pink-600 text-white':'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>Imagem</button>
+            </div>
+            {background.type==='color' ? (
+              <input type="color" className="w-full h-9 rounded bg-gray-800 border border-gray-700" value={background.value} onChange={(e)=>{setBackground({ type:'color', value: e.target.value }); setHasUnsaved(true);}} />
+            ) : (
+              <div className="space-y-2">
+                <input placeholder="https://..." className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700 text-sm" value={background.value} onChange={(e)=>{setBackground({ type:'image', value: e.target.value }); setHasUnsaved(true);}} />
+                <a className="text-[11px] text-pink-400 hover:underline" href="/library" target="_blank">Abrir Biblioteca</a>
+              </div>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2 mb-6">
           {[1,2,3,4].map(n => (
             <button key={n} onClick={() => addSection(n)} className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm">{n} coluna{n>1?'s':''}</button>
@@ -263,7 +295,16 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
         <div className="p-8 flex justify-center" ref={previewOuterRef}>
           {(() => { const w = viewport==='desktop'? CONTENT_MAX : viewport==='tablet'? 768 : 390; return (
             <div style={{ width: w, transform: `scale(${scale})`, transformOrigin: 'top center' }}>
-              <div ref={canvasRef} className="bg-white rounded shadow w-full">
+              <div
+                ref={canvasRef}
+                className="rounded shadow w-full"
+                style={{
+                  background: background.type==='color' ? background.value : `url(${background.value})`,
+                  backgroundSize: background.type==='image' ? 'cover' : undefined,
+                  backgroundPosition: background.type==='image' ? 'center' : undefined,
+                  backgroundRepeat: 'no-repeat'
+                }}
+              >
             {sections.length === 0 && (
               <div className="text-center text-gray-400 py-16">Adicione uma seção para começar</div>
             )}
