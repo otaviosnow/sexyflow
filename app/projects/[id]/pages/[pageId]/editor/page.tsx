@@ -242,7 +242,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
             ) : (
               <div className="space-y-2">
                 <input placeholder="https://..." className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700 text-sm" value={background.value} onChange={(e)=>{setBackground({ type:'image', value: e.target.value }); setHasUnsaved(true);}} />
-                <a className="text-[11px] text-pink-400 hover:underline" href="/library" target="_blank">Abrir Biblioteca</a>
+                <a className="text-[11px] text-pink-400 hover:underline" href="/library">Abrir Biblioteca</a>
               </div>
             )}
           </div>
@@ -427,7 +427,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 <label className="block text-gray-400 text-xs mb-1">URL</label>
                 <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
                 <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1">
-                  <a className="text-pink-400 hover:underline" href="/library" target="_blank">Abrir Biblioteca</a>
+                  <a className="text-pink-400 hover:underline" href="/library">Abrir Biblioteca</a>
                 </div>
                 <div className="mt-2">
                   <span className="text-[11px] text-gray-500">Largura (px)</span>
@@ -441,7 +441,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 <label className="block text-gray-400 text-xs mb-1">URL</label>
                 <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
                 <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1">
-                  <a className="text-pink-400 hover:underline" href="/library" target="_blank">Abrir Biblioteca</a>
+                  <a className="text-pink-400 hover:underline" href="/library">Abrir Biblioteca</a>
                 </div>
                 <div className="mt-2">
                   <span className="text-[11px] text-gray-500">Largura (px)</span>
