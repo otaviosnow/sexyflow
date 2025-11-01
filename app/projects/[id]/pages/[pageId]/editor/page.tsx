@@ -43,6 +43,9 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
   const [scale, setScale] = useState(1);
   const [showBgSettings, setShowBgSettings] = useState(false);
   const [background, setBackground] = useState<{ type: 'color' | 'image'; value: string }>({ type: 'color', value: '#ffffff' });
+  const [mediaPicker, setMediaPicker] = useState<{ open: boolean; kind: 'image' | 'video'; target: { type: 'background' } | { type: 'widget'; widgetId: string } }>(() => ({ open: false, kind: 'image', target: { type: 'background' } }));
+  const [mediaItems, setMediaItems] = useState<Array<{ url: string; name: string; kind: string }>>([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
 
   const CONTENT_MAX = 1140; // largura do conteúdo
   const COL_GUTTER = 24;
@@ -113,6 +116,36 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
       }))
     })));
     setHasUnsaved(true);
+  }
+
+  function openMediaPicker(kind: 'image' | 'video', target: { type: 'background' } | { type: 'widget'; widgetId: string }) {
+    setMediaPicker({ open: true, kind, target });
+    loadMedia(kind);
+  }
+
+  async function loadMedia(kind: 'image' | 'video') {
+    try {
+      setMediaLoading(true);
+      const res = await fetch(`/api/media/list?type=${kind}`);
+      const data = await res.json();
+      setMediaItems(data.items || []);
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setMediaLoading(false);
+    }
+  }
+
+  function handlePickMedia(url: string) {
+    const t = mediaPicker.target;
+    if (t.type === 'background') {
+      setBackground({ type: 'image', value: url });
+      setHasUnsaved(true);
+    } else {
+      // widget
+      updateWidget(t.widgetId, { src: url });
+    }
+    setMediaPicker(prev => ({ ...prev, open: false }));
   }
 
   function addSection(cols: number) {
@@ -242,7 +275,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
             ) : (
               <div className="space-y-2">
                 <input placeholder="https://..." className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700 text-sm" value={background.value} onChange={(e)=>{setBackground({ type:'image', value: e.target.value }); setHasUnsaved(true);}} />
-                <a className="text-[11px] text-pink-400 hover:underline" href="/library">Abrir Biblioteca</a>
+                <button type="button" onClick={()=>openMediaPicker('image', { type:'background' })} className="text-[11px] text-pink-400 hover:underline">Abrir Biblioteca</button>
               </div>
             )}
           </div>
@@ -427,7 +460,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 <label className="block text-gray-400 text-xs mb-1">URL</label>
                 <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
                 <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1">
-                  <a className="text-pink-400 hover:underline" href="/library">Abrir Biblioteca</a>
+                  <button type="button" onClick={()=>openMediaPicker('image', { type:'widget', widgetId: selectedWidget!.id })} className="text-pink-400 hover:underline">Abrir Biblioteca</button>
                 </div>
                 <div className="mt-2">
                   <span className="text-[11px] text-gray-500">Largura (px)</span>
@@ -441,7 +474,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 <label className="block text-gray-400 text-xs mb-1">URL</label>
                 <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
                 <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1">
-                  <a className="text-pink-400 hover:underline" href="/library">Abrir Biblioteca</a>
+                  <button type="button" onClick={()=>openMediaPicker('video', { type:'widget', widgetId: selectedWidget!.id })} className="text-pink-400 hover:underline">Abrir Biblioteca</button>
                 </div>
                 <div className="mt-2">
                   <span className="text-[11px] text-gray-500">Largura (px)</span>
@@ -482,6 +515,40 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
           </div>
         )}
       </aside>
+      {/* Media Picker Modal */}
+      {mediaPicker.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setMediaPicker(p=>({ ...p, open:false }))}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative bg-white rounded-lg shadow-xl w-[90vw] max-w-4xl max-h-[80vh] overflow-hidden" onClick={(e)=>e.stopPropagation()}>
+            <div className="px-4 py-3 border-b flex items-center justify-between">
+              <div className="text-sm font-medium">Biblioteca ({mediaPicker.kind === 'image' ? 'Imagens' : 'Vídeos'})</div>
+              <button className="text-xs px-2 py-1 rounded bg-gray-100" onClick={()=>setMediaPicker(p=>({ ...p, open:false }))}>Fechar</button>
+            </div>
+            <div className="p-4 overflow-auto" style={{ maxHeight: 'calc(80vh - 48px)' }}>
+              {mediaLoading ? (
+                <div className="text-gray-500 text-sm">Carregando...</div>
+              ) : mediaItems.length === 0 ? (
+                <div className="text-gray-500 text-sm">Nenhum arquivo encontrado.</div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {mediaItems.map((it, idx) => (
+                    <button key={idx} onClick={()=>handlePickMedia(it.url)} className="group bg-gray-50 rounded border overflow-hidden text-left">
+                      <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
+                        {mediaPicker.kind==='image' ? (
+                          <img src={it.url} alt={it.name} className="w-full h-full object-cover group-hover:opacity-90" />
+                        ) : (
+                          <video src={it.url} className="w-full h-full object-cover group-hover:opacity-90" />
+                        )}
+                      </div>
+                      <div className="px-2 py-1 text-[11px] text-gray-700 truncate" title={it.name}>{it.name}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
