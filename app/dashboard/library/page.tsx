@@ -33,6 +33,15 @@ interface MediaFile {
   tags?: string[];
 }
 
+interface UploadProgress {
+  id: string;
+  fileName: string;
+  progress: number;
+  status: 'uploading' | 'completed' | 'error';
+  error?: string;
+  url?: string;
+}
+
 export default function MediaLibrary() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -41,6 +50,7 @@ export default function MediaLibrary() {
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'image' | 'video'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -56,25 +66,28 @@ export default function MediaLibrary() {
 
   const loadMediaFiles = async () => {
     try {
-      // Em modo de desenvolvimento, carregar do localStorage
-      const isLocalDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-      
-      if (isLocalDev && typeof window !== 'undefined') {
-        const storedFiles = localStorage.getItem('mediaLibrary');
-        if (storedFiles) {
-          const files = JSON.parse(storedFiles);
-          setMediaFiles(files);
-        }
+      // Sempre carregar da API (que busca do Dropbox)
+      const response = await fetch('/api/media/list');
+      if (response.ok) {
+        const data = await response.json();
+        // Converter formato da API para formato do componente
+        const files: MediaFile[] = (data.items || []).map((item: any) => ({
+          id: item.path || item.name,
+          name: item.name,
+          type: item.kind === 'image' ? 'image' as const : 'video' as const,
+          url: item.url,
+          size: item.size || 0,
+          uploadedAt: item.uploadedAt || new Date().toISOString(),
+          tags: item.tags || []
+        }));
+        setMediaFiles(files);
       } else {
-        // Modo produção - carregar da API
-        const response = await fetch('/api/media');
-        if (response.ok) {
-          const files = await response.json();
-          setMediaFiles(files);
-        }
+        console.error('Erro ao carregar arquivos:', await response.text());
+        setMediaFiles([]);
       }
     } catch (error) {
       console.error('Erro ao carregar arquivos:', error);
+      setMediaFiles([]);
     } finally {
       setLoading(false);
     }
@@ -83,64 +96,155 @@ export default function MediaLibrary() {
   const handleFileUpload = async (files: FileList) => {
     setUploading(true);
     
+    const fileArray = Array.from(files);
+    
+    // Inicializar barras de progresso
+    const initialProgress: UploadProgress[] = fileArray.map((file, index) => ({
+      id: `upload-${Date.now()}-${index}`,
+      fileName: file.name,
+      progress: 0,
+      status: 'uploading'
+    }));
+    setUploadProgress(initialProgress);
+
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
+      const uploadPromises = fileArray.map(async (file, index) => {
+        const uploadId = initialProgress[index].id;
+        
         // Validar tipo de arquivo
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
         
         if (!isImage && !isVideo) {
-          throw new Error('Apenas imagens e vídeos são permitidos');
+          setUploadProgress(prev => prev.map(p => 
+            p.id === uploadId 
+              ? { ...p, status: 'error' as const, error: 'Tipo de arquivo não permitido' }
+              : p
+          ));
+          return null;
         }
 
-        // Validar tamanho (10MB para imagens, 100MB para vídeos)
-        const maxSize = isImage ? 10 * 1024 * 1024 : 100 * 1024 * 1024;
+        // Validar tamanho (150MB máximo para Dropbox)
+        const maxSize = 150 * 1024 * 1024;
         if (file.size > maxSize) {
-          throw new Error(`Arquivo muito grande. Máximo: ${isImage ? '10MB' : '100MB'}`);
+          setUploadProgress(prev => prev.map(p => 
+            p.id === uploadId 
+              ? { ...p, status: 'error' as const, error: 'Arquivo muito grande (máx 150MB)' }
+              : p
+          ));
+          return null;
         }
 
-        // Simular upload (em produção, enviaria para servidor)
-        const fileUrl = URL.createObjectURL(file);
-        const thumbnail = isImage ? fileUrl : undefined;
+        // Criar FormData
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', 'library');
+        if (session?.user?.id) {
+          formData.append('userId', session.user.id);
+        }
 
-        const newFile: MediaFile = {
-          id: `media-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          name: file.name,
-          type: isImage ? 'image' : 'video',
-          url: fileUrl,
-          thumbnail,
-          size: file.size,
-          uploadedAt: new Date().toISOString(),
-          tags: []
-        };
+        // Fazer upload com rastreamento de progresso usando XMLHttpRequest
+        return new Promise<MediaFile | null>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
 
-        return newFile;
+          // Rastrear progresso
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const percentComplete = Math.round((e.loaded / e.total) * 100);
+              setUploadProgress(prev => prev.map(p => 
+                p.id === uploadId 
+                  ? { ...p, progress: percentComplete }
+                  : p
+              ));
+            }
+          });
+
+          // Sucesso
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const result = JSON.parse(xhr.responseText);
+                
+                if (result.success && result.url) {
+                  setUploadProgress(prev => prev.map(p => 
+                    p.id === uploadId 
+                      ? { ...p, progress: 100, status: 'completed' as const, url: result.url }
+                      : p
+                  ));
+
+                  // Remover da lista após 2 segundos
+                  setTimeout(() => {
+                    setUploadProgress(prev => prev.filter(p => p.id !== uploadId));
+                  }, 2000);
+
+                  resolve({
+                    id: result.path || result.fileName,
+                    name: result.fileName || file.name,
+                    type: isImage ? 'image' as const : 'video' as const,
+                    url: result.url,
+                    thumbnail: isImage ? result.url : undefined,
+                    size: result.size || file.size,
+                    uploadedAt: new Date().toISOString(),
+                    tags: []
+                  });
+                } else {
+                  throw new Error(result.error || 'Erro ao obter URL');
+                }
+              } catch (e) {
+                const errorMsg = e instanceof Error ? e.message : 'Erro ao processar resposta';
+                setUploadProgress(prev => prev.map(p => 
+                  p.id === uploadId 
+                    ? { ...p, status: 'error' as const, error: errorMsg }
+                    : p
+                ));
+                reject(new Error(errorMsg));
+              }
+            } else {
+              const errorMsg = `Erro HTTP ${xhr.status}`;
+              setUploadProgress(prev => prev.map(p => 
+                p.id === uploadId 
+                  ? { ...p, status: 'error' as const, error: errorMsg }
+                  : p
+              ));
+              reject(new Error(errorMsg));
+            }
+          });
+
+          // Erro
+          xhr.addEventListener('error', () => {
+            const errorMsg = 'Erro de rede ao fazer upload';
+            setUploadProgress(prev => prev.map(p => 
+              p.id === uploadId 
+                ? { ...p, status: 'error' as const, error: errorMsg }
+                : p
+            ));
+            reject(new Error(errorMsg));
+          });
+
+          // Abortar
+          xhr.addEventListener('abort', () => {
+            setUploadProgress(prev => prev.map(p => 
+              p.id === uploadId 
+                ? { ...p, status: 'error' as const, error: 'Upload cancelado' }
+                : p
+            ));
+            reject(new Error('Upload cancelado'));
+          });
+
+          xhr.open('POST', '/api/upload/dropbox');
+          xhr.send(formData);
+        });
       });
 
-      const uploadedFiles = await Promise.all(uploadPromises);
+      await Promise.all(uploadPromises);
       
-      // Salvar no localStorage em modo de desenvolvimento
-      const isLocalDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-      if (isLocalDev && typeof window !== 'undefined') {
-        const existingFiles = JSON.parse(localStorage.getItem('mediaLibrary') || '[]');
-        const updatedFiles = [...existingFiles, ...uploadedFiles];
-        localStorage.setItem('mediaLibrary', JSON.stringify(updatedFiles));
-        setMediaFiles(updatedFiles);
-      } else {
-        // Modo produção - salvar via API
-        const response = await fetch('/api/media', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(uploadedFiles)
-        });
-        
-        if (response.ok) {
-          loadMediaFiles();
-        }
-      }
+      // Recarregar arquivos da API após todos os uploads
+      setTimeout(() => {
+        loadMediaFiles();
+      }, 1000);
+      
     } catch (error) {
       console.error('Erro no upload:', error);
-      alert('Erro no upload: ' + (error as Error).message);
     } finally {
       setUploading(false);
     }
@@ -289,8 +393,72 @@ export default function MediaLibrary() {
           </div>
         </div>
 
+        {/* Barras de Progresso de Upload */}
+        {uploadProgress.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Enviando arquivos...</h2>
+            <div className="space-y-4">
+              {uploadProgress.map((progress) => (
+                <div key={progress.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      {progress.status === 'completed' ? (
+                        <div className="flex-shrink-0 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      ) : progress.status === 'error' ? (
+                        <div className="flex-shrink-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <div className="flex-shrink-0 w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                      )}
+                      <span className="text-sm font-medium text-gray-900 truncate flex-1">
+                        {progress.fileName}
+                      </span>
+                      <span className="text-sm text-gray-500 whitespace-nowrap ml-2">
+                        {progress.status === 'completed' ? 'Concluído' : progress.status === 'error' ? 'Erro' : `${progress.progress}%`}
+                      </span>
+                    </div>
+                    {progress.status === 'error' && (
+                      <button
+                        onClick={() => setUploadProgress(prev => prev.filter(p => p.id !== progress.id))}
+                        className="ml-2 text-gray-400 hover:text-gray-600"
+                        title="Fechar"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        progress.status === 'completed' 
+                          ? 'bg-green-500' 
+                          : progress.status === 'error'
+                          ? 'bg-red-500'
+                          : 'bg-red-600'
+                      }`}
+                      style={{ width: `${progress.progress}%` }}
+                    />
+                  </div>
+                  {progress.status === 'error' && progress.error && (
+                    <p className="text-xs text-red-600 mt-1">{progress.error}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Lista de Arquivos */}
-        {filteredFiles.length === 0 ? (
+        {filteredFiles.length === 0 && uploadProgress.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
