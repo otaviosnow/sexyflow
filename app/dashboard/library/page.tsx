@@ -18,7 +18,9 @@ import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
-  Loader2
+  Loader2,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 
 interface MediaFile {
@@ -240,7 +242,7 @@ export default function MediaLibrary() {
 
       await Promise.all(uploadPromises);
       
-      // Recarregar arquivos do Dropbox após upload
+      // Limpar cache e recarregar
       setTimeout(() => {
         loadMediaFiles();
       }, 1000);
@@ -257,7 +259,6 @@ export default function MediaLibrary() {
     if (files && files.length > 0) {
       handleFileUpload(files);
     }
-    // Reset input
     if (e.target) {
       e.target.value = '';
     }
@@ -275,13 +276,11 @@ export default function MediaLibrary() {
   const deleteFile = async (filePath: string) => {
     if (!confirm('Tem certeza que deseja excluir este arquivo? Esta ação não pode ser desfeita.')) return;
 
-    // Garantir que o path começa com /
     const path = filePath.startsWith('/') ? filePath : `/${filePath}`;
     
     setDeletingFiles(prev => new Set(prev).add(path));
 
     try {
-      // Usar o endpoint de delete do Dropbox que valida o usuário
       const response = await fetch('/api/upload/dropbox', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -289,23 +288,19 @@ export default function MediaLibrary() {
       });
       
       if (response.ok) {
-        // Remover visualmente o arquivo imediatamente (otimista)
         setMediaFiles(prev => prev.filter(file => file.id !== filePath && file.id !== path));
         
-        // Recarregar arquivos do Dropbox para garantir sincronização
         setTimeout(() => {
           loadMediaFiles();
         }, 500);
       } else {
         const error = await response.json();
         alert(error.error || 'Erro ao excluir arquivo do Dropbox');
-        // Recarregar para restaurar se houve erro
         loadMediaFiles();
       }
     } catch (error) {
       console.error('Erro ao excluir arquivo:', error);
       alert('Erro ao excluir arquivo. Tente novamente.');
-      // Recarregar para restaurar se houve erro
       loadMediaFiles();
     } finally {
       setDeletingFiles(prev => {
@@ -332,108 +327,128 @@ export default function MediaLibrary() {
 
   if (status === 'loading' || initialLoad) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent"></div>
-          <p className="text-gray-600 text-sm">Carregando biblioteca...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.3),transparent)]"></div>
+        <div className="flex flex-col items-center space-y-6 relative z-10">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-xl opacity-50 animate-pulse"></div>
+            <div className="relative animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent"></div>
+          </div>
+          <p className="text-purple-200 text-lg font-medium">Carregando biblioteca...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      {/* Header Moderno */}
-      <div className="bg-white/80 backdrop-blur-lg border-b border-gray-200/50 sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative">
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+      </div>
+
+      {/* Header Tech */}
+      <div className="relative z-10 bg-slate-900/80 backdrop-blur-xl border-b border-purple-500/20 sticky top-0 shadow-2xl shadow-purple-500/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-5">
-            <div className="flex items-center space-x-4">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center space-x-6">
               <button
                 onClick={() => router.push('/dashboard')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-all p-2 rounded-xl hover:bg-gray-100/80"
+                className="flex items-center space-x-2 text-purple-300 hover:text-white transition-all p-2.5 rounded-xl hover:bg-purple-500/20 backdrop-blur-sm"
               >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="font-medium hidden sm:inline">Voltar</span>
               </button>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  Biblioteca
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center space-x-2">
+                  <Sparkles className="h-8 w-8 text-purple-400" />
+                  <span>Biblioteca Digital</span>
                 </h1>
-                <p className="text-gray-500 text-sm mt-0.5">
-                  Gerencie suas mídias
+                <p className="text-purple-300/70 text-sm mt-1 flex items-center space-x-2">
+                  <Zap className="h-3 w-3" />
+                  <span>Seu acervo de mídias em nuvem</span>
                 </p>
               </div>
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="group inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:from-red-700 hover:to-red-800 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="group relative inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:shadow-2xl hover:shadow-purple-500/50 disabled:opacity-50 transition-all transform hover:scale-105 overflow-hidden"
             >
-              {uploading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Upload className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              )}
-              <span className="font-medium">{uploading ? 'Enviando...' : 'Upload'}</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative flex items-center space-x-2">
+                {uploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Upload className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                )}
+                <span>{uploading ? 'Enviando...' : 'Upload'}</span>
+              </div>
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Barras de Progresso Modernas */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Progress Bars Tech */}
         {uploadProgress.length > 0 && (
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-200/50 p-6 mb-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
-                <Loader2 className="h-5 w-5 animate-spin text-red-600" />
-                <span>Enviando arquivos</span>
+          <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 flex items-center space-x-2">
+                <Loader2 className="h-6 w-6 text-purple-400 animate-spin" />
+                <span>Transferência em Progresso</span>
               </h2>
-              <span className="text-sm text-gray-500">{uploadProgress.length} arquivo(s)</span>
+              <span className="text-sm text-purple-300 bg-purple-500/20 px-3 py-1 rounded-full">{uploadProgress.length} arquivo(s)</span>
             </div>
             <div className="space-y-4">
               {uploadProgress.map((progress) => (
-                <div key={progress.id} className="space-y-2 p-4 rounded-xl bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
+                <div key={progress.id} className="space-y-3 p-5 rounded-xl bg-slate-700/50 hover:bg-slate-700/70 transition-all border border-purple-500/20">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
                       {progress.status === 'completed' ? (
-                        <CheckCircle2 className="flex-shrink-0 w-5 h-5 text-green-500" />
+                        <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center ring-2 ring-green-400/50">
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                        </div>
                       ) : progress.status === 'error' ? (
-                        <XCircle className="flex-shrink-0 w-5 h-5 text-red-500" />
+                        <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center ring-2 ring-red-400/50">
+                          <XCircle className="w-4 h-4 text-white" />
+                        </div>
                       ) : (
-                        <Loader2 className="flex-shrink-0 w-5 h-5 text-red-600 animate-spin" />
+                        <div className="flex-shrink-0 w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                       )}
-                      <span className="text-sm font-medium text-gray-900 truncate flex-1">
+                      <span className="text-sm font-medium text-purple-100 truncate flex-1">
                         {progress.fileName}
                       </span>
-                      <span className="text-sm font-semibold text-gray-600 whitespace-nowrap ml-3">
+                      <span className="text-sm font-bold text-purple-300 whitespace-nowrap ml-3 bg-purple-500/20 px-2.5 py-1 rounded-lg">
                         {progress.status === 'completed' ? '100%' : progress.status === 'error' ? 'Erro' : `${progress.progress}%`}
                       </span>
                     </div>
                     {progress.status === 'error' && (
                       <button
                         onClick={() => setUploadProgress(prev => prev.filter(p => p.id !== progress.id))}
-                        className="ml-3 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                        className="ml-3 p-2 text-purple-300 hover:text-white rounded-lg hover:bg-red-500/20 transition-colors"
                         title="Fechar"
                       >
                         <XCircle className="w-4 h-4" />
                       </button>
                     )}
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                  <div className="w-full bg-slate-900/50 rounded-full h-3 overflow-hidden border border-purple-500/20">
                     <div
                       className={`h-full transition-all duration-500 ease-out rounded-full ${
                         progress.status === 'completed' 
-                          ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                          ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg shadow-green-500/50' 
                           : progress.status === 'error'
                           ? 'bg-gradient-to-r from-red-500 to-red-600'
-                          : 'bg-gradient-to-r from-red-600 to-red-700'
+                          : 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 shadow-lg shadow-purple-500/50 animate-pulse'
                       }`}
                       style={{ width: `${progress.progress}%` }}
                     />
                   </div>
                   {progress.status === 'error' && progress.error && (
-                    <p className="text-xs text-red-600 mt-1 ml-8">{progress.error}</p>
+                    <p className="text-xs text-red-400 mt-1 ml-9">{progress.error}</p>
                   )}
                 </div>
               ))}
@@ -441,46 +456,46 @@ export default function MediaLibrary() {
           </div>
         )}
 
-        {/* Filtros Modernos */}
-        <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 p-6 mb-6">
+        {/* Search & Filters Tech */}
+        <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-6 mb-8">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-400 h-5 w-5" />
               <input
                 type="text"
                 placeholder="Buscar arquivos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:bg-white transition-all"
+                className="w-full pl-12 pr-4 py-3.5 bg-slate-900/50 border border-purple-500/30 rounded-xl text-purple-100 placeholder-purple-400/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-slate-900/70 transition-all"
               />
             </div>
             <div className="flex items-center space-x-3">
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:bg-white transition-all appearance-none cursor-pointer"
+                className="px-4 py-3.5 bg-slate-900/50 border border-purple-500/30 rounded-xl text-purple-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-slate-900/70 transition-all cursor-pointer"
               >
-                <option value="all">Todos</option>
-                <option value="image">Imagens</option>
-                <option value="video">Vídeos</option>
+                <option value="all" className="bg-slate-800">Todos</option>
+                <option value="image" className="bg-slate-800">Imagens</option>
+                <option value="video" className="bg-slate-800">Vídeos</option>
               </select>
-              <div className="flex items-center space-x-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
+              <div className="flex items-center space-x-2 bg-slate-900/50 rounded-xl p-1 border border-purple-500/30">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg transition-all ${
+                  className={`p-2.5 rounded-lg transition-all ${
                     viewMode === 'grid' 
-                      ? 'bg-white text-red-600 shadow-sm' 
-                      : 'text-gray-400 hover:text-gray-600'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' 
+                      : 'text-purple-300 hover:text-white hover:bg-purple-500/20'
                   }`}
                 >
                   <Grid className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition-all ${
+                  className={`p-2.5 rounded-lg transition-all ${
                     viewMode === 'list' 
-                      ? 'bg-white text-red-600 shadow-sm' 
-                      : 'text-gray-400 hover:text-gray-600'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' 
+                      : 'text-purple-300 hover:text-white hover:bg-purple-500/20'
                   }`}
                 >
                   <List className="h-4 w-4" />
@@ -490,21 +505,21 @@ export default function MediaLibrary() {
           </div>
         </div>
 
-        {/* Grid de Arquivos Moderno */}
+        {/* Grid Tech */}
         {loading && mediaFiles.length === 0 ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+            <Loader2 className="h-12 w-12 animate-spin text-purple-400" />
           </div>
         ) : filteredFiles.length === 0 && uploadProgress.length === 0 ? (
-          <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 p-16 text-center">
+          <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-16 text-center">
             <div className="max-w-md mx-auto">
-              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Folder className="h-10 w-10 text-gray-400" />
+              <div className="w-24 h-24 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-purple-500/30">
+                <Folder className="h-12 w-12 text-purple-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-3">
                 {searchQuery ? 'Nenhum arquivo encontrado' : 'Biblioteca vazia'}
               </h3>
-              <p className="text-gray-500 mb-8">
+              <p className="text-purple-300/70 mb-8">
                 {searchQuery 
                   ? 'Tente ajustar os filtros de busca'
                   : 'Comece fazendo upload de suas primeiras mídias'
@@ -513,7 +528,7 @@ export default function MediaLibrary() {
               {!searchQuery && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all transform hover:scale-105 font-semibold"
                 >
                   <Plus className="h-5 w-5" />
                   <span>Fazer Upload</span>
@@ -530,29 +545,29 @@ export default function MediaLibrary() {
             {filteredFiles.map((file) => (
               <div 
                 key={file.id} 
-                className="group bg-white/90 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                className="group relative bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-purple-500/30 overflow-hidden hover:border-purple-500/60 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20"
               >
                 {viewMode === 'grid' ? (
                   <>
-                    <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
+                    <div className="aspect-video bg-gradient-to-br from-slate-900 to-purple-900 relative overflow-hidden">
                       {file.type === 'image' ? (
                         <img
                           src={file.url}
                           alt={file.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Video className="h-16 w-16 text-gray-400" />
+                          <Video className="h-20 w-20 text-purple-400/50" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="absolute bottom-3 right-3">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-4 right-4">
                           <button
                             onClick={() => deleteFile(file.id)}
                             disabled={deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`)}
-                            className="p-2 bg-red-500/90 text-white rounded-xl hover:bg-red-600 transition-all backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-3 bg-red-500/90 text-white rounded-xl hover:bg-red-600 transition-all backdrop-blur-sm disabled:opacity-50 shadow-lg"
                             title="Excluir arquivo"
                           >
                             {deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`) ? (
@@ -564,23 +579,23 @@ export default function MediaLibrary() {
                         </div>
                       </div>
                     </div>
-                    <div className="p-5">
-                      <h3 className="font-semibold text-gray-900 truncate mb-2 text-sm">{file.name}</h3>
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                    <div className="p-5 bg-slate-800/50">
+                      <h3 className="font-semibold text-purple-100 truncate mb-3 text-sm">{file.name}</h3>
+                      <div className="flex items-center justify-between text-xs text-purple-300/70 mb-4">
                         <span>{formatFileSize(file.size)}</span>
                         <span>{new Date(file.uploadedAt).toLocaleDateString('pt-BR')}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => copyToClipboard(file.url)}
-                          className="flex-1 flex items-center justify-center space-x-1.5 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-all text-xs font-medium"
+                          className="flex-1 flex items-center justify-center space-x-1.5 px-3 py-2.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 rounded-xl transition-all text-xs font-medium border border-purple-500/30"
                         >
                           <Copy className="h-3.5 w-3.5" />
                           <span>Copiar</span>
                         </button>
                         <button
                           onClick={() => window.open(file.url, '_blank')}
-                          className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-all"
+                          className="p-2.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 rounded-xl transition-all border border-purple-500/30"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </button>
@@ -588,8 +603,8 @@ export default function MediaLibrary() {
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center p-5">
-                    <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center mr-4 overflow-hidden flex-shrink-0">
+                  <div className="flex items-center p-6">
+                    <div className="w-24 h-24 bg-gradient-to-br from-slate-900 to-purple-900 rounded-xl flex items-center justify-center mr-5 overflow-hidden flex-shrink-0 border border-purple-500/30">
                       {file.type === 'image' ? (
                         <img
                           src={file.url}
@@ -598,12 +613,12 @@ export default function MediaLibrary() {
                           loading="lazy"
                         />
                       ) : (
-                        <Video className="h-8 w-8 text-gray-400" />
+                        <Video className="h-10 w-10 text-purple-400" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 mr-4">
-                      <h3 className="font-semibold text-gray-900 truncate">{file.name}</h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1.5">
+                    <div className="flex-1 min-w-0 mr-5">
+                      <h3 className="font-semibold text-purple-100 truncate">{file.name}</h3>
+                      <div className="flex items-center space-x-4 text-sm text-purple-300/70 mt-2">
                         <span>{formatFileSize(file.size)}</span>
                         <span>•</span>
                         <span>{new Date(file.uploadedAt).toLocaleDateString('pt-BR')}</span>
@@ -614,14 +629,14 @@ export default function MediaLibrary() {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => copyToClipboard(file.url)}
-                        className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-all"
+                        className="p-2.5 text-purple-300 hover:text-white hover:bg-purple-500/20 rounded-xl transition-all border border-purple-500/30"
                         title="Copiar Link"
                       >
                         <Copy className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => window.open(file.url, '_blank')}
-                        className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-all"
+                        className="p-2.5 text-purple-300 hover:text-white hover:bg-purple-500/20 rounded-xl transition-all border border-purple-500/30"
                         title="Visualizar"
                       >
                         <Eye className="h-4 w-4" />
@@ -629,8 +644,8 @@ export default function MediaLibrary() {
                       <button
                         onClick={() => deleteFile(file.id)}
                         disabled={deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`)}
-                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Excluir arquivo"
+                        className="p-2.5 text-purple-300 hover:text-red-400 hover:bg-red-500/20 rounded-xl transition-all border border-red-500/30 disabled:opacity-50"
+                        title="Excluir"
                       >
                         {deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`) ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
