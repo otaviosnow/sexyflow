@@ -41,9 +41,7 @@ interface UploadProgress {
   url?: string;
 }
 
-const CACHE_KEY = 'mediaLibrary_cache';
-const CACHE_TIMESTAMP_KEY = 'mediaLibrary_cache_timestamp';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+// Cache removido - sempre buscar diretamente do Dropbox
 
 export default function MediaLibrary() {
   const { data: session, status } = useSession();
@@ -63,35 +61,14 @@ export default function MediaLibrary() {
     if (status === 'unauthenticated') {
       router.push('/login');
     } else if (status === 'authenticated') {
-      loadMediaFiles(true);
+      loadMediaFiles();
     }
   }, [status, router]);
 
-  const loadMediaFiles = async (useCache = false) => {
-    // Carregar do cache primeiro se disponível
-    if (useCache && typeof window !== 'undefined') {
-      const cached = localStorage.getItem(CACHE_KEY);
-      const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-      
-      if (cached && cachedTimestamp) {
-        const age = Date.now() - parseInt(cachedTimestamp);
-        if (age < CACHE_DURATION) {
-          try {
-            const files = JSON.parse(cached);
-            setMediaFiles(files);
-            setInitialLoad(false);
-            // Atualizar em background
-            setTimeout(() => loadMediaFiles(false), 100);
-            return;
-          } catch (e) {
-            // Cache inválido, continuar com API
-          }
-        }
-      }
-    }
-
+  const loadMediaFiles = async () => {
     try {
       setLoading(true);
+      // Sempre buscar diretamente do Dropbox (via API)
       const response = await fetch('/api/media/list');
       if (response.ok) {
         const data = await response.json();
@@ -99,21 +76,16 @@ export default function MediaLibrary() {
           id: item.path || item.name,
           name: item.name,
           type: item.kind === 'image' ? 'image' as const : 'video' as const,
-          url: item.url,
+          url: item.url, // URL do Dropbox
           size: item.size || 0,
           uploadedAt: item.uploadedAt || new Date().toISOString(),
           tags: item.tags || []
         }));
         setMediaFiles(files);
-        
-        // Salvar no cache
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(CACHE_KEY, JSON.stringify(files));
-          localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
-        }
       }
     } catch (error) {
       console.error('Erro ao carregar arquivos:', error);
+      setMediaFiles([]);
     } finally {
       setLoading(false);
       setInitialLoad(false);
@@ -267,14 +239,9 @@ export default function MediaLibrary() {
 
       await Promise.all(uploadPromises);
       
-      // Limpar cache e recarregar
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(CACHE_KEY);
-        localStorage.removeItem(CACHE_TIMESTAMP_KEY);
-      }
-      
+      // Recarregar arquivos do Dropbox após upload
       setTimeout(() => {
-        loadMediaFiles(false);
+        loadMediaFiles();
       }, 1000);
       
     } catch (error) {
@@ -310,12 +277,8 @@ export default function MediaLibrary() {
     try {
       const response = await fetch(`/api/media/${fileId}`, { method: 'DELETE' });
       if (response.ok) {
-        // Limpar cache e recarregar
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(CACHE_KEY);
-          localStorage.removeItem(CACHE_TIMESTAMP_KEY);
-        }
-        loadMediaFiles(false);
+        // Recarregar arquivos do Dropbox
+        loadMediaFiles();
       }
     } catch (error) {
       console.error('Erro ao excluir arquivo:', error);
