@@ -267,7 +267,17 @@ class DropboxService {
         }
       }
 
-      const publicUrl = shareResult.result.url.replace('?dl=0', '?raw=1');
+      // Converter URL do Dropbox para formato de imagem direta
+      // Dropbox pode retornar: ?dl=0 ou &dl=0, precisamos trocar para raw=1
+      let publicUrl = shareResult.result.url;
+      if (publicUrl.includes('?dl=0')) {
+        publicUrl = publicUrl.replace('?dl=0', '?raw=1');
+      } else if (publicUrl.includes('&dl=0')) {
+        publicUrl = publicUrl.replace('&dl=0', '&raw=1');
+      } else {
+        // Se não tem dl=0, adicionar raw=1
+        publicUrl += (publicUrl.includes('?') ? '&' : '?') + 'raw=1';
+      }
 
       console.log('✅ Upload concluído no Dropbox:', publicUrl);
       console.log('📁 Caminho:', dropboxPath);
@@ -401,13 +411,32 @@ class DropboxService {
         path,
         settings: { requested_visibility: 'public' as any, audience: 'public' as any }
       });
-      return shareResult.result.url.replace('?dl=0', '?raw=1');
+      // Converter URL do Dropbox para formato de imagem direta
+      let url = shareResult.result.url;
+      if (url.includes('?dl=0')) {
+        url = url.replace('?dl=0', '?raw=1');
+      } else if (url.includes('&dl=0')) {
+        url = url.replace('&dl=0', '&raw=1');
+      } else {
+        url += (url.includes('?') ? '&' : '?') + 'raw=1';
+      }
+      return url;
     } catch (err: any) {
       // Se já existe, listar link existente
       try {
         const list = await this.dropbox.sharingListSharedLinks({ path });
         const link = list.result.links?.[0]?.url;
-        return link ? link.replace('?dl=0', '?raw=1') : null;
+        if (!link) return null;
+        // Converter URL do Dropbox para formato de imagem direta
+        let url = link;
+        if (url.includes('?dl=0')) {
+          url = url.replace('?dl=0', '?raw=1');
+        } else if (url.includes('&dl=0')) {
+          url = url.replace('&dl=0', '&raw=1');
+        } else {
+          url += (url.includes('?') ? '&' : '?') + 'raw=1';
+        }
+        return url;
       } catch (e) {
         console.error('❌ Erro ao obter link público:', e);
         return null;
