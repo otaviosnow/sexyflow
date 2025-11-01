@@ -16,6 +16,7 @@ export interface DropboxConfig {
   accessToken: string;
   appKey: string;
   appSecret: string;
+  refreshToken?: string;
 }
 
 class DropboxService {
@@ -26,13 +27,14 @@ class DropboxService {
     this.config = {
       accessToken: process.env.DROPBOX_ACCESS_TOKEN || '',
       appKey: process.env.DROPBOX_APP_KEY || '',
-      appSecret: process.env.DROPBOX_APP_SECRET || ''
+      appSecret: process.env.DROPBOX_APP_SECRET || '',
+      refreshToken: process.env.DROPBOX_REFRESH_TOKEN || ''
     };
 
     // Inicializar Dropbox apenas se estiver configurado
     const useDropbox = process.env.USE_DROPBOX === 'true';
     const hasCredentials = !!(
-      this.config.accessToken && 
+      (this.config.accessToken || this.config.refreshToken) &&
       this.config.appKey && 
       this.config.appSecret
     );
@@ -40,7 +42,8 @@ class DropboxService {
     if (useDropbox && hasCredentials) {
       const fetchImpl: any = (globalThis as any).fetch;
       this.dropbox = new Dropbox({
-        accessToken: this.config.accessToken,
+        accessToken: this.config.refreshToken ? undefined : this.config.accessToken,
+        refreshToken: this.config.refreshToken || undefined,
         clientId: this.config.appKey,
         clientSecret: this.config.appSecret,
         fetch: fetchImpl
@@ -54,7 +57,7 @@ class DropboxService {
   isConfigured(): boolean {
     const useDropbox = process.env.USE_DROPBOX === 'true';
     const hasCredentials = !!(
-      this.config.accessToken && 
+      (this.config.accessToken || this.config.refreshToken) &&
       this.config.appKey && 
       this.config.appSecret
     );
@@ -67,7 +70,7 @@ class DropboxService {
   static isAvailable(): boolean {
     const useDropbox = process.env.USE_DROPBOX === 'true';
     const hasCredentials = !!(
-      process.env.DROPBOX_ACCESS_TOKEN && 
+      (process.env.DROPBOX_ACCESS_TOKEN || process.env.DROPBOX_REFRESH_TOKEN) &&
       process.env.DROPBOX_APP_KEY && 
       process.env.DROPBOX_APP_SECRET
     );
