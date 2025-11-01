@@ -37,6 +37,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
   const [saving, setSaving] = useState(false);
   const [hasUnsaved, setHasUnsaved] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const [draggingType, setDraggingType] = useState<WidgetType | null>(null);
 
   const CONTENT_MAX = 1140; // largura do conteúdo
   const COL_GUTTER = 24;
@@ -83,6 +84,24 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
       columns: sec.columns.map(c => c.id !== selected.columnId ? c : { ...c, widgets: [...c.widgets, widget] })
     }));
     setSelected(sel => ({ ...sel, widgetId: widget.id }));
+    setHasUnsaved(true);
+  }
+
+  function addWidgetToColumn(sectionId: string, columnId: string, type: WidgetType) {
+    const widget: Widget = { id: `w_${crypto.randomUUID()}`, type, props: getDefaultProps(type) };
+    setSections(prev => prev.map(sec => sec.id !== sectionId ? sec : {
+      ...sec,
+      columns: sec.columns.map(c => c.id !== columnId ? c : { ...c, widgets: [...c.widgets, widget] })
+    }));
+    setSelected({ sectionId, columnId, widgetId: widget.id });
+    setHasUnsaved(true);
+  }
+
+  function deleteSection(sectionId: string) {
+    const confirmed = window.confirm('Excluir esta seção? Os widgets dentro dela serão removidos.');
+    if (!confirmed) return;
+    setSections(prev => prev.filter(s => s.id !== sectionId));
+    setSelected(sel => sel.sectionId === sectionId ? {} : sel);
     setHasUnsaved(true);
   }
 
@@ -161,7 +180,17 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
         <h3 className="text-sm font-semibold mb-3">Widgets</h3>
         <div className="grid grid-cols-2 gap-2">
           {[{t:'heading',l:'Título'},{t:'text',l:'Texto'},{t:'button',l:'Botão'},{t:'image',l:'Imagem'},{t:'video',l:'Vídeo'},{t:'spacer',l:'Espaço'},{t:'divider',l:'Divisor'},{t:'html',l:'HTML'},{t:'pixelhot',l:'Pixel Hot'}].map(it => (
-            <button key={it.t} onClick={() => addWidget(it.t as WidgetType)} className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm">{it.l}</button>
+            <button
+              key={it.t}
+              draggable
+              onDragStart={(e) => { setDraggingType(it.t as WidgetType); e.dataTransfer.setData('widgetType', String(it.t)); e.dataTransfer.effectAllowed = 'copy'; }}
+              onDragEnd={() => setDraggingType(null)}
+              onClick={() => addWidget(it.t as WidgetType)}
+              className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm cursor-grab active:cursor-grabbing"
+              title="Arraste para uma coluna ou clique para adicionar"
+            >
+              {it.l}
+            </button>
           ))}
         </div>
       </aside>
@@ -190,10 +219,29 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
             )}
             {sections.map(sec => (
               <div key={sec.id} className="px-6 py-8 border-b border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs text-gray-400">Seção</span>
+                  <button
+                    onClick={() => deleteSection(sec.id)}
+                    className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white flex items-center gap-1"
+                    title="Excluir seção"
+                  >
+                    <Trash2 className="w-3 h-3" /> Excluir seção
+                  </button>
+                </div>
                 <div className="grid" style={{ gridTemplateColumns: `repeat(${sec.columns.length}, 1fr)`, gap: COL_GUTTER }}>
                   {sec.columns.map(col => (
-                    <div key={col.id} className={`min-h-[80px] p-3 rounded border ${selected.columnId===col.id? 'border-pink-500':'border-gray-200'} bg-gray-50`}
-                         onClick={() => setSelected({ sectionId: sec.id, columnId: col.id })}>
+                    <div
+                      key={col.id}
+                      className={`min-h-[80px] p-3 rounded border ${selected.columnId===col.id? 'border-pink-500':'border-gray-200'} ${draggingType? 'ring-2 ring-pink-300 ring-offset-2 ring-offset-gray-50':''} bg-gray-50`}
+                      onClick={() => setSelected({ sectionId: sec.id, columnId: col.id })}
+                      onDragOver={(e) => { if (draggingType) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } }}
+                      onDrop={(e) => {
+                        const t = e.dataTransfer.getData('widgetType') as WidgetType;
+                        if (t) addWidgetToColumn(sec.id, col.id, t);
+                        setDraggingType(null);
+                      }}
+                    >
                       {col.widgets.length===0 && (
                         <div className="text-xs text-gray-400 text-center">Arraste um widget aqui</div>
                       )}
