@@ -39,6 +39,8 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
   const canvasRef = useRef<HTMLDivElement>(null);
   const [draggingType, setDraggingType] = useState<WidgetType | null>(null);
   const [viewport, setViewport] = useState<'desktop'|'tablet'|'mobile'>('desktop');
+  const previewOuterRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
 
   const CONTENT_MAX = 1140; // largura do conteúdo
   const COL_GUTTER = 24;
@@ -65,6 +67,46 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
     } catch (e) {
       console.error(e);
     }
+  }
+
+  // Ajuste de escala para caber na tela
+  useEffect(() => {
+    function recompute() {
+      const el = previewOuterRef.current;
+      if (!el) return;
+      const avail = el.offsetWidth;
+      const target = viewport === 'desktop' ? CONTENT_MAX : viewport === 'tablet' ? 768 : 390;
+      const factor = Math.min(1, avail / target);
+      setScale(factor);
+    }
+    recompute();
+    window.addEventListener('resize', recompute);
+    return () => window.removeEventListener('resize', recompute);
+  }, [viewport]);
+
+  // Helpers de propriedades responsivas
+  function getR(w: Widget, key: string, fallback?: any) {
+    const r = w.props?._r?.[viewport]?.[key];
+    return r !== undefined ? r : (w.props?.[key] !== undefined ? w.props[key] : fallback);
+  }
+
+  function updateWidgetResponsive(widgetId: string, patch: Record<string, any>) {
+    setSections(prev => prev.map(sec => ({
+      ...sec,
+      columns: sec.columns.map(col => ({
+        ...col,
+        widgets: col.widgets.map(w => {
+          if (w.id !== widgetId) return w;
+          const current = w.props?._r?.[viewport] || {};
+          const nextR = {
+            ...(w.props?._r || {}),
+            [viewport]: { ...current, ...patch }
+          };
+          return { ...w, props: { ...w.props, _r: nextR } };
+        })
+      }))
+    })));
+    setHasUnsaved(true);
   }
 
   function addSection(cols: number) {
@@ -218,9 +260,9 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
           </div>
         </div>
 
-        <div className="p-8 flex justify-center">
+        <div className="p-8 flex justify-center" ref={previewOuterRef}>
           {(() => { const w = viewport==='desktop'? CONTENT_MAX : viewport==='tablet'? 768 : 390; return (
-            <div style={{ width: w }}>
+            <div style={{ width: w, transform: `scale(${scale})`, transformOrigin: 'top center' }}>
               <div ref={canvasRef} className="bg-white rounded shadow w-full">
             {sections.length === 0 && (
               <div className="text-center text-gray-400 py-16">Adicione uma seção para começar</div>
@@ -284,7 +326,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 <label className="block text-gray-400 text-xs mb-1">Texto</label>
                 <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.text} onChange={(e)=>updateWidget(selectedWidget.id,{text:e.target.value})}/>
                 <label className="block text-gray-400 text-xs mb-1">Tamanho</label>
-                <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.size} onChange={(e)=>updateWidget(selectedWidget.id,{size:parseInt(e.target.value)||0})}/>
+                <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any, 'size', 36)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{size:parseInt(e.target.value)||0})}/>
                 <label className="block text-gray-400 text-xs mb-1">Cor</label>
                 <input type="color" className="w-full h-9 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.color} onChange={(e)=>updateWidget(selectedWidget.id,{color:e.target.value})}/>
               </>
@@ -294,7 +336,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 <label className="block text-gray-400 text-xs mb-1">Texto</label>
                 <textarea rows={4} className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.text} onChange={(e)=>updateWidget(selectedWidget.id,{text:e.target.value})}/>
                 <label className="block text-gray-400 text-xs mb-1">Tamanho</label>
-                <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.size} onChange={(e)=>updateWidget(selectedWidget.id,{size:parseInt(e.target.value)||0})}/>
+                <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any, 'size', 16)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{size:parseInt(e.target.value)||0})}/>
                 <label className="block text-gray-400 text-xs mb-1">Cor</label>
                 <input type="color" className="w-full h-9 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.color} onChange={(e)=>updateWidget(selectedWidget.id,{color:e.target.value})}/>
               </>
@@ -319,11 +361,11 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   <div>
                     <span className="text-[11px] text-gray-500">Largura (px)</span>
-                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.width || 0} onChange={(e)=>updateWidget(selectedWidget.id,{width:parseInt(e.target.value)||0})}/>
+                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'width', selectedWidget.props.width || 0)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{width:parseInt(e.target.value)||0})}/>
                   </div>
                   <div>
                     <span className="text-[11px] text-gray-500">Altura (px)</span>
-                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.height || 0} onChange={(e)=>updateWidget(selectedWidget.id,{height:parseInt(e.target.value)||0})}/>
+                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'height', selectedWidget.props.height || 0)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{height:parseInt(e.target.value)||0})}/>
                   </div>
                 </div>
               </>
@@ -366,8 +408,8 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
 
   function renderWidget(w: Widget) {
     switch (w.type) {
-      case 'heading': return <h2 style={{ textAlign:'center', color:w.props.color, fontSize:w.props.size }}>{w.props.text}</h2>;
-      case 'text': return <p style={{ textAlign:'center', color:w.props.color, fontSize:w.props.size }}>{w.props.text}</p>;
+      case 'heading': return <h2 style={{ textAlign:'center', color:w.props.color, fontSize:getR(w, 'size', 36) }}>{w.props.text}</h2>;
+      case 'text': return <p style={{ textAlign:'center', color:w.props.color, fontSize:getR(w, 'size', 16) }}>{w.props.text}</p>;
       case 'button': return (
         <div className="flex justify-center">
           <a
@@ -377,8 +419,8 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
               color:w.props.color,
               borderRadius:w.props.radius,
               padding:`${w.props.padV}px ${w.props.padH}px`,
-              width: w.props.width,
-              height: w.props.height,
+              width: getR(w,'width', w.props.width),
+              height: getR(w,'height', w.props.height),
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center'
