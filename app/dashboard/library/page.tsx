@@ -7,19 +7,18 @@ import {
   Upload, 
   Image, 
   Video, 
-  FileText, 
   Copy, 
   Trash2, 
-  Download,
   Search,
-  Filter,
   Grid,
   List,
   Plus,
   Folder,
   Eye,
-  Link,
-  ArrowLeft
+  ArrowLeft,
+  CheckCircle2,
+  XCircle,
+  Loader2
 } from 'lucide-react';
 
 interface MediaFile {
@@ -42,36 +41,60 @@ interface UploadProgress {
   url?: string;
 }
 
+const CACHE_KEY = 'mediaLibrary_cache';
+const CACHE_TIMESTAMP_KEY = 'mediaLibrary_cache_timestamp';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
 export default function MediaLibrary() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'image' | 'video'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
-    } else {
-      loadMediaFiles();
+    } else if (status === 'authenticated') {
+      loadMediaFiles(true);
     }
   }, [status, router]);
 
-  const loadMediaFiles = async () => {
+  const loadMediaFiles = async (useCache = false) => {
+    // Carregar do cache primeiro se disponível
+    if (useCache && typeof window !== 'undefined') {
+      const cached = localStorage.getItem(CACHE_KEY);
+      const cachedTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+      
+      if (cached && cachedTimestamp) {
+        const age = Date.now() - parseInt(cachedTimestamp);
+        if (age < CACHE_DURATION) {
+          try {
+            const files = JSON.parse(cached);
+            setMediaFiles(files);
+            setInitialLoad(false);
+            // Atualizar em background
+            setTimeout(() => loadMediaFiles(false), 100);
+            return;
+          } catch (e) {
+            // Cache inválido, continuar com API
+          }
+        }
+      }
+    }
+
     try {
       setLoading(true);
-      // Sempre carregar da API (que busca do Dropbox)
       const response = await fetch('/api/media/list');
       if (response.ok) {
         const data = await response.json();
-        // Converter formato da API para formato do componente
         const files: MediaFile[] = (data.items || []).map((item: any) => ({
           id: item.path || item.name,
           name: item.name,
@@ -82,16 +105,18 @@ export default function MediaLibrary() {
           tags: item.tags || []
         }));
         setMediaFiles(files);
-      } else {
-        const errorText = await response.text();
-        console.error('Erro ao carregar arquivos:', response.status, errorText);
-        setMediaFiles([]);
+        
+        // Salvar no cache
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(files));
+          localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar arquivos:', error);
-      setMediaFiles([]);
     } finally {
       setLoading(false);
+      setInitialLoad(false);
     }
   };
 
@@ -113,7 +138,6 @@ export default function MediaLibrary() {
       const uploadPromises = fileArray.map(async (file, index) => {
         const uploadId = initialProgress[index].id;
         
-        // Validar tipo de arquivo
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
         
@@ -126,7 +150,6 @@ export default function MediaLibrary() {
           return null;
         }
 
-        // Validar tamanho (150MB máximo para Dropbox)
         const maxSize = 150 * 1024 * 1024;
         if (file.size > maxSize) {
           setUploadProgress(prev => prev.map(p => 
@@ -137,7 +160,6 @@ export default function MediaLibrary() {
           return null;
         }
 
-        // Criar FormData
         const formData = new FormData();
         formData.append('file', file);
         formData.append('folder', 'library');
@@ -145,11 +167,9 @@ export default function MediaLibrary() {
           formData.append('userId', session.user.id);
         }
 
-        // Fazer upload com rastreamento de progresso usando XMLHttpRequest
         return new Promise<MediaFile | null>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
 
-          // Rastrear progresso
           xhr.upload.addEventListener('progress', (e) => {
             if (e.lengthComputable) {
               const percentComplete = Math.round((e.loaded / e.total) * 100);
@@ -161,7 +181,6 @@ export default function MediaLibrary() {
             }
           });
 
-          // Sucesso
           xhr.addEventListener('load', () => {
             if (xhr.status >= 200 && xhr.status < 300) {
               try {
@@ -174,10 +193,9 @@ export default function MediaLibrary() {
                       : p
                   ));
 
-                  // Remover da lista após 2 segundos
                   setTimeout(() => {
                     setUploadProgress(prev => prev.filter(p => p.id !== uploadId));
-                  }, 2000);
+                  }, 3000);
 
                   resolve({
                     id: result.path || result.fileName,
@@ -202,14 +220,11 @@ export default function MediaLibrary() {
                 reject(new Error(errorMsg));
               }
             } else {
-              // Erro HTTP
               let errorMsg = `Erro HTTP ${xhr.status}`;
               try {
                 const errorData = JSON.parse(xhr.responseText);
                 errorMsg = errorData.error || errorMsg;
-              } catch (e) {
-                // Manter mensagem padrão
-              }
+              } catch (e) {}
               setUploadProgress(prev => prev.map(p => 
                 p.id === uploadId 
                   ? { ...p, status: 'error' as const, error: errorMsg }
@@ -219,7 +234,6 @@ export default function MediaLibrary() {
             }
           });
 
-          // Erro
           xhr.addEventListener('error', () => {
             let errorMsg = 'Erro de rede ao fazer upload';
             try {
@@ -228,9 +242,7 @@ export default function MediaLibrary() {
                 const errorData = JSON.parse(response);
                 errorMsg = errorData.error || errorMsg;
               }
-            } catch (e) {
-              // Manter mensagem padrão
-            }
+            } catch (e) {}
             setUploadProgress(prev => prev.map(p => 
               p.id === uploadId 
                 ? { ...p, status: 'error' as const, error: errorMsg }
@@ -239,7 +251,6 @@ export default function MediaLibrary() {
             reject(new Error(errorMsg));
           });
 
-          // Abortar
           xhr.addEventListener('abort', () => {
             setUploadProgress(prev => prev.map(p => 
               p.id === uploadId 
@@ -256,9 +267,14 @@ export default function MediaLibrary() {
 
       await Promise.all(uploadPromises);
       
-      // Recarregar arquivos da API após todos os uploads
+      // Limpar cache e recarregar
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+      }
+      
       setTimeout(() => {
-        loadMediaFiles();
+        loadMediaFiles(false);
       }, 1000);
       
     } catch (error) {
@@ -273,29 +289,33 @@ export default function MediaLibrary() {
     if (files && files.length > 0) {
       handleFileUpload(files);
     }
+    // Reset input
+    if (e.target) {
+      e.target.value = '';
+    }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // Aqui você pode adicionar uma notificação de sucesso
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // Você pode adicionar um toast aqui
+    } catch (err) {
+      console.error('Erro ao copiar:', err);
+    }
   };
 
   const deleteFile = async (fileId: string) => {
     if (!confirm('Tem certeza que deseja excluir este arquivo?')) return;
 
     try {
-      const isLocalDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-      
-      if (isLocalDev && typeof window !== 'undefined') {
-        const existingFiles = JSON.parse(localStorage.getItem('mediaLibrary') || '[]');
-        const updatedFiles = existingFiles.filter((file: MediaFile) => file.id !== fileId);
-        localStorage.setItem('mediaLibrary', JSON.stringify(updatedFiles));
-        setMediaFiles(updatedFiles);
-      } else {
-        const response = await fetch(`/api/media/${fileId}`, { method: 'DELETE' });
-        if (response.ok) {
-          loadMediaFiles();
+      const response = await fetch(`/api/media/${fileId}`, { method: 'DELETE' });
+      if (response.ok) {
+        // Limpar cache e recarregar
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(CACHE_KEY);
+          localStorage.removeItem(CACHE_TIMESTAMP_KEY);
         }
+        loadMediaFiles(false);
       }
     } catch (error) {
       console.error('Erro ao excluir arquivo:', error);
@@ -316,93 +336,158 @@ export default function MediaLibrary() {
     return matchesSearch && matchesFilter;
   });
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading' || initialLoad) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent"></div>
+          <p className="text-gray-600 text-sm">Carregando biblioteca...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      {/* Header Moderno */}
+      <div className="bg-white/80 backdrop-blur-lg border-b border-gray-200/50 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex justify-between items-center py-5">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => router.push('/dashboard')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors p-2 rounded-lg hover:bg-gray-100"
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-all p-2 rounded-xl hover:bg-gray-100/80"
               >
                 <ArrowLeft className="h-5 w-5" />
-                <span className="font-medium">Voltar</span>
+                <span className="font-medium hidden sm:inline">Voltar</span>
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Biblioteca de Mídia</h1>
-                <p className="text-gray-600 mt-1">
-                  Gerencie suas imagens e vídeos para usar nas páginas
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Biblioteca
+                </h1>
+                <p className="text-gray-500 text-sm mt-0.5">
+                  Gerencie suas mídias
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="inline-flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
-                {uploading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <Upload className="h-4 w-4" />
-                )}
-                <span>{uploading ? 'Enviando...' : 'Upload'}</span>
-              </button>
-            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="group inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:from-red-700 hover:to-red-800 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              {uploading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Upload className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              )}
+              <span className="font-medium">{uploading ? 'Enviando...' : 'Upload'}</span>
+            </button>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filtros e Busca */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Busca */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Buscar arquivos..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                />
-              </div>
+        {/* Barras de Progresso Modernas */}
+        {uploadProgress.length > 0 && (
+          <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-200/50 p-6 mb-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                <Loader2 className="h-5 w-5 animate-spin text-red-600" />
+                <span>Enviando arquivos</span>
+              </h2>
+              <span className="text-sm text-gray-500">{uploadProgress.length} arquivo(s)</span>
             </div>
+            <div className="space-y-4">
+              {uploadProgress.map((progress) => (
+                <div key={progress.id} className="space-y-2 p-4 rounded-xl bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      {progress.status === 'completed' ? (
+                        <CheckCircle2 className="flex-shrink-0 w-5 h-5 text-green-500" />
+                      ) : progress.status === 'error' ? (
+                        <XCircle className="flex-shrink-0 w-5 h-5 text-red-500" />
+                      ) : (
+                        <Loader2 className="flex-shrink-0 w-5 h-5 text-red-600 animate-spin" />
+                      )}
+                      <span className="text-sm font-medium text-gray-900 truncate flex-1">
+                        {progress.fileName}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-600 whitespace-nowrap ml-3">
+                        {progress.status === 'completed' ? '100%' : progress.status === 'error' ? 'Erro' : `${progress.progress}%`}
+                      </span>
+                    </div>
+                    {progress.status === 'error' && (
+                      <button
+                        onClick={() => setUploadProgress(prev => prev.filter(p => p.id !== progress.id))}
+                        className="ml-3 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                        title="Fechar"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ease-out rounded-full ${
+                        progress.status === 'completed' 
+                          ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                          : progress.status === 'error'
+                          ? 'bg-gradient-to-r from-red-500 to-red-600'
+                          : 'bg-gradient-to-r from-red-600 to-red-700'
+                      }`}
+                      style={{ width: `${progress.progress}%` }}
+                    />
+                  </div>
+                  {progress.status === 'error' && progress.error && (
+                    <p className="text-xs text-red-600 mt-1 ml-8">{progress.error}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-            {/* Filtros */}
-            <div className="flex items-center space-x-4">
+        {/* Filtros Modernos */}
+        <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 p-6 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                placeholder="Buscar arquivos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:bg-white transition-all"
+              />
+            </div>
+            <div className="flex items-center space-x-3">
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:bg-white transition-all appearance-none cursor-pointer"
               >
                 <option value="all">Todos</option>
                 <option value="image">Imagens</option>
                 <option value="video">Vídeos</option>
               </select>
-
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-red-100 text-red-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-2 rounded-lg transition-all ${
+                    viewMode === 'grid' 
+                      ? 'bg-white text-red-600 shadow-sm' 
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
                 >
                   <Grid className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-red-100 text-red-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-2 rounded-lg transition-all ${
+                    viewMode === 'list' 
+                      ? 'bg-white text-red-600 shadow-sm' 
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
                 >
                   <List className="h-4 w-4" />
                 </button>
@@ -411,188 +496,139 @@ export default function MediaLibrary() {
           </div>
         </div>
 
-        {/* Barras de Progresso de Upload */}
-        {uploadProgress.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Enviando arquivos...</h2>
-            <div className="space-y-4">
-              {uploadProgress.map((progress) => (
-                <div key={progress.id} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 flex-1 min-w-0">
-                      {progress.status === 'completed' ? (
-                        <div className="flex-shrink-0 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      ) : progress.status === 'error' ? (
-                        <div className="flex-shrink-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </div>
-                      ) : (
-                        <div className="flex-shrink-0 w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                      )}
-                      <span className="text-sm font-medium text-gray-900 truncate flex-1">
-                        {progress.fileName}
-                      </span>
-                      <span className="text-sm text-gray-500 whitespace-nowrap ml-2">
-                        {progress.status === 'completed' ? 'Concluído' : progress.status === 'error' ? 'Erro' : `${progress.progress}%`}
-                      </span>
-                    </div>
-                    {progress.status === 'error' && (
-                      <button
-                        onClick={() => setUploadProgress(prev => prev.filter(p => p.id !== progress.id))}
-                        className="ml-2 text-gray-400 hover:text-gray-600"
-                        title="Fechar"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-300 ${
-                        progress.status === 'completed' 
-                          ? 'bg-green-500' 
-                          : progress.status === 'error'
-                          ? 'bg-red-500'
-                          : 'bg-red-600'
-                      }`}
-                      style={{ width: `${progress.progress}%` }}
-                    />
-                  </div>
-                  {progress.status === 'error' && progress.error && (
-                    <p className="text-xs text-red-600 mt-1">{progress.error}</p>
-                  )}
-                </div>
-              ))}
+        {/* Grid de Arquivos Moderno */}
+        {loading && mediaFiles.length === 0 ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+          </div>
+        ) : filteredFiles.length === 0 && uploadProgress.length === 0 ? (
+          <div className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 p-16 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Folder className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {searchQuery ? 'Nenhum arquivo encontrado' : 'Biblioteca vazia'}
+              </h3>
+              <p className="text-gray-500 mb-8">
+                {searchQuery 
+                  ? 'Tente ajustar os filtros de busca'
+                  : 'Comece fazendo upload de suas primeiras mídias'
+                }
+              </p>
+              {!searchQuery && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span>Fazer Upload</span>
+                </button>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Lista de Arquivos */}
-        {filteredFiles.length === 0 && uploadProgress.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchQuery ? 'Nenhum arquivo encontrado' : 'Nenhum arquivo na biblioteca'}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {searchQuery 
-                ? 'Tente ajustar os filtros de busca'
-                : 'Faça upload de suas primeiras imagens e vídeos'
-              }
-            </p>
-            {!searchQuery && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center space-x-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <Plus className="h-5 w-5" />
-                <span>Fazer Upload</span>
-              </button>
-            )}
-          </div>
         ) : (
-          <div className={`grid gap-4 ${
+          <div className={`grid gap-6 ${
             viewMode === 'grid' 
               ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4' 
               : 'grid-cols-1'
           }`}>
             {filteredFiles.map((file) => (
-              <div key={file.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              <div 
+                key={file.id} 
+                className="group bg-white/90 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+              >
                 {viewMode === 'grid' ? (
-                  /* Vista em Grid */
                   <>
-                    <div className="aspect-video bg-gray-100 relative">
+                    <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
                       {file.type === 'image' ? (
                         <img
                           src={file.url}
                           alt={file.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Video className="h-12 w-12 text-gray-400" />
+                          <Video className="h-16 w-16 text-gray-400" />
                         </div>
                       )}
-                      <div className="absolute top-2 right-2">
-                        <button
-                          onClick={() => deleteFile(file.id)}
-                          className="p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-3 right-3">
+                          <button
+                            onClick={() => deleteFile(file.id)}
+                            className="p-2 bg-red-500/90 text-white rounded-xl hover:bg-red-600 transition-all backdrop-blur-sm"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-medium text-gray-900 truncate mb-2">{file.name}</h3>
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
+                    <div className="p-5">
+                      <h3 className="font-semibold text-gray-900 truncate mb-2 text-sm">{file.name}</h3>
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
                         <span>{formatFileSize(file.size)}</span>
-                        <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
+                        <span>{new Date(file.uploadedAt).toLocaleDateString('pt-BR')}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => copyToClipboard(file.url)}
-                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                          className="flex-1 flex items-center justify-center space-x-1.5 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-all text-xs font-medium"
                         >
-                          <Copy className="h-3 w-3" />
-                          <span className="text-xs">Copiar Link</span>
+                          <Copy className="h-3.5 w-3.5" />
+                          <span>Copiar</span>
                         </button>
                         <button
                           onClick={() => window.open(file.url, '_blank')}
-                          className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                          className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl transition-all"
                         >
-                          <Eye className="h-3 w-3" />
+                          <Eye className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
                   </>
                 ) : (
-                  /* Vista em Lista */
-                  <div className="flex items-center p-4">
-                    <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
+                  <div className="flex items-center p-5">
+                    <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center mr-4 overflow-hidden flex-shrink-0">
                       {file.type === 'image' ? (
                         <img
                           src={file.url}
                           alt={file.name}
-                          className="w-full h-full object-cover rounded-lg"
+                          className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
-                        <Video className="h-6 w-6 text-gray-400" />
+                        <Video className="h-8 w-8 text-gray-400" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">{file.name}</h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                    <div className="flex-1 min-w-0 mr-4">
+                      <h3 className="font-semibold text-gray-900 truncate">{file.name}</h3>
+                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1.5">
                         <span>{formatFileSize(file.size)}</span>
-                        <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
-                        <span className="capitalize">{file.type}</span>
+                        <span>•</span>
+                        <span>{new Date(file.uploadedAt).toLocaleDateString('pt-BR')}</span>
+                        <span>•</span>
+                        <span className="capitalize">{file.type === 'image' ? 'Imagem' : 'Vídeo'}</span>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => copyToClipboard(file.url)}
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-all"
                         title="Copiar Link"
                       >
                         <Copy className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => window.open(file.url, '_blank')}
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-all"
                         title="Visualizar"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => deleteFile(file.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                         title="Excluir"
                       >
                         <Trash2 className="h-4 w-4" />
