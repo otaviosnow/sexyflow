@@ -41,14 +41,71 @@ class DropboxService {
     
     if (useDropbox && hasCredentials) {
       const fetchImpl: any = (globalThis as any).fetch;
+      // Usar access_token se disponível, senão inicializar sem token (será renovado quando necessário)
       this.dropbox = new Dropbox({
-        accessToken: this.config.refreshToken ? undefined : this.config.accessToken,
-        refreshToken: this.config.refreshToken || undefined,
+        accessToken: this.config.accessToken || undefined,
         clientId: this.config.appKey,
         clientSecret: this.config.appSecret,
         fetch: fetchImpl
       } as any);
     }
+  }
+
+  /**
+   * Garantir que temos um access_token válido (renova se necessário)
+   */
+  private async ensureValidToken(): Promise<void> {
+    if (!this.dropbox) return;
+    
+    // Se não temos access_token mas temos refresh_token, renova
+    if (!this.config.accessToken && this.config.refreshToken) {
+      const newToken = await this.refreshAccessToken();
+      if (newToken && this.dropbox) {
+        // Recriar instância do Dropbox com novo token
+        const fetchImpl: any = (globalThis as any).fetch;
+        this.dropbox = new Dropbox({
+          accessToken: newToken,
+          clientId: this.config.appKey,
+          clientSecret: this.config.appSecret,
+          fetch: fetchImpl
+        } as any);
+      }
+    }
+  }
+
+  /**
+   * Renovar access_token usando refresh_token
+   */
+  private async refreshAccessToken(): Promise<string | null> {
+    if (!this.config.refreshToken || !this.config.appKey || !this.config.appSecret) {
+      return null;
+    }
+    try {
+      console.log('🔄 Renovando access_token usando refresh_token...');
+      const fetchImpl: any = (globalThis as any).fetch;
+      const res = await fetchImpl('https://api.dropboxapi.com/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: this.config.refreshToken,
+          client_id: this.config.appKey,
+          client_secret: this.config.appSecret
+        })
+      });
+      const data = await res.json();
+      if (data.access_token) {
+        console.log('✅ Access_token renovado com sucesso');
+        // Atualizar config com novo access_token
+        this.config.accessToken = data.access_token;
+        return data.access_token;
+      } else {
+        console.error('❌ Erro ao renovar token:', data);
+      }
+    } catch (e) {
+      console.error('❌ Erro ao renovar access_token:', e);
+    }
+    return null;
   }
 
   /**
@@ -108,6 +165,9 @@ class DropboxService {
       } else {
         fileBuffer = file;
       }
+
+      // Garantir que temos um access_token válido
+      await this.ensureValidToken();
 
       // Upload para Dropbox
       const result = await this.dropbox!.filesUpload({
@@ -197,6 +257,9 @@ class DropboxService {
     }
 
     try {
+      // Garantir que temos um access_token válido
+      await this.ensureValidToken();
+
       const result = await this.dropbox.filesListFolder({
         path: `/${folder}`,
         limit: maxResults
