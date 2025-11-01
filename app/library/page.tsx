@@ -40,8 +40,8 @@ export default function LibraryPage() {
       if (session?.user?.id) form.append('userId', session.user.id);
       const res = await fetch('/api/upload/dropbox', { method: 'POST', body: form });
       const data = await res.json();
-      if (data.success) { toast.success('Enviado'); fetchItems(); }
-      else toast.error('Falha no upload');
+      if (res.ok && data.success) { toast.success('Enviado'); fetchItems(); }
+      else toast.error(`Falha no upload: ${data?.error || 'erro desconhecido'}`);
     } catch(e) { console.error(e); toast.error('Erro no upload'); }
     finally { setUploading(false); (e.target as any).value=''; }
   }

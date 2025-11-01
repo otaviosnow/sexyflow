@@ -137,7 +137,7 @@ class DropboxService {
       console.error('❌ Erro no upload para Dropbox:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
+        error: error instanceof Error ? error.message : JSON.stringify(error)
       };
     }
   }

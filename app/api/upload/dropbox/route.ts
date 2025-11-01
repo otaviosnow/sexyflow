@@ -3,6 +3,12 @@ import { dropboxService } from '@/lib/dropbox-storage';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!dropboxService.isConfigured()) {
+      return NextResponse.json(
+        { error: 'Dropbox não configurado. Verifique USE_DROPBOX=true e chaves DROPBOX_ACCESS_TOKEN, DROPBOX_APP_KEY, DROPBOX_APP_SECRET.' },
+        { status: 500 }
+      );
+    }
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const folder = formData.get('folder') as string || 'sexyflow-images';
@@ -72,7 +78,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Erro no upload para Dropbox:', error);
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: error instanceof Error ? error.message : 'Erro interno do servidor' },
       { status: 500 }
     );
   }
