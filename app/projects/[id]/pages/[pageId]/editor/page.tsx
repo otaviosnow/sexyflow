@@ -368,6 +368,44 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                     <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'height', selectedWidget.props.height || 0)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{height:parseInt(e.target.value)||0})}/>
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <span className="text-[11px] text-gray-500">Padding Vertical</span>
+                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'padV', selectedWidget.props.padV || 0)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{padV:parseInt(e.target.value)||0})}/>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-gray-500">Padding Horizontal</span>
+                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'padH', selectedWidget.props.padH || 0)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{padH:parseInt(e.target.value)||0})}/>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {selectedWidget.type==='image' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">URL</label>
+                <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
+                <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1">
+                  <a className="text-pink-400 hover:underline" href="/library" target="_blank">Abrir Biblioteca</a>
+                </div>
+                <div className="mt-2">
+                  <span className="text-[11px] text-gray-500">Largura (px)</span>
+                  <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'width', selectedWidget.props.width || 600)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{width:parseInt(e.target.value)||0})}/>
+                </div>
+              </>
+            )}
+
+            {selectedWidget.type==='video' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">URL</label>
+                <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
+                <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1">
+                  <a className="text-pink-400 hover:underline" href="/library" target="_blank">Abrir Biblioteca</a>
+                </div>
+                <div className="mt-2">
+                  <span className="text-[11px] text-gray-500">Largura (px)</span>
+                  <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'width', selectedWidget.props.width || 720)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{width:parseInt(e.target.value)||0})}/>
+                </div>
               </>
             )}
             {selectedWidget.type==='spacer' && (
@@ -418,7 +456,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
               background:w.props.bg,
               color:w.props.color,
               borderRadius:w.props.radius,
-              padding:`${w.props.padV}px ${w.props.padH}px`,
+              padding:`${getR(w,'padV', w.props.padV)}px ${getR(w,'padH', w.props.padH)}px`,
               width: getR(w,'width', w.props.width),
               height: getR(w,'height', w.props.height),
               display: 'inline-flex',
@@ -432,12 +470,12 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
       );
       case 'image': return (
         <div className="flex justify-center">
-          {w.props.src ? <img src={w.props.src} alt={w.props.alt} style={{ maxWidth:w.props.width, width:'100%' }}/> : <div className="text-xs text-gray-400">Imagem sem fonte</div>}
+          {w.props.src ? <img src={w.props.src} alt={w.props.alt} style={{ maxWidth:getR(w,'width', w.props.width), width:'100%' }}/> : <div className="text-xs text-gray-400">Imagem sem fonte</div>}
         </div>
       );
       case 'video': return (
         <div className="flex justify-center">
-          {w.props.src ? <video src={w.props.src} controls style={{ maxWidth:w.props.width, width:'100%' }}/> : <div className="text-xs text-gray-400">Vídeo sem fonte</div>}
+          {w.props.src ? <video src={w.props.src} controls style={{ maxWidth:getR(w,'width', w.props.width), width:'100%' }}/> : <div className="text-xs text-gray-400">Vídeo sem fonte</div>}
         </div>
       );
       case 'spacer': return <div style={{ height:w.props.height }}/>; 
