@@ -19,6 +19,17 @@ export default function LibraryPage() {
     if (status === 'authenticated') fetchItems();
   }, [status, filter]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('dropbox_code');
+    if (code) {
+      toast.success('Código recebido! Veja abaixo.');
+      console.log('🔑 DROPBOX CODE:', code);
+      // Limpar URL
+      window.history.replaceState({}, '', '/library');
+    }
+  }, []);
+
   async function fetchItems() {
     try {
       setLoading(true);
@@ -69,6 +80,16 @@ export default function LibraryPage() {
             </label>
           </div>
         </div>
+
+        {typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dropbox_code') && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-sm font-medium text-blue-900 mb-2">✅ Código OAuth recebido!</p>
+            <p className="text-xs text-blue-700 mb-2">Copie o código abaixo e use no curl para gerar o refresh_token:</p>
+            <code className="block p-2 bg-white border rounded text-xs font-mono break-all">
+              {new URLSearchParams(window.location.search).get('dropbox_code')}
+            </code>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-gray-500">Carregando...</div>
