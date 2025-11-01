@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Upload, Image as ImageIcon, Video as VideoIcon, Copy, RefreshCcw } from 'lucide-react';
+import { Upload, Image as ImageIcon, Video as VideoIcon, Copy, RefreshCcw, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LibraryPage() {
@@ -52,7 +52,10 @@ export default function LibraryPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-semibold text-gray-900">Biblioteca</h1>
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="px-3 py-2 border rounded text-sm bg-white flex items-center gap-1"><ArrowLeft className="w-4 h-4"/>Voltar ao editor</button>
+            <h1 className="text-xl font-semibold text-gray-900">Biblioteca</h1>
+          </div>
           <div className="flex items-center gap-2">
             <select value={filter} onChange={(e)=>setFilter(e.target.value as any)} className="px-3 py-2 border rounded text-sm">
               <option value="all">Todos</option>
