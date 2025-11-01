@@ -343,16 +343,31 @@ export default function MediaLibrary() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative" style={{ background: 'linear-gradient(to bottom right, #0f172a, #581c87, #0f172a)' }}>
+    <div 
+      className="min-h-screen relative" 
+      style={{ 
+        background: 'linear-gradient(to bottom right, #0f172a, #581c87, #0f172a)',
+        minHeight: '100vh'
+      }}
+    >
       {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+      <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(59, 130, 246, 0.2)' }}></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(147, 51, 234, 0.2)', animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(236, 72, 153, 0.1)', animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Header Tech */}
-      <div className="relative z-10 bg-slate-900/80 backdrop-blur-xl border-b border-purple-500/20 sticky top-0 shadow-2xl shadow-purple-500/10">
+      <div 
+        className="relative sticky top-0" 
+        style={{ 
+          zIndex: 10,
+          background: 'rgba(15, 23, 42, 0.8)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(147, 51, 234, 0.2)',
+          boxShadow: '0 25px 50px -12px rgba(147, 51, 234, 0.1)'
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-6">
@@ -393,10 +408,18 @@ export default function MediaLibrary() {
         </div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="relative" style={{ zIndex: 10, maxWidth: '1280px', margin: '0 auto', padding: '2.5rem 1rem' }}>
         {/* Progress Bars Tech */}
         {uploadProgress.length > 0 && (
-          <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-6 mb-8">
+          <div style={{ 
+            background: 'rgba(30, 41, 59, 0.9)', 
+            backdropFilter: 'blur(12px)', 
+            borderRadius: '1rem', 
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
+            border: '1px solid rgba(147, 51, 234, 0.3)', 
+            padding: '1.5rem', 
+            marginBottom: '2rem' 
+          }}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 flex items-center space-x-2">
                 <Loader2 className="h-6 w-6 text-purple-400 animate-spin" />
@@ -459,7 +482,15 @@ export default function MediaLibrary() {
         )}
 
         {/* Search & Filters Tech */}
-        <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-6 mb-8">
+        <div style={{ 
+          background: 'rgba(30, 41, 59, 0.9)', 
+          backdropFilter: 'blur(12px)', 
+          borderRadius: '1rem', 
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
+          border: '1px solid rgba(147, 51, 234, 0.3)', 
+          padding: '1.5rem', 
+          marginBottom: '2rem' 
+        }}>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-400 h-5 w-5" />
@@ -513,7 +544,15 @@ export default function MediaLibrary() {
             <Loader2 className="h-12 w-12 animate-spin text-purple-400" />
           </div>
         ) : filteredFiles.length === 0 && uploadProgress.length === 0 ? (
-          <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-16 text-center">
+          <div style={{ 
+            background: 'rgba(30, 41, 59, 0.9)', 
+            backdropFilter: 'blur(12px)', 
+            borderRadius: '1rem', 
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
+            border: '1px solid rgba(147, 51, 234, 0.3)', 
+            padding: '4rem', 
+            textAlign: 'center' 
+          }}>
             <div className="max-w-md mx-auto">
               <div className="w-24 h-24 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-purple-500/30">
                 <Folder className="h-12 w-12 text-purple-400" />
@@ -547,7 +586,26 @@ export default function MediaLibrary() {
             {filteredFiles.map((file) => (
               <div 
                 key={file.id} 
-                className="group relative bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-purple-500/30 overflow-hidden hover:border-purple-500/60 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20"
+                className="group relative overflow-hidden"
+                style={{
+                  background: 'rgba(30, 41, 59, 0.9)',
+                  backdropFilter: 'blur(12px)',
+                  borderRadius: '1rem',
+                  boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(147, 51, 234, 0.3)',
+                  transition: 'all 0.3s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.6)';
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(147, 51, 234, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 10px 30px -5px rgba(0, 0, 0, 0.3)';
+                }}
               >
                 {viewMode === 'grid' ? (
                   <>
@@ -581,7 +639,7 @@ export default function MediaLibrary() {
                         </div>
                       </div>
                     </div>
-                    <div className="p-5 bg-slate-800/50">
+                    <div className="p-5" style={{ background: 'rgba(30, 41, 59, 0.5)' }}>
                       <h3 className="font-semibold text-purple-100 truncate mb-3 text-sm">{file.name}</h3>
                       <div className="flex items-center justify-between text-xs text-purple-300/70 mb-4">
                         <span>{formatFileSize(file.size)}</span>
