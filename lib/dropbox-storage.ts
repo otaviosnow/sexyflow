@@ -59,18 +59,49 @@ class DropboxService {
     
     // Se não temos access_token mas temos refresh_token, renova
     if (!this.config.accessToken && this.config.refreshToken) {
-      const newToken = await this.refreshAccessToken();
-      if (newToken && this.dropbox) {
-        // Recriar instância do Dropbox com novo token
-        const fetchImpl: any = (globalThis as any).fetch;
-        this.dropbox = new Dropbox({
-          accessToken: newToken,
-          clientId: this.config.appKey,
-          clientSecret: this.config.appSecret,
-          fetch: fetchImpl
-        } as any);
+      await this.renewToken();
+    }
+  }
+
+  /**
+   * Renovar access_token e atualizar instância do Dropbox
+   */
+  private async renewToken(): Promise<boolean> {
+    const newToken = await this.refreshAccessToken();
+    if (newToken && this.dropbox) {
+      // Recriar instância do Dropbox com novo token
+      const fetchImpl: any = (globalThis as any).fetch;
+      this.dropbox = new Dropbox({
+        accessToken: newToken,
+        clientId: this.config.appKey,
+        clientSecret: this.config.appSecret,
+        fetch: fetchImpl
+      } as any);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Verificar se erro é de autenticação e tentar renovar token
+   */
+  private async handleAuthError(error: any): Promise<boolean> {
+    // Verificar se é erro de autenticação (401, 403, ou invalid_access_token)
+    const isAuthError = 
+      error?.status === 401 || 
+      error?.status === 403 ||
+      error?.error?.error_summary?.includes('invalid_access_token') ||
+      error?.error?.error?.includes('invalid_access_token');
+    
+    if (isAuthError && this.config.refreshToken) {
+      console.log('🔄 Access_token expirado ou inválido, tentando renovar...');
+      const renewed = await this.renewToken();
+      if (renewed) {
+        console.log('✅ Token renovado com sucesso, tentando novamente...');
+        return true;
       }
     }
+    return false;
   }
 
   /**
@@ -78,21 +109,42 @@ class DropboxService {
    */
   private async refreshAccessToken(): Promise<string | null> {
     if (!this.config.refreshToken || !this.config.appKey || !this.config.appSecret) {
+      console.error('❌ Credenciais incompletas para renovação');
       return null;
     }
+
+    // Validar formato do refresh_token (deve começar com algo válido)
+    const trimmedToken = this.config.refreshToken.trim();
+    if (!trimmedToken || trimmedToken.length < 20) {
+      console.error('❌ Refresh token parece estar malformado (muito curto ou vazio)');
+      return null;
+    }
+
     try {
       console.log('🔄 Renovando access_token usando refresh_token...');
+      console.log(`📋 Refresh token length: ${trimmedToken.length}, starts with: ${trimmedToken.substring(0, 10)}...`);
+      
       const fetchImpl: any = (globalThis as any).fetch;
       const res = await fetchImpl('https://api.dropboxapi.com/oauth2/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           grant_type: 'refresh_token',
-          refresh_token: this.config.refreshToken,
+          refresh_token: trimmedToken,
           client_id: this.config.appKey,
           client_secret: this.config.appSecret
         })
       });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('❌ Erro HTTP ao renovar token:', res.status, errorData);
+        if (errorData.error === 'invalid_grant') {
+          console.error('❌ Refresh token inválido ou expirado. Você precisa gerar um novo token.');
+        }
+        return null;
+      }
+
       const data = await res.json();
       if (data.access_token) {
         console.log('✅ Access_token renovado com sucesso');
@@ -100,7 +152,7 @@ class DropboxService {
         this.config.accessToken = data.access_token;
         return data.access_token;
       } else {
-        console.error('❌ Erro ao renovar token:', data);
+        console.error('❌ Resposta não contém access_token:', data);
       }
     } catch (e) {
       console.error('❌ Erro ao renovar access_token:', e);
@@ -169,22 +221,47 @@ class DropboxService {
       // Garantir que temos um access_token válido
       await this.ensureValidToken();
 
-      // Upload para Dropbox
-      const result = await this.dropbox!.filesUpload({
-        path: dropboxPath,
-        contents: fileBuffer,
-        mode: 'overwrite' as any,
-        autorename: true
-      });
+      // Upload para Dropbox (com retry automático se token expirou)
+      let result;
+      let shareResult;
+      try {
+        result = await this.dropbox!.filesUpload({
+          path: dropboxPath,
+          contents: fileBuffer,
+          mode: 'overwrite' as any,
+          autorename: true
+        });
 
-      // Gerar URL pública
-      const shareResult = await this.dropbox!.sharingCreateSharedLinkWithSettings({
-        path: dropboxPath,
-        settings: {
-          requested_visibility: 'public' as any,
-          audience: 'public' as any
+        // Gerar URL pública
+        shareResult = await this.dropbox!.sharingCreateSharedLinkWithSettings({
+          path: dropboxPath,
+          settings: {
+            requested_visibility: 'public' as any,
+            audience: 'public' as any
+          }
+        });
+      } catch (uploadError: any) {
+        // Se erro de autenticação, tentar renovar e repetir
+        const renewed = await this.handleAuthError(uploadError);
+        if (renewed) {
+          // Tentar novamente após renovar token
+          result = await this.dropbox!.filesUpload({
+            path: dropboxPath,
+            contents: fileBuffer,
+            mode: 'overwrite' as any,
+            autorename: true
+          });
+          shareResult = await this.dropbox!.sharingCreateSharedLinkWithSettings({
+            path: dropboxPath,
+            settings: {
+              requested_visibility: 'public' as any,
+              audience: 'public' as any
+            }
+          });
+        } else {
+          throw uploadError;
         }
-      });
+      }
 
       const publicUrl = shareResult.result.url.replace('?dl=0', '?raw=1');
 
@@ -260,10 +337,24 @@ class DropboxService {
       // Garantir que temos um access_token válido
       await this.ensureValidToken();
 
-      const result = await this.dropbox.filesListFolder({
-        path: `/${folder}`,
-        limit: maxResults
-      });
+      let result;
+      try {
+        result = await this.dropbox.filesListFolder({
+          path: `/${folder}`,
+          limit: maxResults
+        });
+      } catch (listError: any) {
+        // Se erro de autenticação, tentar renovar e repetir
+        const renewed = await this.handleAuthError(listError);
+        if (renewed) {
+          result = await this.dropbox.filesListFolder({
+            path: `/${folder}`,
+            limit: maxResults
+          });
+        } else {
+          throw listError;
+        }
+      }
 
       return result.result.entries;
     } catch (error) {
