@@ -100,7 +100,7 @@ export default function LibraryPage() {
               onClick={() => router.back()} 
               style={{ 
                 padding: '0.5rem 1rem', 
-                border: '1px solid rgba(147, 51, 234, 0.3)', 
+                border: '1px solid rgba(236, 72, 153, 0.3)', 
                 borderRadius: '0.5rem', 
                 fontSize: '0.875rem', 
                 background: 'rgba(30, 41, 59, 0.9)', 
@@ -120,7 +120,7 @@ export default function LibraryPage() {
               onChange={(e)=>setFilter(e.target.value as any)} 
               style={{ 
                 padding: '0.5rem 1rem', 
-                border: '1px solid rgba(147, 51, 234, 0.3)', 
+                border: '1px solid rgba(236, 72, 153, 0.3)', 
                 borderRadius: '0.5rem', 
                 fontSize: '0.875rem',
                 background: 'rgba(30, 41, 59, 0.9)',
@@ -135,7 +135,7 @@ export default function LibraryPage() {
               onClick={fetchItems} 
               style={{ 
                 padding: '0.5rem 1rem', 
-                border: '1px solid rgba(147, 51, 234, 0.3)', 
+                border: '1px solid rgba(236, 72, 153, 0.3)', 
                 borderRadius: '0.5rem', 
                 fontSize: '0.875rem', 
                 background: 'rgba(30, 41, 59, 0.9)', 
@@ -149,7 +149,7 @@ export default function LibraryPage() {
             </button>
             <label style={{ 
               padding: '0.5rem 1rem', 
-              background: 'linear-gradient(to right, #2563eb, #06b6d4)', 
+              background: 'linear-gradient(to right, #dc2626, #ec4899)', 
               color: 'white', 
               borderRadius: '0.5rem', 
               fontSize: '0.875rem', 
@@ -185,18 +185,18 @@ export default function LibraryPage() {
                 key={it.path} 
                 style={{ 
                   background: 'rgba(30, 41, 59, 0.9)', 
-                  border: '1px solid rgba(147, 51, 234, 0.3)', 
+                  border: '1px solid rgba(236, 72, 153, 0.3)', 
                   borderRadius: '0.75rem', 
                   overflow: 'hidden',
                   transition: 'all 0.3s'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.6)';
+                  e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.6)';
                   e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(147, 51, 234, 0.2)';
+                  e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(236, 72, 153, 0.2)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.3)';
+                  e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.3)';
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.boxShadow = 'none';
                 }}

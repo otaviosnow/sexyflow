@@ -376,8 +376,8 @@ export default function MediaLibrary() {
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
         <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(59, 130, 246, 0.2)' }}></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(6, 182, 212, 0.2)', animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(34, 211, 238, 0.1)', animationDelay: '0.5s' }}></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(236, 72, 153, 0.2)', animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(219, 39, 119, 0.1)', animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Header Tech */}
@@ -387,8 +387,8 @@ export default function MediaLibrary() {
           zIndex: 10,
           background: 'rgba(15, 23, 42, 0.8)',
           backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(6, 182, 212, 0.2)',
-          boxShadow: '0 25px 50px -12px rgba(6, 182, 212, 0.1)'
+          borderBottom: '1px solid rgba(236, 72, 153, 0.2)',
+          boxShadow: '0 25px 50px -12px rgba(236, 72, 153, 0.1)'
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -396,17 +396,17 @@ export default function MediaLibrary() {
             <div className="flex items-center space-x-6">
               <button
               onClick={() => router.push('/dashboard')}
-              className="flex items-center space-x-2 text-cyan-300 hover:text-white transition-all p-2.5 rounded-xl hover:bg-cyan-500/20 backdrop-blur-sm"
+              className="flex items-center space-x-2 text-pink-300 hover:text-white transition-all p-2.5 rounded-xl hover:bg-pink-500/20 backdrop-blur-sm"
             >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="font-medium hidden sm:inline">Voltar</span>
               </button>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent flex items-center space-x-2">
-                  <Sparkles className="h-8 w-8 text-cyan-400" />
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-red-500 via-pink-500 to-red-600 bg-clip-text text-transparent flex items-center space-x-2">
+                  <Sparkles className="h-8 w-8 text-pink-400" />
                   <span>Biblioteca Digital</span>
                 </h1>
-                <p className="text-purple-300/70 text-sm mt-1 flex items-center space-x-2">
+                <p className="text-pink-300/70 text-sm mt-1 flex items-center space-x-2">
                   <Zap className="h-3 w-3" />
                   <span>Seu acervo de mídias em nuvem</span>
                 </p>
@@ -415,9 +415,9 @@ export default function MediaLibrary() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="group relative inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:shadow-2xl hover:shadow-cyan-500/50 disabled:opacity-50 transition-all transform hover:scale-105 overflow-hidden"
+              className="group relative inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 via-pink-600 to-red-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:shadow-2xl hover:shadow-pink-500/50 disabled:opacity-50 transition-all transform hover:scale-105 overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="relative flex items-center space-x-2">
                 {uploading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -439,20 +439,20 @@ export default function MediaLibrary() {
           backdropFilter: 'blur(12px)', 
           borderRadius: '1rem', 
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
-          border: '1px solid rgba(6, 182, 212, 0.3)', 
+          border: '1px solid rgba(236, 72, 153, 0.3)', 
           padding: '1.5rem', 
           marginBottom: '2rem' 
         }}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 text-cyan-400 animate-spin" />
+              <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-400 flex items-center space-x-2">
+                <Loader2 className="h-6 w-6 text-pink-400 animate-spin" />
                 <span>Transferência em Progresso</span>
               </h2>
-              <span className="text-sm text-cyan-300 bg-cyan-500/20 px-3 py-1 rounded-full">{uploadProgress.length} arquivo(s)</span>
+              <span className="text-sm text-pink-300 bg-pink-500/20 px-3 py-1 rounded-full">{uploadProgress.length} arquivo(s)</span>
             </div>
             <div className="space-y-4">
               {uploadProgress.map((progress) => (
-                <div key={progress.id} className="space-y-3 p-5 rounded-xl bg-slate-700/50 hover:bg-slate-700/70 transition-all border border-cyan-500/20">
+                <div key={progress.id} className="space-y-3 p-5 rounded-xl bg-slate-700/50 hover:bg-slate-700/70 transition-all border border-pink-500/20">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
                       {progress.status === 'completed' ? (
@@ -464,12 +464,12 @@ export default function MediaLibrary() {
                           <XCircle className="w-4 h-4 text-white" />
                         </div>
                       ) : (
-                        <div className="flex-shrink-0 w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="flex-shrink-0 w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
                       )}
-                      <span className="text-sm font-medium text-cyan-100 truncate flex-1">
+                      <span className="text-sm font-medium text-pink-100 truncate flex-1">
                         {progress.fileName}
                       </span>
-                      <span className="text-sm font-bold text-cyan-300 whitespace-nowrap ml-3 bg-cyan-500/20 px-2.5 py-1 rounded-lg">
+                      <span className="text-sm font-bold text-pink-300 whitespace-nowrap ml-3 bg-pink-500/20 px-2.5 py-1 rounded-lg">
                         {progress.status === 'completed' ? '100%' : progress.status === 'error' ? 'Erro' : `${progress.progress}%`}
                       </span>
                     </div>
@@ -483,14 +483,14 @@ export default function MediaLibrary() {
                       </button>
                     )}
                   </div>
-                  <div className="w-full bg-slate-900/50 rounded-full h-3 overflow-hidden border border-cyan-500/20">
+                  <div className="w-full bg-slate-900/50 rounded-full h-3 overflow-hidden border border-pink-500/20">
                     <div
                       className={`h-full transition-all duration-500 ease-out rounded-full ${
                         progress.status === 'completed' 
                           ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg shadow-green-500/50' 
                           : progress.status === 'error'
                           ? 'bg-gradient-to-r from-red-500 to-red-600'
-                          : 'bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 shadow-lg shadow-cyan-500/50 animate-pulse'
+                          : 'bg-gradient-to-r from-red-500 via-pink-500 to-red-500 shadow-lg shadow-pink-500/50 animate-pulse'
                       }`}
                       style={{ width: `${progress.progress}%` }}
                     />
@@ -510,38 +510,38 @@ export default function MediaLibrary() {
           backdropFilter: 'blur(12px)', 
           borderRadius: '1rem', 
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
-          border: '1px solid rgba(6, 182, 212, 0.3)', 
+          border: '1px solid rgba(236, 72, 153, 0.3)', 
           padding: '1.5rem', 
           marginBottom: '2rem' 
         }}>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-400 h-5 w-5" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-pink-400 h-5 w-5" />
               <input
                 type="text"
                 placeholder="Buscar arquivos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3.5 bg-slate-900/50 border border-purple-500/30 rounded-xl text-purple-100 placeholder-purple-400/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-slate-900/70 transition-all"
+                className="w-full pl-12 pr-4 py-3.5 bg-slate-900/50 border border-pink-500/30 rounded-xl text-pink-100 placeholder-pink-400/50 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 focus:bg-slate-900/70 transition-all"
               />
             </div>
             <div className="flex items-center space-x-3">
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="px-4 py-3.5 bg-slate-900/50 border border-purple-500/30 rounded-xl text-purple-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-slate-900/70 transition-all cursor-pointer"
+                className="px-4 py-3.5 bg-slate-900/50 border border-pink-500/30 rounded-xl text-pink-100 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 focus:bg-slate-900/70 transition-all cursor-pointer"
               >
                 <option value="all" className="bg-slate-800">Todos</option>
                 <option value="image" className="bg-slate-800">Imagens</option>
                 <option value="video" className="bg-slate-800">Vídeos</option>
               </select>
-              <div className="flex items-center space-x-2 bg-slate-900/50 rounded-xl p-1 border border-purple-500/30">
+              <div className="flex items-center space-x-2 bg-slate-900/50 rounded-xl p-1 border border-pink-500/30">
                     <button
                       onClick={() => setViewMode('grid')}
                       className={`p-2.5 rounded-lg transition-all ${
                         viewMode === 'grid' 
-                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/50' 
-                          : 'text-cyan-300 hover:text-white hover:bg-cyan-500/20'
+                          ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg shadow-pink-500/50' 
+                          : 'text-pink-300 hover:text-white hover:bg-pink-500/20'
                       }`}
                     >
                       <Grid className="h-4 w-4" />
@@ -550,8 +550,8 @@ export default function MediaLibrary() {
                       onClick={() => setViewMode('list')}
                       className={`p-2.5 rounded-lg transition-all ${
                         viewMode === 'list' 
-                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/50' 
-                          : 'text-cyan-300 hover:text-white hover:bg-cyan-500/20'
+                          ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg shadow-pink-500/50' 
+                          : 'text-pink-300 hover:text-white hover:bg-pink-500/20'
                       }`}
                     >
                   <List className="h-4 w-4" />
@@ -580,10 +580,10 @@ export default function MediaLibrary() {
               <div className="w-24 h-24 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-purple-500/30">
                 <Folder className="h-12 w-12 text-purple-400" />
               </div>
-              <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-3">
+              <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-400 mb-3">
                 {searchQuery ? 'Nenhum arquivo encontrado' : 'Biblioteca vazia'}
               </h3>
-              <p className="text-purple-300/70 mb-8">
+              <p className="text-pink-300/70 mb-8">
                 {searchQuery 
                   ? 'Tente ajustar os filtros de busca'
                   : 'Comece fazendo upload de suas primeiras mídias'
@@ -592,7 +592,7 @@ export default function MediaLibrary() {
               {!searchQuery && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all transform hover:scale-105 font-semibold"
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:shadow-2xl hover:shadow-pink-500/50 transition-all transform hover:scale-105 font-semibold"
                 >
                   <Plus className="h-5 w-5" />
                   <span>Fazer Upload</span>
@@ -615,7 +615,7 @@ export default function MediaLibrary() {
                   backdropFilter: 'blur(12px)',
                   borderRadius: '1rem',
                   boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.3)',
-                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  border: '1px solid rgba(236, 72, 153, 0.3)',
                   transition: 'all 0.3s',
                   cursor: 'pointer'
                 }}
@@ -632,7 +632,7 @@ export default function MediaLibrary() {
               >
                 {viewMode === 'grid' ? (
                   <>
-                    <div className="aspect-video bg-gradient-to-br from-slate-900 to-purple-900 relative overflow-hidden">
+                    <div className="aspect-video bg-gradient-to-br from-slate-900 to-red-900 relative overflow-hidden">
                       {file.type === 'image' ? (
                         <img
                           src={file.url}
@@ -650,7 +650,7 @@ export default function MediaLibrary() {
                           <button
                             onClick={() => deleteFile(file.id)}
                             disabled={deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`)}
-                            className="p-3 bg-red-500/90 text-white rounded-xl hover:bg-red-600 transition-all backdrop-blur-sm disabled:opacity-50 shadow-lg"
+                            className="p-3 bg-red-600/90 text-white rounded-xl hover:bg-red-700 transition-all backdrop-blur-sm disabled:opacity-50 shadow-lg"
                             title="Excluir arquivo"
                           >
                             {deletingFiles.has(file.id) || deletingFiles.has(`/${file.id}`) ? (
@@ -663,15 +663,15 @@ export default function MediaLibrary() {
                       </div>
                     </div>
                     <div className="p-5" style={{ background: 'rgba(30, 41, 59, 0.5)' }}>
-                      <h3 className="font-semibold text-purple-100 truncate mb-3 text-sm">{file.name}</h3>
-                      <div className="flex items-center justify-between text-xs text-purple-300/70 mb-4">
+                      <h3 className="font-semibold text-pink-100 truncate mb-3 text-sm">{file.name}</h3>
+                      <div className="flex items-center justify-between text-xs text-pink-300/70 mb-4">
                         <span>{formatFileSize(file.size)}</span>
                         <span>{new Date(file.uploadedAt).toLocaleDateString('pt-BR')}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => copyToClipboard(file.url)}
-                          className="flex-1 flex items-center justify-center space-x-1.5 px-3 py-2.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 rounded-xl transition-all text-xs font-medium border border-purple-500/30"
+                          className="flex-1 flex items-center justify-center space-x-1.5 px-3 py-2.5 bg-pink-500/20 hover:bg-pink-500/30 text-pink-200 rounded-xl transition-all text-xs font-medium border border-pink-500/30"
                         >
                           <Copy className="h-3.5 w-3.5" />
                           <span>Copiar</span>
