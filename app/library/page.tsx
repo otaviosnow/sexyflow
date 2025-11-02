@@ -14,6 +14,18 @@ export default function LibraryPage() {
   const [filter, setFilter] = useState<'all'|'image'|'video'>('all');
   const [uploading, setUploading] = useState(false);
 
+  // Forçar fundo escuro - ANTES de qualquer return
+  useEffect(() => {
+    document.body.style.background = '#0f172a';
+    document.body.style.color = '#ffffff';
+    document.documentElement.style.background = '#0f172a';
+    return () => {
+      document.body.style.background = '';
+      document.body.style.color = '';
+      document.documentElement.style.background = '';
+    };
+  }, []);
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
     if (status === 'authenticated') fetchItems();
@@ -58,18 +70,6 @@ export default function LibraryPage() {
   }
 
   if (status === 'loading') return null;
-
-  // Forçar fundo escuro
-  useEffect(() => {
-    document.body.style.background = '#0f172a';
-    document.body.style.color = '#ffffff';
-    document.documentElement.style.background = '#0f172a';
-    return () => {
-      document.body.style.background = '';
-      document.body.style.color = '';
-      document.documentElement.style.background = '';
-    };
-  }, []);
 
   return (
     <div 
