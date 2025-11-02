@@ -47,16 +47,18 @@ export async function GET(
     const subscription = await Subscription.findOne({ userId: params.id }).lean();
 
     if (subscription) {
-      // Mapear de volta para o formato de exibição
-      const planDisplayMapping: { [key: string]: string } = {
-        'monthly': 'STARTER',
-        'annual': 'PRO'
-      };
+      // Usar realPlanName se disponível, senão mapear de planName (retrocompatibilidade)
+      const planName = subscription.realPlanName || 
+        (subscription.planName === 'monthly' ? 'STARTER' : 
+         subscription.planName === 'annual' ? 'PRO' : 
+         subscription.planName || 'Nenhum');
 
       user.subscription = {
-        plan: planDisplayMapping[subscription.planName] || subscription.planName,
+        plan: planName,
+        realPlanName: subscription.realPlanName || planName,
+        billingCycle: subscription.billingCycle || (subscription.planName === 'annual' || subscription.planName === 'yearly' ? 'yearly' : 'monthly'),
         status: subscription.status,
-        currentPeriodEnd: subscription.currentPeriodEnd
+        expiresAt: subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toISOString() : undefined
       };
     }
 

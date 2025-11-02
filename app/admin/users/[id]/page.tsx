@@ -34,6 +34,8 @@ interface UserDetails {
   isActive: boolean;
   subscription?: {
     plan: string;
+    realPlanName?: string;
+    billingCycle?: 'monthly' | 'yearly';
     status: string;
     expiresAt?: string;
   };
