@@ -2,9 +2,10 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ISubscription extends Document {
   userId: mongoose.Types.ObjectId;
-  planId: string;
-  planName: 'monthly' | 'annual';
-  realPlanName?: 'STARTER' | 'PRO' | 'ENTERPRISE'; // Plano real para distinguir PRO de ENTERPRISE
+  planId: string; // ID do plano (plan-starter-monthly, plan-pro-yearly, etc)
+  planName: string; // Mantido para retrocompatibilidade
+  realPlanName: 'STARTER' | 'PRO' | 'ENTERPRISE'; // Plano real
+  billingCycle: 'monthly' | 'yearly'; // Ciclo de cobrança
   status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'expired';
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
@@ -28,17 +29,22 @@ const SubscriptionSchema = new Schema<ISubscription>({
   planId: {
     type: String,
     required: true,
-    enum: ['monthly', 'annual']
+    // Pode ser plan-starter-monthly, plan-pro-yearly, etc.
   },
   planName: {
     type: String,
-    required: true,
-    enum: ['monthly', 'annual']
+    required: false, // Mantido para retrocompatibilidade
   },
   realPlanName: {
     type: String,
     enum: ['STARTER', 'PRO', 'ENTERPRISE'],
-    required: false
+    required: true
+  },
+  billingCycle: {
+    type: String,
+    enum: ['monthly', 'yearly'],
+    required: true,
+    default: 'monthly'
   },
   status: {
     type: String,

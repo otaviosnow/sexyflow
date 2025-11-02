@@ -3,8 +3,9 @@ export interface Plan {
   name: 'STARTER' | 'PRO' | 'ENTERPRISE';
   displayName: string;
   price: number;
+  monthlyPrice: number; // Preço mensal de referência
   currency: 'BRL';
-  billingCycle: 'monthly';
+  billingCycle: 'monthly' | 'yearly';
   features: {
     subdomains: number;
     pagesPerSubdomain: number;
@@ -20,12 +21,22 @@ export interface Plan {
   updatedAt: Date;
 }
 
+// Preços mensais de referência
+const STARTER_MONTHLY = 29.90;
+const PRO_MONTHLY = 47.00;
+
+// Cálculo de preços anuais: 12 meses - 2 meses de desconto = 10 meses
+const STARTER_YEARLY = STARTER_MONTHLY * 10; // 299.00
+const PRO_YEARLY = PRO_MONTHLY * 10; // 470.00
+
 export const PLANS: Plan[] = [
+  // STARTER Mensal
   {
-    _id: 'plan-starter',
+    _id: 'plan-starter-monthly',
     name: 'STARTER',
     displayName: 'Plano Starter',
-    price: 29.90,
+    price: STARTER_MONTHLY,
+    monthlyPrice: STARTER_MONTHLY,
     currency: 'BRL',
     billingCycle: 'monthly',
     features: {
@@ -42,11 +53,36 @@ export const PLANS: Plan[] = [
     createdAt: new Date(),
     updatedAt: new Date()
   },
+  // STARTER Anual
   {
-    _id: 'plan-pro',
+    _id: 'plan-starter-yearly',
+    name: 'STARTER',
+    displayName: 'Plano Starter',
+    price: STARTER_YEARLY,
+    monthlyPrice: STARTER_MONTHLY,
+    currency: 'BRL',
+    billingCycle: 'yearly',
+    features: {
+      subdomains: 1,
+      pagesPerSubdomain: 3,
+      customDomain: false,
+      photos: 10,
+      videos: 10,
+      analytics: true,
+      support: 'email',
+      templates: false
+    },
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  // PRO Mensal
+  {
+    _id: 'plan-pro-monthly',
     name: 'PRO',
     displayName: 'Plano Pro',
-    price: 47.00,
+    price: PRO_MONTHLY,
+    monthlyPrice: PRO_MONTHLY,
     currency: 'BRL',
     billingCycle: 'monthly',
     features: {
@@ -63,11 +99,36 @@ export const PLANS: Plan[] = [
     createdAt: new Date(),
     updatedAt: new Date()
   },
+  // PRO Anual
   {
-    _id: 'plan-enterprise',
+    _id: 'plan-pro-yearly',
+    name: 'PRO',
+    displayName: 'Plano Pro',
+    price: PRO_YEARLY,
+    monthlyPrice: PRO_MONTHLY,
+    currency: 'BRL',
+    billingCycle: 'yearly',
+    features: {
+      subdomains: 3,
+      pagesPerSubdomain: 8,
+      customDomain: true,
+      photos: 30,
+      videos: 20,
+      analytics: true,
+      support: 'whatsapp',
+      templates: true
+    },
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  // ENTERPRISE Mensal
+  {
+    _id: 'plan-enterprise-monthly',
     name: 'ENTERPRISE',
     displayName: 'Plano Enterprise',
     price: 0, // Contato telefônico
+    monthlyPrice: 0,
     currency: 'BRL',
     billingCycle: 'monthly',
     features: {
@@ -83,8 +144,45 @@ export const PLANS: Plan[] = [
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date()
+  },
+  // ENTERPRISE Anual
+  {
+    _id: 'plan-enterprise-yearly',
+    name: 'ENTERPRISE',
+    displayName: 'Plano Enterprise',
+    price: 0, // Contato telefônico
+    monthlyPrice: 0,
+    currency: 'BRL',
+    billingCycle: 'yearly',
+    features: {
+      subdomains: -1, // Ilimitado
+      pagesPerSubdomain: -1, // Ilimitado
+      customDomain: true,
+      photos: -1, // Ilimitado
+      videos: -1, // Ilimitado
+      analytics: true,
+      support: 'phone',
+      templates: true
+    },
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
   }
 ];
+
+// Helper function para obter plano por name e billingCycle
+export function getPlanByNameAndBilling(name: 'STARTER' | 'PRO' | 'ENTERPRISE', billingCycle: 'monthly' | 'yearly'): Plan | undefined {
+  return PLANS.find(p => p.name === name && p.billingCycle === billingCycle);
+}
+
+// Helper function para obter preço equivalente mensal (útil para cálculos)
+export function getMonthlyEquivalent(plan: Plan): number {
+  if (plan.billingCycle === 'monthly') {
+    return plan.price;
+  }
+  // Para anual, dividir por 12 para mostrar economia
+  return plan.price / 12;
+}
 
 // Palavras proibidas para subdomínios
 export const FORBIDDEN_SUBDOMAIN_WORDS = [

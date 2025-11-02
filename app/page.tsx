@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Check, Star, Crown, Phone, ArrowRight, Users, Zap, Shield } from 'lucide-react';
-import { PLANS } from '@/lib/models/Plan';
+import { PLANS, getPlanByNameAndBilling } from '@/lib/models/Plan';
 
 export default function HomePage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {
     // Se usuário está autenticado, redirecionar para projetos
@@ -18,20 +19,23 @@ export default function HomePage() {
     }
   }, [status, router]);
 
-  const handlePlanClick = (planName: string) => {
+  const handlePlanClick = (planName: 'STARTER' | 'PRO' | 'ENTERPRISE') => {
+    if (planName === 'ENTERPRISE') {
+      window.open('https://wa.me/5531997783097?text=Olá, gostaria de conversar sobre o plano Enterprise do site SexyFlow', '_blank');
+      return;
+    }
+
     // Verificar se está autenticado com NextAuth
     if (!session) {
+      // Salvar billingCycle no localStorage para usar após login
+      localStorage.setItem('pending_billing_cycle', billingCycle);
       alert('Você precisa fazer login primeiro para escolher um plano.');
       router.push('/login');
       return;
     }
     
-    if (planName === 'ENTERPRISE') {
-      window.open('https://wa.me/5531997783097?text=Olá, gostaria de conversar sobre o plano Enterprise do site SexyFlow', '_blank');
-    } else {
-      // Para planos STARTER e PRO, redirecionar para página de escolha de planos
-      router.push('/choose-plan');
-    }
+    // Para planos STARTER e PRO, redirecionar para página de escolha de planos
+    router.push(`/choose-plan?billingCycle=${billingCycle}`);
   };
 
   return (
@@ -154,49 +158,104 @@ export default function HomePage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Escolha seu Plano
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-600 mb-8">
               Planos flexíveis para diferentes necessidades
             </p>
-          </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {PLANS.map((plan) => (
-              <div
-                key={plan._id}
-                className={`relative rounded-2xl border-2 p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-4 ${
-                  plan.name === 'PRO'
-                    ? 'border-green-500 bg-green-50 scale-105'
-                    : plan.name === 'ENTERPRISE'
-                    ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+            {/* Billing Cycle Toggle */}
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-gray-900' : 'text-gray-500'}`}>
+                Mensal
+              </span>
+              <button
+                onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly')}
+                className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+                  billingCycle === 'yearly' ? 'bg-gradient-to-r from-red-600 to-pink-600' : 'bg-gray-300'
                 }`}
               >
-                {/* Plan Header */}
-                <div className="text-center mb-8">
-                  {plan.name === 'PRO' && (
-                    <div className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full mb-4 inline-block">
-                      90% das pessoas escolhem
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                    billingCycle === 'yearly' ? 'translate-x-9' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className={`text-sm font-medium ${billingCycle === 'yearly' ? 'text-gray-900' : 'text-gray-500'}`}>
+                Anual
+              </span>
+              {billingCycle === 'yearly' && (
+                <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">
+                  Economize 2 meses
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Agrupar planos por tipo */}
+          <div className="grid md:grid-cols-3 gap-8">
+            {['STARTER', 'PRO', 'ENTERPRISE'].map((planName) => {
+              const monthlyPlan = getPlanByNameAndBilling(planName as 'STARTER' | 'PRO' | 'ENTERPRISE', 'monthly');
+              const yearlyPlan = getPlanByNameAndBilling(planName as 'STARTER' | 'PRO' | 'ENTERPRISE', 'yearly');
+              const plan = billingCycle === 'monthly' ? monthlyPlan : yearlyPlan;
+              
+              if (!plan) return null;
+
+              const monthlyPrice = plan.monthlyPrice;
+              const yearlySavings = monthlyPrice * 2; // Economia de 2 meses
+
+              return (
+                <div
+                  key={plan._id}
+                  className={`relative rounded-2xl border-2 p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-4 ${
+                    plan.name === 'PRO'
+                      ? 'border-green-500 bg-green-50 scale-105'
+                      : plan.name === 'ENTERPRISE'
+                      ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  {/* Plan Header */}
+                  <div className="text-center mb-8">
+                    {plan.name === 'PRO' && (
+                      <div className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full mb-4 inline-block">
+                        90% das pessoas escolhem
+                      </div>
+                    )}
+                    <div className="flex justify-center mb-4">
+                      {plan.name === 'STARTER' && <Star className="w-6 h-6 text-blue-500" />}
+                      {plan.name === 'PRO' && <Crown className="w-6 h-6 text-green-600" />}
+                      {plan.name === 'ENTERPRISE' && <Phone className="w-6 h-6 text-red-600" />}
                     </div>
-                  )}
-                  <div className="flex justify-center mb-4">
-                    {plan.name === 'STARTER' && <Star className="w-6 h-6 text-blue-500" />}
-                    {plan.name === 'PRO' && <Crown className="w-6 h-6 text-green-600" />}
-                    {plan.name === 'ENTERPRISE' && <Phone className="w-6 h-6 text-red-600" />}
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                      {plan.displayName}
+                    </h3>
+                    {plan.name === 'ENTERPRISE' ? (
+                      <p className="text-lg text-gray-600">Contato Direto</p>
+                    ) : (
+                      <div>
+                        <div className="flex items-baseline justify-center">
+                          <span className="text-4xl font-bold text-gray-900">
+                            R$ {plan.price.toFixed(2).replace('.', ',')}
+                          </span>
+                          {billingCycle === 'yearly' && (
+                            <span className="text-gray-600 ml-2 text-sm">/ano</span>
+                          )}
+                        </div>
+                        {billingCycle === 'yearly' && (
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-600">
+                              R$ {(plan.price / 12).toFixed(2).replace('.', ',')} /mês
+                            </p>
+                            <p className="text-xs text-green-600 font-semibold mt-1">
+                              Economize R$ {yearlySavings.toFixed(2).replace('.', ',')}
+                            </p>
+                          </div>
+                        )}
+                        {billingCycle === 'monthly' && (
+                          <span className="text-gray-600 text-sm">/mês</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                    {plan.displayName}
-                  </h3>
-                  {plan.name === 'ENTERPRISE' ? (
-                    <p className="text-lg text-gray-600">Contato Direto</p>
-                  ) : (
-                    <div className="flex items-baseline justify-center">
-                      <span className="text-4xl font-bold text-gray-900">
-                        R$ {plan.price.toFixed(2).replace('.', ',')}
-                      </span>
-                      <span className="text-gray-600 ml-2">/mês</span>
-                    </div>
-                  )}
-                </div>
 
                 {/* Plan Features */}
                 <div className="space-y-4 mb-8">
@@ -268,24 +327,27 @@ export default function HomePage() {
                   )}
                 </div>
 
-                {/* Plan Button */}
-                <button
-                  onClick={() => handlePlanClick(plan.name)}
-                  className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
-                    plan.name === 'ENTERPRISE'
-                      ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg shadow-red-500/50'
-                      : plan.name === 'PRO'
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-gray-900 hover:bg-gray-800 text-white'
-                  }`}
-                >
-                  {plan.name === 'ENTERPRISE' 
-                    ? 'Falar no WhatsApp' 
-                    : 'Escolher Plano'
-                  }
-                </button>
-              </div>
-            ))}
+                  {/* Plan Button */}
+                  <button
+                    onClick={() => handlePlanClick(plan.name)}
+                    className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
+                      plan.name === 'ENTERPRISE'
+                        ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg shadow-red-500/50'
+                        : plan.name === 'PRO'
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-gray-900 hover:bg-gray-800 text-white'
+                    }`}
+                  >
+                    {plan.name === 'ENTERPRISE' 
+                      ? 'Falar no WhatsApp' 
+                      : billingCycle === 'yearly'
+                      ? 'Assinar Anual'
+                      : 'Assinar Mensal'
+                    }
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
