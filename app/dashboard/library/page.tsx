@@ -572,7 +572,7 @@ export default function MediaLibrary() {
             backdropFilter: 'blur(12px)', 
             borderRadius: '1rem', 
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
-            border: '1px solid rgba(147, 51, 234, 0.3)', 
+            border: '1px solid rgba(236, 72, 153, 0.3)', 
             padding: '4rem', 
             textAlign: 'center' 
           }}>
@@ -687,7 +687,7 @@ export default function MediaLibrary() {
                   </>
                 ) : (
                   <div className="flex items-center p-6">
-                    <div className="w-24 h-24 bg-gradient-to-br from-slate-900 to-purple-900 rounded-xl flex items-center justify-center mr-5 overflow-hidden flex-shrink-0 border border-purple-500/30">
+                    <div className="w-24 h-24 bg-gradient-to-br from-slate-900 to-red-900 rounded-xl flex items-center justify-center mr-5 overflow-hidden flex-shrink-0 border border-pink-500/30">
                       {file.type === 'image' ? (
                         <img
                           src={file.url}
@@ -696,7 +696,7 @@ export default function MediaLibrary() {
                           loading="lazy"
                         />
                       ) : (
-                        <Video className="h-10 w-10 text-purple-400" />
+                        <Video className="h-10 w-10 text-pink-400" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0 mr-5">
