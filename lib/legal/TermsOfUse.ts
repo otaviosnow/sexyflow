@@ -83,7 +83,7 @@ export const TERMS_OF_USE = {
           </div>
           <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #ec4899;">
             <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 1.2rem;">🟪 PRO - R$ 47,00/mês</h3>
-            <p style="color: #4b5563; margin: 0;">3 subdomínios, 8 páginas, 30 fotos, 20 vídeos</p>
+            <p style="color: #4b5563; margin: 0;">3 subdomínios, 8 páginas, 30 fotos, 30 vídeos</p>
           </div>
           <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #10b981;">
             <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 1.2rem;">🟢 ENTERPRISE - Contato telefônico</h3>

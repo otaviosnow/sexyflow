@@ -303,7 +303,7 @@ export const CAKTO_PLANS = {
   // PRO Mensal: R$ 47,00
   'plan-pro-monthly': {
     name: 'SexyFlow Pro Mensal',
-    description: 'Plano Pro mensal - 3 subdomínios, 8 páginas por subdomínio, domínio customizado, 30 fotos, 20 vídeos, templates premium',
+    description: 'Plano Pro mensal - 3 subdomínios, 8 páginas por subdomínio, domínio customizado, 30 fotos, 30 vídeos, templates premium',
     amount: 4700, // R$ 47,00 em centavos
     interval: 'month' as const,
     currency: 'BRL' as const,
@@ -311,7 +311,7 @@ export const CAKTO_PLANS = {
   // PRO Anual: R$ 470,00 (10 meses com desconto de 2 meses)
   'plan-pro-yearly': {
     name: 'SexyFlow Pro Anual',
-    description: 'Plano Pro anual - Economize 2 meses! 3 subdomínios, 8 páginas por subdomínio, domínio customizado, 30 fotos, 20 vídeos, templates premium',
+    description: 'Plano Pro anual - Economize 2 meses! 3 subdomínios, 8 páginas por subdomínio, domínio customizado, 30 fotos, 30 vídeos, templates premium',
     amount: 47000, // R$ 470,00 em centavos
     interval: 'year' as const,
     currency: 'BRL' as const,

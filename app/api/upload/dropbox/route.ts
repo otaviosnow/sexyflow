@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { dropboxService } from '@/lib/dropbox-storage';
+import connectDB from '@/lib/db';
+import Subscription from '@/models/Subscription';
+import { PLANS, getPlanByNameAndBilling } from '@/lib/models/Plan';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const folder = formData.get('folder') as string || 'sexyflow-images';
+    const folder = formData.get('folder') as string || 'library';
     // Usar userId da sessão (segurança) - ignorar qualquer userId do formData
     const userId = session.user.id;
 
@@ -53,13 +56,75 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validar tamanho (máximo 150MB para Dropbox)
-    const maxSize = 150 * 1024 * 1024; // 150MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'Arquivo muito grande. Máximo 150MB' },
-        { status: 400 }
-      );
+    // Validar tamanho baseado no tipo de arquivo
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    
+    if (isImage) {
+      // Imagens: máximo 150MB
+      const maxImageSize = 150 * 1024 * 1024; // 150MB
+      if (file.size > maxImageSize) {
+        return NextResponse.json(
+          { error: 'Imagem muito grande. Máximo 150MB' },
+          { status: 400 }
+        );
+      }
+    } else if (isVideo) {
+      // Vídeos: máximo 2GB
+      const maxVideoSize = 2 * 1024 * 1024 * 1024; // 2GB
+      if (file.size > maxVideoSize) {
+        return NextResponse.json(
+          { error: 'Vídeo muito grande. Máximo 2GB' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Verificar limites do plano (fotos/vídeos totais na biblioteca)
+    await connectDB();
+    const subscription = await Subscription.findOne({ userId }).lean();
+    
+    if (subscription && subscription.status === 'active') {
+      // Obter plano do usuário
+      const planName = subscription.realPlanName as 'STARTER' | 'PRO' | 'ENTERPRISE';
+      const billingCycle = subscription.billingCycle as 'monthly' | 'yearly';
+      const plan = getPlanByNameAndBilling(planName, billingCycle);
+      
+      if (plan) {
+        // Contar arquivos existentes na biblioteca do usuário
+        const userFolder = `library/users/${userId}`;
+        const existingFiles = await dropboxService.listFiles(userFolder, 1000);
+        
+        // Filtrar e contar arquivos por tipo
+        const photoCount = existingFiles.filter((f: any) => {
+          const name = (f.name || '').toLowerCase();
+          return /\.(png|jpg|jpeg|gif|webp|svg)$/.test(name);
+        }).length;
+        
+        const videoCount = existingFiles.filter((f: any) => {
+          const name = (f.name || '').toLowerCase();
+          return /\.(mp4|webm|ogg|mov|mkv)$/.test(name);
+        }).length;
+        
+        // Verificar limite
+        if (isImage && plan.features.photos !== -1) {
+          if (photoCount >= plan.features.photos) {
+            return NextResponse.json(
+              { error: `Você atingiu o limite de ${plan.features.photos} foto(s) do seu plano. Faça upgrade para fazer mais uploads.` },
+              { status: 403 }
+            );
+          }
+        }
+        
+        if (isVideo && plan.features.videos !== -1) {
+          if (videoCount >= plan.features.videos) {
+            return NextResponse.json(
+              { error: `Você atingiu o limite de ${plan.features.videos} vídeo(s) do seu plano. Faça upgrade para fazer mais uploads.` },
+              { status: 403 }
+            );
+          }
+        }
+      }
     }
 
     // Gerar nome único para o arquivo

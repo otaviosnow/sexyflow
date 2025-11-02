@@ -90,7 +90,7 @@ export const PLANS: Plan[] = [
       pagesPerSubdomain: 8,
       customDomain: true,
       photos: 30,
-      videos: 20,
+      videos: 30,
       analytics: true,
       support: 'whatsapp',
       templates: true
@@ -113,7 +113,7 @@ export const PLANS: Plan[] = [
       pagesPerSubdomain: 8,
       customDomain: true,
       photos: 30,
-      videos: 20,
+      videos: 30,
       analytics: true,
       support: 'whatsapp',
       templates: true
