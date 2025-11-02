@@ -376,8 +376,8 @@ export default function MediaLibrary() {
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
         <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(59, 130, 246, 0.2)' }}></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(147, 51, 234, 0.2)', animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(236, 72, 153, 0.1)', animationDelay: '0.5s' }}></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(6, 182, 212, 0.2)', animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(34, 211, 238, 0.1)', animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Header Tech */}
@@ -387,23 +387,23 @@ export default function MediaLibrary() {
           zIndex: 10,
           background: 'rgba(15, 23, 42, 0.8)',
           backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(147, 51, 234, 0.2)',
-          boxShadow: '0 25px 50px -12px rgba(147, 51, 234, 0.1)'
+          borderBottom: '1px solid rgba(6, 182, 212, 0.2)',
+          boxShadow: '0 25px 50px -12px rgba(6, 182, 212, 0.1)'
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-6">
               <button
-                onClick={() => router.push('/dashboard')}
-                className="flex items-center space-x-2 text-purple-300 hover:text-white transition-all p-2.5 rounded-xl hover:bg-purple-500/20 backdrop-blur-sm"
-              >
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center space-x-2 text-cyan-300 hover:text-white transition-all p-2.5 rounded-xl hover:bg-cyan-500/20 backdrop-blur-sm"
+            >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="font-medium hidden sm:inline">Voltar</span>
               </button>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center space-x-2">
-                  <Sparkles className="h-8 w-8 text-purple-400" />
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent flex items-center space-x-2">
+                  <Sparkles className="h-8 w-8 text-cyan-400" />
                   <span>Biblioteca Digital</span>
                 </h1>
                 <p className="text-purple-300/70 text-sm mt-1 flex items-center space-x-2">
@@ -415,9 +415,9 @@ export default function MediaLibrary() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="group relative inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:shadow-2xl hover:shadow-purple-500/50 disabled:opacity-50 transition-all transform hover:scale-105 overflow-hidden"
+              className="group relative inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:shadow-2xl hover:shadow-cyan-500/50 disabled:opacity-50 transition-all transform hover:scale-105 overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="relative flex items-center space-x-2">
                 {uploading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -434,25 +434,25 @@ export default function MediaLibrary() {
       <div className="relative" style={{ zIndex: 10, maxWidth: '1280px', margin: '0 auto', padding: '2.5rem 1rem' }}>
         {/* Progress Bars Tech */}
         {uploadProgress.length > 0 && (
-          <div style={{ 
-            background: 'rgba(30, 41, 59, 0.9)', 
-            backdropFilter: 'blur(12px)', 
-            borderRadius: '1rem', 
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
-            border: '1px solid rgba(147, 51, 234, 0.3)', 
-            padding: '1.5rem', 
-            marginBottom: '2rem' 
-          }}>
+        <div style={{ 
+          background: 'rgba(30, 41, 59, 0.9)', 
+          backdropFilter: 'blur(12px)', 
+          borderRadius: '1rem', 
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
+          border: '1px solid rgba(6, 182, 212, 0.3)', 
+          padding: '1.5rem', 
+          marginBottom: '2rem' 
+        }}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 text-purple-400 animate-spin" />
+              <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 flex items-center space-x-2">
+                <Loader2 className="h-6 w-6 text-cyan-400 animate-spin" />
                 <span>Transferência em Progresso</span>
               </h2>
-              <span className="text-sm text-purple-300 bg-purple-500/20 px-3 py-1 rounded-full">{uploadProgress.length} arquivo(s)</span>
+              <span className="text-sm text-cyan-300 bg-cyan-500/20 px-3 py-1 rounded-full">{uploadProgress.length} arquivo(s)</span>
             </div>
             <div className="space-y-4">
               {uploadProgress.map((progress) => (
-                <div key={progress.id} className="space-y-3 p-5 rounded-xl bg-slate-700/50 hover:bg-slate-700/70 transition-all border border-purple-500/20">
+                <div key={progress.id} className="space-y-3 p-5 rounded-xl bg-slate-700/50 hover:bg-slate-700/70 transition-all border border-cyan-500/20">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
                       {progress.status === 'completed' ? (
@@ -464,12 +464,12 @@ export default function MediaLibrary() {
                           <XCircle className="w-4 h-4 text-white" />
                         </div>
                       ) : (
-                        <div className="flex-shrink-0 w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="flex-shrink-0 w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
                       )}
-                      <span className="text-sm font-medium text-purple-100 truncate flex-1">
+                      <span className="text-sm font-medium text-cyan-100 truncate flex-1">
                         {progress.fileName}
                       </span>
-                      <span className="text-sm font-bold text-purple-300 whitespace-nowrap ml-3 bg-purple-500/20 px-2.5 py-1 rounded-lg">
+                      <span className="text-sm font-bold text-cyan-300 whitespace-nowrap ml-3 bg-cyan-500/20 px-2.5 py-1 rounded-lg">
                         {progress.status === 'completed' ? '100%' : progress.status === 'error' ? 'Erro' : `${progress.progress}%`}
                       </span>
                     </div>
@@ -483,14 +483,14 @@ export default function MediaLibrary() {
                       </button>
                     )}
                   </div>
-                  <div className="w-full bg-slate-900/50 rounded-full h-3 overflow-hidden border border-purple-500/20">
+                  <div className="w-full bg-slate-900/50 rounded-full h-3 overflow-hidden border border-cyan-500/20">
                     <div
                       className={`h-full transition-all duration-500 ease-out rounded-full ${
                         progress.status === 'completed' 
                           ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg shadow-green-500/50' 
                           : progress.status === 'error'
                           ? 'bg-gradient-to-r from-red-500 to-red-600'
-                          : 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 shadow-lg shadow-purple-500/50 animate-pulse'
+                          : 'bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 shadow-lg shadow-cyan-500/50 animate-pulse'
                       }`}
                       style={{ width: `${progress.progress}%` }}
                     />
@@ -510,7 +510,7 @@ export default function MediaLibrary() {
           backdropFilter: 'blur(12px)', 
           borderRadius: '1rem', 
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 
-          border: '1px solid rgba(147, 51, 234, 0.3)', 
+          border: '1px solid rgba(6, 182, 212, 0.3)', 
           padding: '1.5rem', 
           marginBottom: '2rem' 
         }}>
@@ -536,24 +536,24 @@ export default function MediaLibrary() {
                 <option value="video" className="bg-slate-800">Vídeos</option>
               </select>
               <div className="flex items-center space-x-2 bg-slate-900/50 rounded-xl p-1 border border-purple-500/30">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2.5 rounded-lg transition-all ${
-                    viewMode === 'grid' 
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' 
-                      : 'text-purple-300 hover:text-white hover:bg-purple-500/20'
-                  }`}
-                >
-                  <Grid className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2.5 rounded-lg transition-all ${
-                    viewMode === 'list' 
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/50' 
-                      : 'text-purple-300 hover:text-white hover:bg-purple-500/20'
-                  }`}
-                >
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2.5 rounded-lg transition-all ${
+                        viewMode === 'grid' 
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/50' 
+                          : 'text-cyan-300 hover:text-white hover:bg-cyan-500/20'
+                      }`}
+                    >
+                      <Grid className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-2.5 rounded-lg transition-all ${
+                        viewMode === 'list' 
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/50' 
+                          : 'text-cyan-300 hover:text-white hover:bg-cyan-500/20'
+                      }`}
+                    >
                   <List className="h-4 w-4" />
                 </button>
               </div>
@@ -615,17 +615,17 @@ export default function MediaLibrary() {
                   backdropFilter: 'blur(12px)',
                   borderRadius: '1rem',
                   boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.3)',
-                  border: '1px solid rgba(147, 51, 234, 0.3)',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
                   transition: 'all 0.3s',
                   cursor: 'pointer'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.6)';
+                  e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.6)';
                   e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(147, 51, 234, 0.2)';
+                  e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(6, 182, 212, 0.2)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.3)';
+                  e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.3)';
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.boxShadow = '0 10px 30px -5px rgba(0, 0, 0, 0.3)';
                 }}

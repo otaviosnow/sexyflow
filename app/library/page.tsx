@@ -149,7 +149,7 @@ export default function LibraryPage() {
             </button>
             <label style={{ 
               padding: '0.5rem 1rem', 
-              background: 'linear-gradient(to right, #9333ea, #ec4899)', 
+              background: 'linear-gradient(to right, #2563eb, #06b6d4)', 
               color: 'white', 
               borderRadius: '0.5rem', 
               fontSize: '0.875rem', 
