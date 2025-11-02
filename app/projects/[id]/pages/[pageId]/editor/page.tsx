@@ -127,10 +127,21 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
     try {
       setMediaLoading(true);
       const res = await fetch(`/api/media/list?type=${kind}`);
+      if (!res.ok) {
+        console.error('Erro ao buscar mídia:', res.status, res.statusText);
+        toast.error('Erro ao carregar biblioteca');
+        setMediaItems([]);
+        return;
+      }
       const data = await res.json();
-      setMediaItems(data.items || []);
+      console.log('📦 Dados recebidos da API:', data);
+      const items = data.items || [];
+      console.log(`📊 ${items.length} arquivos ${kind} encontrados`);
+      setMediaItems(items);
     } catch(e) {
-      console.error(e);
+      console.error('❌ Erro ao carregar mídia:', e);
+      toast.error('Erro ao carregar biblioteca');
+      setMediaItems([]);
     } finally {
       setMediaLoading(false);
     }
