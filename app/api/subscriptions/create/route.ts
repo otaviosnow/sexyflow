@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
       // Extrair informações do plano
       const [_, planType, billingCycle] = planId.split('-'); // plan-starter-monthly -> ['plan', 'starter', 'monthly']
       const planName = planType.toUpperCase() as 'STARTER' | 'PRO';
-      
+      const finalBillingCycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
+
       // Criar cliente na Cakto
       const caktoCustomer = await caktoService.createCustomer({
         name: customerData.name,
@@ -68,66 +69,76 @@ export async function POST(request: NextRequest) {
         document: customerData.document // CPF
       });
 
-      // Criar plano na Cakto (se não existir)
+      // Criar plano na Cakto (se não existir) - pode ser feito manualmente no painel da Cakto
       let caktoPlan;
       try {
         // Tentar criar o plano (pode já existir)
         caktoPlan = await caktoService.createPlan(planData);
         console.log('✅ Plano criado na Cakto:', caktoPlan.id);
       } catch (error: any) {
-        // Se falhar, assumir que o plano já existe e buscar pelo nome
-        console.log('⚠️ Plano pode já existir na Cakto, tentando buscar...');
-        // Em produção, você pode buscar o plano existente aqui
+        // Se falhar, assumir que o plano já existe
+        console.log('⚠️ Plano pode já existir na Cakto:', planData.name);
       }
 
-      // Criar assinatura na Cakto
-      const caktoSubscription = await caktoService.createSubscription({
-        customer_id: caktoCustomer.id,
-        plan_id: planData.name, // Usar nome do plano para buscar/criar
-        payment_method: paymentMethod
+      // Criar link de checkout na Cakto
+      // O usuário será redirecionado para este link para completar o pagamento
+      const checkout = await caktoService.createCheckoutLink({
+        planId: planId,
+        planName: planData.name,
+        amount: planData.amount,
+        interval: planData.interval,
+        customer: {
+          name: customerData.name,
+          email: customerData.email,
+          document: customerData.document
+        },
+        metadata: {
+          userId: user._id.toString(),
+          planId: planId,
+          realPlanName: planName,
+          billingCycle: finalBillingCycle
+        }
       });
 
-      // Calcular billingCycle
-      const finalBillingCycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
-
-      // Salvar assinatura no nosso banco
+      // Criar assinatura pendente no nosso banco (será ativada quando o webhook confirmar o pagamento)
       const subscription = new Subscription({
         userId: user._id,
         planId: planId,
-        planName: finalBillingCycle === 'yearly' ? 'yearly' : 'monthly', // Retrocompatibilidade
+        planName: finalBillingCycle === 'yearly' ? 'yearly' : 'monthly',
         realPlanName: planName,
         billingCycle: finalBillingCycle,
-        status: caktoSubscription.status,
-        currentPeriodStart: new Date(caktoSubscription.current_period_start),
-        currentPeriodEnd: new Date(caktoSubscription.current_period_end),
-        cancelAtPeriodEnd: caktoSubscription.cancel_at_period_end,
-        stripeSubscriptionId: caktoSubscription.id, // ID da assinatura na Cakto
+        status: 'pending', // Pendente até confirmação via webhook
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: finalBillingCycle === 'yearly' 
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 365 dias
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias
+        cancelAtPeriodEnd: false,
+        stripeSubscriptionId: checkout.paymentId, // ID do checkout/pagamento na Cakto
         stripeCustomerId: caktoCustomer.id // ID do cliente na Cakto
       });
 
       await subscription.save();
 
-      // Atualizar usuário
-      await User.findByIdAndUpdate(user._id, {
-        planType: finalBillingCycle === 'yearly' ? 'YEARLY' : 'MONTHLY',
-        planStartDate: new Date(caktoSubscription.current_period_start),
-        planEndDate: new Date(caktoSubscription.current_period_end)
-      });
+      console.log(`✅ Link de checkout criado para ${planName} (${finalBillingCycle}) - usuário ${user.email}`);
+      console.log(`🔗 URL: ${checkout.checkoutUrl}`);
 
-      console.log(`✅ Assinatura criada: ${planName} (${finalBillingCycle}) para usuário ${user.email}`);
-
+      // Retornar link de checkout para redirecionamento
       return NextResponse.json({
         success: true,
-        subscription,
-        caktoSubscription,
-        message: `Assinatura ${planName} (${finalBillingCycle === 'yearly' ? 'anual' : 'mensal'}) criada com sucesso!`
+        checkoutUrl: checkout.checkoutUrl,
+        paymentId: checkout.paymentId,
+        subscription: {
+          id: subscription._id,
+          status: subscription.status
+        },
+        message: 'Redirecione o usuário para o link de checkout para completar o pagamento'
       });
 
     } catch (caktoError: any) {
       console.error('❌ Erro na integração com Cakto:', caktoError);
       
       return NextResponse.json({
-        error: 'Erro ao processar pagamento',
+        error: 'Erro ao criar checkout na Cakto',
         details: caktoError.message || 'Erro desconhecido na Cakto'
       }, { status: 400 });
     }

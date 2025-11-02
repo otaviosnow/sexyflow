@@ -96,7 +96,52 @@ class CaktoService {
     });
   }
 
-  // Criar assinatura
+  // Criar link de checkout para pagamento
+  async createCheckoutLink(checkoutData: {
+    planId: string;
+    planName: string;
+    amount: number; // em centavos
+    interval: 'month' | 'year';
+    customer: {
+      name: string;
+      email: string;
+      document: string; // CPF
+    };
+    metadata: {
+      userId: string;
+      planId: string;
+      realPlanName: string;
+      billingCycle: string;
+    };
+  }): Promise<{ checkoutUrl: string; paymentId: string }> {
+    const checkoutPayload = {
+      amount: checkoutData.amount,
+      currency: 'BRL',
+      description: `Assinatura ${checkoutData.planName} - SexyFlow`,
+      customer: checkoutData.customer,
+      metadata: checkoutData.metadata,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/payment/success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/payment/cancel`,
+      webhook_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/api/webhooks/cakto`,
+      // Para assinaturas recorrentes
+      recurring: checkoutData.interval === 'month' || checkoutData.interval === 'year',
+      interval: checkoutData.interval,
+    };
+
+    // A Cakto pode ter um endpoint específico para checkout ou usar o mesmo endpoint de pagamentos
+    // Ajuste conforme a documentação da Cakto
+    const response = await this.makeRequest('/checkouts', {
+      method: 'POST',
+      body: JSON.stringify(checkoutPayload),
+    });
+
+    return {
+      checkoutUrl: response.checkout_url || response.url || response.payment_url,
+      paymentId: response.id || response.payment_id || response.checkout_id,
+    };
+  }
+
+  // Criar assinatura (método alternativo se a Cakto suportar criar assinatura diretamente)
   async createSubscription(subscriptionData: {
     customer_id: string;
     plan_id: string;

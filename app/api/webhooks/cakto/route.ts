@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import connectDB from '@/lib/db';
+import Subscription from '@/models/Subscription';
+import User from '@/models/User';
 
 // Configurações da Cakto
-const CAKTO_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw0B_-gTxGTYw9fzWJNJip3skwg4lXm-HWtoXHuwItXU0IvRbr1Ic9xmkS0PPKRtWtwew/exec';
-const CAKTO_WEBHOOK_SECRET = '0082bb51-0cf7-4b49-8f69-11400a59b6e3';
+const CAKTO_WEBHOOK_SECRET = process.env.CAKTO_WEBHOOK_SECRET || '0082bb51-0cf7-4b49-8f69-11400a59b6e3';
 
 // Tipos de eventos da Cakto
 interface CaktoWebhookEvent {
@@ -39,124 +41,215 @@ function verifyWebhookSignature(payload: string, signature: string): boolean {
 }
 
 // Processar evento de pagamento aprovado
-async function handlePaymentApproved(event: CaktoWebhookEvent) {
+async function handlePaymentApproved(event: any) {
   console.log('💰 Pagamento aprovado:', event.data);
   
   try {
-    // Atualizar status da assinatura no banco de dados
-    // Em desenvolvimento, usar localStorage
-    const subscriptionData = {
-      userId: event.data.userId,
-      planId: event.data.planId,
-      paymentId: event.data.paymentId,
-      status: 'active',
-      amount: event.data.amount,
-      currency: event.data.currency,
-      paidAt: new Date().toISOString(),
-      nextBillingDate: event.data.metadata?.nextBillingDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-    };
+    await connectDB();
+
+    // Extrair dados do evento (estrutura pode variar conforme a Cakto envia)
+    const metadata = event.data.metadata || event.metadata || {};
+    const userId = metadata.userId || event.data.userId;
+    const planId = metadata.planId || event.data.planId;
+    const paymentId = event.data.paymentId || event.data.id || event.id;
     
-    // Salvar no localStorage (em produção, salvar no banco)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`subscription_${event.data.userId}`, JSON.stringify(subscriptionData));
+    if (!userId || !planId) {
+      console.error('❌ Dados incompletos no webhook:', { userId, planId });
+      return { success: false, message: 'Dados incompletos no webhook' };
     }
-    
-    // Enviar notificação de sucesso
-    console.log('✅ Assinatura ativada para usuário:', event.data.userId);
+
+    // Buscar subscription pendente pelo paymentId ou userId + planId
+    let subscription = await Subscription.findOne({
+      $or: [
+        { stripeSubscriptionId: paymentId },
+        { userId: userId, planId: planId, status: 'pending' }
+      ]
+    });
+
+    if (subscription) {
+      // Atualizar subscription existente
+      subscription.status = 'active';
+      subscription.stripeSubscriptionId = paymentId;
+      subscription.currentPeriodStart = new Date();
+      
+      // Calcular período final baseado no billingCycle
+      const billingCycle = subscription.billingCycle || metadata.billingCycle || 'monthly';
+      subscription.currentPeriodEnd = billingCycle === 'yearly'
+        ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 365 dias
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 dias
+
+      await subscription.save();
+      console.log('✅ Subscription atualizada e ativada:', subscription._id);
+    } else {
+      // Criar nova subscription se não encontrada (caso o webhook chegue antes do checkout ser criado)
+      console.log('⚠️ Subscription não encontrada, criando nova...');
+      subscription = new Subscription({
+        userId: userId,
+        planId: planId,
+        realPlanName: metadata.realPlanName || 'STARTER',
+        billingCycle: metadata.billingCycle || 'monthly',
+        planName: metadata.billingCycle === 'yearly' ? 'yearly' : 'monthly',
+        status: 'active',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: metadata.billingCycle === 'yearly'
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        stripeSubscriptionId: paymentId,
+        cancelAtPeriodEnd: false
+      });
+      await subscription.save();
+      console.log('✅ Nova subscription criada:', subscription._id);
+    }
+
+    // Atualizar usuário
+    await User.findByIdAndUpdate(userId, {
+      planType: subscription.billingCycle === 'yearly' ? 'YEARLY' : 'MONTHLY',
+      planStartDate: subscription.currentPeriodStart,
+      planEndDate: subscription.currentPeriodEnd
+    });
+
+    console.log('✅ Assinatura ativada para usuário:', userId);
     
     return { success: true, message: 'Pagamento processado com sucesso' };
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao processar pagamento aprovado:', error);
-    return { success: false, message: 'Erro interno do servidor' };
+    return { success: false, message: error.message || 'Erro interno do servidor' };
   }
 }
 
 // Processar evento de pagamento falhado
-async function handlePaymentFailed(event: CaktoWebhookEvent) {
+async function handlePaymentFailed(event: any) {
   console.log('❌ Pagamento falhado:', event.data);
   
   try {
-    // Atualizar status da assinatura
-    const subscriptionData = {
-      userId: event.data.userId,
-      planId: event.data.planId,
-      paymentId: event.data.paymentId,
-      status: 'failed',
-      amount: event.data.amount,
-      currency: event.data.currency,
-      failedAt: new Date().toISOString()
-    };
-    
-    // Salvar no localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`subscription_${event.data.userId}`, JSON.stringify(subscriptionData));
+    await connectDB();
+
+    const metadata = event.data.metadata || event.metadata || {};
+    const userId = metadata.userId || event.data.userId;
+    const paymentId = event.data.paymentId || event.data.id || event.id;
+
+    // Buscar subscription pelo paymentId
+    const subscription = await Subscription.findOne({
+      stripeSubscriptionId: paymentId
+    });
+
+    if (subscription) {
+      subscription.status = 'unpaid';
+      await subscription.save();
+      console.log('⚠️ Subscription marcada como unpaid:', subscription._id);
     }
-    
-    // Enviar notificação de falha
-    console.log('⚠️ Pagamento falhado para usuário:', event.data.userId);
+
+    console.log('⚠️ Pagamento falhado para usuário:', userId);
     
     return { success: true, message: 'Status de pagamento atualizado' };
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao processar pagamento falhado:', error);
-    return { success: false, message: 'Erro interno do servidor' };
+    return { success: false, message: error.message || 'Erro interno do servidor' };
   }
 }
 
 // Processar evento de reembolso
-async function handlePaymentRefunded(event: CaktoWebhookEvent) {
+async function handlePaymentRefunded(event: any) {
   console.log('🔄 Reembolso processado:', event.data);
   
   try {
-    // Atualizar status da assinatura
-    const subscriptionData = {
-      userId: event.data.userId,
-      planId: event.data.planId,
-      paymentId: event.data.paymentId,
-      status: 'refunded',
-      amount: event.data.amount,
-      currency: event.data.currency,
-      refundedAt: new Date().toISOString()
-    };
-    
-    // Salvar no localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`subscription_${event.data.userId}`, JSON.stringify(subscriptionData));
+    await connectDB();
+
+    const metadata = event.data.metadata || event.metadata || {};
+    const userId = metadata.userId || event.data.userId;
+    const paymentId = event.data.paymentId || event.data.id || event.id;
+
+    // Buscar e cancelar subscription
+    const subscription = await Subscription.findOne({
+      stripeSubscriptionId: paymentId
+    });
+
+    if (subscription) {
+      subscription.status = 'canceled';
+      subscription.canceledAt = new Date();
+      await subscription.save();
+      console.log('💸 Subscription cancelada por reembolso:', subscription._id);
     }
-    
-    console.log('💸 Reembolso processado para usuário:', event.data.userId);
+
+    console.log('💸 Reembolso processado para usuário:', userId);
     
     return { success: true, message: 'Reembolso processado' };
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao processar reembolso:', error);
-    return { success: false, message: 'Erro interno do servidor' };
+    return { success: false, message: error.message || 'Erro interno do servidor' };
   }
 }
 
-// Processar evento de assinatura cancelada
-async function handleSubscriptionCancelled(event: CaktoWebhookEvent) {
+// Processar evento de assinatura cancelada ou renovação
+async function handleSubscriptionCancelled(event: any) {
   console.log('🚫 Assinatura cancelada:', event.data);
   
   try {
-    // Atualizar status da assinatura
-    const subscriptionData = {
-      userId: event.data.userId,
-      planId: event.data.planId,
-      paymentId: event.data.paymentId,
-      status: 'cancelled',
-      cancelledAt: new Date().toISOString()
-    };
-    
-    // Salvar no localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`subscription_${event.data.userId}`, JSON.stringify(subscriptionData));
+    await connectDB();
+
+    const subscriptionId = event.data.subscriptionId || event.data.id;
+    const userId = event.data.customer_id ? 
+      await Subscription.findOne({ stripeCustomerId: event.data.customer_id }).then(s => s?.userId) :
+      null;
+
+    // Buscar subscription
+    const subscription = await Subscription.findOne({
+      $or: [
+        { stripeSubscriptionId: subscriptionId },
+        { stripeCustomerId: event.data.customer_id }
+      ]
+    });
+
+    if (subscription) {
+      subscription.status = 'canceled';
+      subscription.cancelAtPeriodEnd = true;
+      subscription.canceledAt = new Date();
+      await subscription.save();
+      console.log('🚫 Subscription cancelada:', subscription._id);
     }
-    
-    console.log('🚫 Assinatura cancelada para usuário:', event.data.userId);
-    
+
     return { success: true, message: 'Assinatura cancelada' };
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao processar cancelamento:', error);
-    return { success: false, message: 'Erro interno do servidor' };
+    return { success: false, message: error.message || 'Erro interno do servidor' };
+  }
+}
+
+// Processar renovação de assinatura (pagamento recorrente)
+async function handleSubscriptionRenewed(event: any) {
+  console.log('🔄 Assinatura renovada:', event.data);
+  
+  try {
+    await connectDB();
+
+    const subscriptionId = event.data.subscriptionId || event.data.id;
+
+    const subscription = await Subscription.findOne({
+      stripeSubscriptionId: subscriptionId
+    });
+
+    if (subscription) {
+      // Atualizar período
+      subscription.currentPeriodStart = new Date(event.data.current_period_start || Date.now());
+      subscription.currentPeriodEnd = new Date(event.data.current_period_end || 
+        (subscription.billingCycle === 'yearly' 
+          ? Date.now() + 365 * 24 * 60 * 60 * 1000 
+          : Date.now() + 30 * 24 * 60 * 60 * 1000));
+      subscription.status = 'active';
+      await subscription.save();
+
+      // Atualizar usuário
+      await User.findByIdAndUpdate(subscription.userId, {
+        planEndDate: subscription.currentPeriodEnd
+      });
+
+      console.log('✅ Subscription renovada:', subscription._id);
+    }
+
+    return { success: true, message: 'Renovação processada' };
+  } catch (error: any) {
+    console.error('❌ Erro ao processar renovação:', error);
+    return { success: false, message: error.message || 'Erro interno do servidor' };
   }
 }
 
@@ -186,36 +279,56 @@ export async function POST(request: NextRequest) {
     console.log('📊 Evento:', event.event);
     console.log('📋 Dados:', event.data);
     
+    // A Cakto pode enviar eventos em formatos diferentes
+    // Tentar detectar o tipo de evento
+    const eventType = event.type || event.event || event.action;
+    console.log('📊 Tipo de evento detectado:', eventType);
+
     let result;
     
     // Processar evento baseado no tipo
-    switch (event.event) {
+    switch (eventType) {
       case 'payment.approved':
+      case 'payment.succeeded':
+      case 'payment.completed':
+      case 'subscription.created':
+        // Pagamento aprovado ou assinatura criada
         result = await handlePaymentApproved(event);
         break;
         
       case 'payment.failed':
+      case 'payment.declined':
+        // Pagamento falhado
         result = await handlePaymentFailed(event);
         break;
         
       case 'payment.refunded':
+      case 'refund.processed':
+        // Reembolso
         result = await handlePaymentRefunded(event);
         break;
         
-      case 'subscription.created':
-        result = await handlePaymentApproved(event); // Tratar como pagamento aprovado
-        break;
-        
       case 'subscription.cancelled':
+      case 'subscription.canceled':
+        // Assinatura cancelada
         result = await handleSubscriptionCancelled(event);
+        break;
+
+      case 'subscription.renewed':
+      case 'subscription.updated':
+        // Renovação de assinatura
+        result = await handleSubscriptionRenewed(event);
         break;
         
       default:
-        console.log('⚠️ Evento não reconhecido:', event.event);
-        return NextResponse.json(
-          { error: 'Evento não reconhecido' },
-          { status: 400 }
-        );
+        console.log('⚠️ Evento não reconhecido:', eventType);
+        console.log('📋 Evento completo:', JSON.stringify(event, null, 2));
+        // Retornar sucesso mesmo para eventos não reconhecidos (para não bloquear webhooks)
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Evento recebido mas não processado',
+          eventType 
+        });
     }
     
     if (result.success) {
@@ -243,6 +356,14 @@ export async function GET() {
   return NextResponse.json({
     message: 'Webhook da Cakto funcionando',
     timestamp: new Date().toISOString(),
-    url: CAKTO_WEBHOOK_URL
+    webhookUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/api/webhooks/cakto`,
+    eventsSupported: [
+      'payment.approved',
+      'payment.failed',
+      'payment.refunded',
+      'subscription.created',
+      'subscription.cancelled',
+      'subscription.renewed'
+    ]
   });
 }

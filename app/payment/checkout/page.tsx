@@ -31,42 +31,47 @@ export default function CheckoutPage() {
   }, [status, session, router]);
 
   const handlePayment = async () => {
-    if (!paymentData) return;
+    if (!paymentData || !session) return;
 
     setIsProcessing(true);
 
     try {
-      // Simular processamento de pagamento
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Chamar API para criar checkout na Cakto
+      const response = await fetch('/api/subscriptions/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId: paymentData.planId,
+          customerData: {
+            name: session.user.name || session.user.email || 'Cliente',
+            email: session.user.email || '',
+            document: '' // CPF - pode ser coletado no formulário ou na Cakto
+          },
+          paymentMethod: {
+            type: 'credit_card' // Ou pix, boleto - a Cakto pode permitir escolha na página deles
+          }
+        })
+      });
 
-      // Criar assinatura ativa
-      const subscription = {
-        _id: `sub-${Date.now()}`,
-        userId: paymentData.userId,
-        planId: paymentData.planId,
-        status: 'active',
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        paymentId: `payment-${Date.now()}`,
-        amount: paymentData.amount,
-        currency: 'BRL',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      const result = await response.json();
 
-      // Salvar assinatura
-      localStorage.setItem(`subscription_${paymentData.userId}`, JSON.stringify(subscription));
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar checkout');
+      }
+
+      if (result.checkoutUrl) {
+        // Redirecionar para o checkout da Cakto
+        console.log('🔗 Redirecionando para checkout da Cakto:', result.checkoutUrl);
+        window.location.href = result.checkoutUrl;
+      } else {
+        throw new Error('Link de checkout não retornado');
+      }
       
-      // Remover pagamento pendente
-      localStorage.removeItem(`pending_payment_${paymentData.userId}`);
-
-      // Redirecionar para sucesso
-      router.push('/payment/success');
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no pagamento:', error);
-      alert('Erro no processamento do pagamento. Tente novamente.');
-    } finally {
+      alert(error.message || 'Erro no processamento do pagamento. Tente novamente.');
       setIsProcessing(false);
     }
   };
