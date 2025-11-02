@@ -146,13 +146,13 @@ export default function CustomDomainPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'verified':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-50 text-green-700 border-green-200';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-50 text-red-700 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
@@ -171,14 +171,10 @@ export default function CustomDomainPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(220, 38, 38, 0.2)' }}></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(236, 72, 153, 0.2)', animationDelay: '1s' }}></div>
-        </div>
-        <div className="relative text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-red-200 text-lg font-medium">Carregando domínios...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-400 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
         </div>
       </div>
     );
@@ -189,76 +185,28 @@ export default function CustomDomainPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(220, 38, 38, 0.2)' }}></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(236, 72, 153, 0.2)', animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'rgba(168, 85, 247, 0.1)', animationDelay: '0.5s' }}></div>
-      </div>
-
-      {/* Header */}
-      <div 
-        className="relative sticky top-0 z-10"
-        style={{ 
-          background: 'rgba(15, 23, 42, 0.8)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(236, 72, 153, 0.2)',
-          boxShadow: '0 25px 50px -12px rgba(236, 72, 153, 0.1)'
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-6">
-              <button
-                onClick={() => router.push('/projects')}
-                className="flex items-center space-x-2 text-pink-300 hover:text-white transition-all p-2.5 rounded-xl hover:bg-pink-500/20 backdrop-blur-sm"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="font-medium hidden sm:inline">Voltar</span>
-              </button>
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-r from-red-600 to-pink-600 shadow-lg shadow-red-500/50">
-                  <Globe className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-red-400 via-pink-400 to-red-500 bg-clip-text text-transparent">
-                    Domínio Próprio
-                  </h1>
-                  <p className="text-pink-300/70 text-sm">Conecte seu próprio domínio</p>
-                </div>
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Minimalista */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/projects')}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Domínio Próprio</h1>
+              <p className="text-sm text-gray-500 mt-1">Conecte seu domínio personalizado</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Adicionar Domínio */}
-        <div
-          style={{
-            background: 'rgba(30, 41, 59, 0.9)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: '1rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-            border: '1px solid rgba(236, 72, 153, 0.3)',
-            padding: '2rem',
-            marginBottom: '2rem'
-          }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-red-600 to-pink-600">
-              <Globe className="h-5 w-5 text-white" />
-            </div>
-            <h2 className="text-xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
-              Conectar Domínio
-            </h2>
-          </div>
-          
-          <p className="text-pink-200/70 mb-6">
-            Conecte seu próprio domínio para ter uma URL personalizada para seu projeto.
-          </p>
-
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Formulário de Adição */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex gap-4">
             <div className="flex-1">
               <input
@@ -266,100 +214,55 @@ export default function CustomDomainPage() {
                 value={newDomain}
                 onChange={(e) => setNewDomain(e.target.value)}
                 placeholder="exemplo.com"
-                className="w-full px-4 py-3 bg-slate-900/50 border border-pink-500/30 rounded-xl text-pink-100 placeholder-pink-400/50 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 focus:bg-slate-900/70 transition-all"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
               />
             </div>
             <button
               onClick={handleAddDomain}
               disabled={addingDomain || !newDomain.trim()}
-              className="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-semibold shadow-lg shadow-red-500/50"
+              className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
-              {addingDomain ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                <Globe className="h-4 w-4" />
-              )}
               {addingDomain ? 'Adicionando...' : 'Adicionar'}
             </button>
           </div>
         </div>
 
-        {/* Instruções */}
-        <div
-          style={{
-            background: 'rgba(59, 130, 246, 0.1)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: '1rem',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            padding: '1.5rem',
-            marginBottom: '2rem'
-          }}
-        >
+        {/* Instruções Simples */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/20">
-              <Info className="h-5 w-5 text-blue-400" />
-            </div>
-            <div>
-              <h3 className="font-medium text-blue-300 mb-2">Como conectar seu domínio</h3>
-              <ol className="text-sm text-blue-200 space-y-2 list-decimal list-inside">
+            <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-blue-900">
+              <p className="font-medium mb-1">Como conectar:</p>
+              <ol className="list-decimal list-inside space-y-1 text-blue-800">
                 <li>Adicione seu domínio acima</li>
-                <li>Configure os registros DNS conforme instruções</li>
-                <li>Verifique a conexão</li>
-                <li>Seu domínio estará ativo em até 24 horas</li>
+                <li>Configure um registro CNAME apontando www.{'{'}domínio{'}'} para sexyflow.onrender.com</li>
+                <li>Clique em "Verificar" após a configuração</li>
               </ol>
             </div>
           </div>
         </div>
 
         {/* Lista de Domínios */}
-        <div
-          style={{
-            background: 'rgba(30, 41, 59, 0.9)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: '1rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-            border: '1px solid rgba(236, 72, 153, 0.3)',
-            padding: '2rem'
-          }}
-        >
-          <h2 className="text-xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent mb-6">
-            Meus Domínios
-          </h2>
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Meus Domínios</h2>
+          </div>
 
           {domains.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-500/20 to-pink-500/20 rounded-full mb-6">
-                <Globe className="h-10 w-10 text-pink-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-200 mb-2">Nenhum domínio conectado</h3>
-              <p className="text-pink-300/70">Adicione seu primeiro domínio personalizado</p>
+            <div className="p-12 text-center">
+              <Globe className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum domínio conectado</h3>
+              <p className="text-gray-500">Adicione seu primeiro domínio acima</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y divide-gray-200">
               {domains.map((domain) => (
-                <div
-                  key={domain._id}
-                  style={{
-                    background: 'rgba(51, 65, 85, 0.5)',
-                    borderRadius: '0.75rem',
-                    padding: '1.25rem',
-                    border: '1px solid rgba(236, 72, 153, 0.2)',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.5)';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.2)';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
-                >
-                  <div className="flex items-center justify-between">
+                <div key={domain._id} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-medium text-gray-100">{domain.domain}</h3>
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(domain.status)}`}>
+                        <h3 className="font-medium text-gray-900">{domain.domain}</h3>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(domain.status)}`}>
                           {domain.status === 'verified' && <Check className="h-3 w-3" />}
                           {domain.status === 'pending' && <RefreshCw className="h-3 w-3" />}
                           {domain.status === 'failed' && <X className="h-3 w-3" />}
@@ -368,62 +271,44 @@ export default function CustomDomainPage() {
                       </div>
                       
                       {domain.status === 'pending' && (
-                        <div
-                          style={{
-                            background: 'rgba(234, 179, 8, 0.1)',
-                            border: '1px solid rgba(234, 179, 8, 0.3)',
-                            borderRadius: '0.5rem',
-                            padding: '1rem',
-                            marginBottom: '0.75rem'
-                          }}
-                        >
-                          <h4 className="font-medium text-yellow-300 mb-2">Configuração DNS necessária</h4>
-                          <p className="text-yellow-200/80 text-xs mb-3">
-                            Adicione um registro CNAME no seu provedor de DNS apontando www.{domain.domain} para sexyflow.onrender.com
-                          </p>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-3 mb-3">
+                          <p className="text-sm text-yellow-900 font-medium mb-3">Configuração DNS necessária:</p>
                           <div className="space-y-2 text-sm">
-                            <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-2">
-                              <div className="flex-1">
-                                <span className="text-yellow-200/70 text-xs block mb-1">Nome do Registro:</span>
-                                <span className="text-yellow-200 font-mono">www.{domain.domain}</span>
+                            <div className="flex items-center justify-between bg-white rounded p-2">
+                              <div>
+                                <span className="text-gray-500 text-xs">Nome:</span>
+                                <span className="text-gray-900 font-mono ml-2">www.{domain.domain}</span>
                               </div>
                               <button
                                 onClick={() => copyToClipboard(`www.${domain.domain}`)}
-                                className="text-yellow-300 hover:text-yellow-100 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-yellow-500/20"
+                                className="text-gray-600 hover:text-gray-900 transition-colors"
                               >
-                                <Copy className="h-3 w-3" />
-                                Copiar
+                                <Copy className="h-4 w-4" />
                               </button>
                             </div>
-                            <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-2">
-                              <div className="flex-1">
-                                <span className="text-yellow-200/70 text-xs block mb-1">Tipo:</span>
-                                <span className="text-yellow-200">CNAME</span>
+                            <div className="flex items-center justify-between bg-white rounded p-2">
+                              <div>
+                                <span className="text-gray-500 text-xs">Tipo:</span>
+                                <span className="text-gray-900 ml-2">CNAME</span>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-2">
-                              <div className="flex-1">
-                                <span className="text-yellow-200/70 text-xs block mb-1">Valor/Destino:</span>
-                                <span className="text-yellow-200 font-mono">sexyflow.onrender.com</span>
+                            <div className="flex items-center justify-between bg-white rounded p-2">
+                              <div>
+                                <span className="text-gray-500 text-xs">Valor:</span>
+                                <span className="text-gray-900 font-mono ml-2">sexyflow.onrender.com</span>
                               </div>
                               <button
                                 onClick={() => copyToClipboard('sexyflow.onrender.com')}
-                                className="text-yellow-300 hover:text-yellow-100 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-yellow-500/20"
+                                className="text-gray-600 hover:text-gray-900 transition-colors"
                               >
-                                <Copy className="h-3 w-3" />
-                                Copiar
+                                <Copy className="h-4 w-4" />
                               </button>
-                            </div>
-                            <div className="mt-3 pt-3 border-t border-yellow-500/20">
-                              <p className="text-yellow-200/70 text-xs">
-                                ⏱️ Após configurar, aguarde alguns minutos para a propagação DNS e clique em "Verificar"
-                              </p>
                             </div>
                           </div>
                         </div>
                       )}
 
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-gray-500">
                         Adicionado em {new Date(domain.createdAt).toLocaleDateString('pt-BR')}
                         {domain.verifiedAt && (
                           <span> • Verificado em {new Date(domain.verifiedAt).toLocaleDateString('pt-BR')}</span>
@@ -431,19 +316,18 @@ export default function CustomDomainPage() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-2 ml-6">
                       {domain.status === 'pending' && (
                         <button
                           onClick={() => handleVerifyDomain(domain._id)}
                           disabled={verifying === domain._id}
-                          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm flex items-center gap-1 transition-colors shadow-lg"
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors"
                         >
                           {verifying === domain._id ? (
                             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                           ) : (
-                            <RefreshCw className="h-3 w-3" />
+                            'Verificar'
                           )}
-                          Verificar
                         </button>
                       )}
                       
@@ -452,7 +336,7 @@ export default function CustomDomainPage() {
                           href={`https://${domain.domain}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm flex items-center gap-1 transition-colors shadow-lg"
+                          className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors inline-flex items-center gap-1"
                         >
                           <ExternalLink className="h-3 w-3" />
                           Visitar
@@ -461,9 +345,8 @@ export default function CustomDomainPage() {
 
                       <button
                         onClick={() => handleDeleteDomain(domain._id)}
-                        className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm flex items-center gap-1 transition-colors shadow-lg"
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition-colors"
                       >
-                        <X className="h-3 w-3" />
                         Remover
                       </button>
                     </div>
