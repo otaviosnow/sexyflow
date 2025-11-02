@@ -126,8 +126,8 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
   async function loadMedia(kind: 'image' | 'video') {
     try {
       setMediaLoading(true);
-      // Buscar todos os arquivos, não filtrar por tipo - o usuário pode escolher qualquer arquivo
-      const res = await fetch(`/api/media/list`);
+      // Filtrar por tipo: imagens mostram apenas imagens, vídeos mostram apenas vídeos
+      const res = await fetch(`/api/media/list?type=${kind}`);
       if (!res.ok) {
         console.error('Erro ao buscar mídia:', res.status, res.statusText);
         toast.error('Erro ao carregar biblioteca');
@@ -137,9 +137,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
       const data = await res.json();
       console.log('📦 Dados recebidos da API:', data);
       const items = data.items || [];
-      console.log(`📊 ${items.length} arquivos encontrados`);
-      
-      // Mostrar todos os arquivos (imagens e vídeos) - o usuário pode escolher qualquer um
+      console.log(`📊 ${items.length} arquivos ${kind} encontrados`);
       setMediaItems(items);
     } catch(e) {
       console.error('❌ Erro ao carregar mídia:', e);
@@ -410,11 +408,38 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
             )}
             {selectedWidget.type==='image' && (
               <>
+                {selectedWidget.props.src ? (
+                  <>
+                    <label className="block text-gray-400 text-xs mb-2">Preview</label>
+                    <div className="mb-3 rounded border border-gray-700 overflow-hidden bg-gray-800">
+                      <img 
+                        src={selectedWidget.props.src} 
+                        alt="Preview" 
+                        className="w-full h-auto max-h-48 object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzMzMzMzMyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZW0gaW52w6FsaWRhPC90ZXh0Pjwvc3ZnPg==';
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={()=>openMediaPicker('image', { type:'widget', widgetId: selectedWidget!.id })}
+                      className="w-full mb-3 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm text-gray-300 hover:text-white transition-colors border border-gray-700"
+                    >
+                      Trocar Imagem
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={()=>openMediaPicker('image', { type:'widget', widgetId: selectedWidget!.id })}
+                    className="w-full mb-3 px-3 py-2 bg-pink-600 hover:bg-pink-700 rounded text-sm text-white transition-colors"
+                  >
+                    Selecionar Imagem
+                  </button>
+                )}
                 <label className="block text-gray-400 text-xs mb-1">URL</label>
                 <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
-                <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1">
-                  <button type="button" onClick={()=>openMediaPicker('image', { type:'widget', widgetId: selectedWidget!.id })} className="text-pink-400 hover:underline">Abrir Biblioteca</button>
-                </div>
                 <div className="mt-2">
                   <span className="text-[11px] text-gray-500">Largura (px)</span>
                   <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'width', selectedWidget.props.width || 600)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{width:parseInt(e.target.value)||0})}/>
@@ -423,11 +448,44 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
             )}
             {selectedWidget.type==='video' && (
               <>
+                {selectedWidget.props.src ? (
+                  <>
+                    <label className="block text-gray-400 text-xs mb-2">Preview</label>
+                    <div className="mb-3 rounded border border-gray-700 overflow-hidden bg-gray-800">
+                      <video 
+                        src={selectedWidget.props.src} 
+                        className="w-full h-auto max-h-48"
+                        controls={false}
+                        muted
+                        onError={(e) => {
+                          const target = e.target as HTMLVideoElement;
+                          target.style.display = 'none';
+                          const errorDiv = document.createElement('div');
+                          errorDiv.className = 'flex items-center justify-center h-48 text-gray-500 text-sm';
+                          errorDiv.textContent = 'Vídeo inválido';
+                          target.parentElement?.appendChild(errorDiv);
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={()=>openMediaPicker('video', { type:'widget', widgetId: selectedWidget!.id })}
+                      className="w-full mb-3 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm text-gray-300 hover:text-white transition-colors border border-gray-700"
+                    >
+                      Trocar Vídeo
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={()=>openMediaPicker('video', { type:'widget', widgetId: selectedWidget!.id })}
+                    className="w-full mb-3 px-3 py-2 bg-pink-600 hover:bg-pink-700 rounded text-sm text-white transition-colors"
+                  >
+                    Selecionar Vídeo
+                  </button>
+                )}
                 <label className="block text-gray-400 text-xs mb-1">URL</label>
                 <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
-                <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1">
-                  <button type="button" onClick={()=>openMediaPicker('video', { type:'widget', widgetId: selectedWidget!.id })} className="text-pink-400 hover:underline">Abrir Biblioteca</button>
-                </div>
                 <div className="mt-2">
                   <span className="text-[11px] text-gray-500">Largura (px)</span>
                   <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'width', selectedWidget.props.width || 720)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{width:parseInt(e.target.value)||0})}/>
