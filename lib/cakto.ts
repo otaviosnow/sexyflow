@@ -253,6 +253,7 @@ export const CAKTO_CHECKOUT_LINKS = {
 export const CAKTO_PRICE_TO_PLAN: Record<string, string> = {
   '29.90': 'plan-starter-monthly',
   '29,90': 'plan-starter-monthly',
+  '29.9': 'plan-starter-monthly',
   '299.00': 'plan-starter-yearly',
   '299,00': 'plan-starter-yearly',
   '299': 'plan-starter-yearly',
@@ -261,11 +262,6 @@ export const CAKTO_PRICE_TO_PLAN: Record<string, string> = {
   '47': 'plan-pro-monthly',
   '470.00': 'plan-pro-yearly',
   '470,00': 'plan-pro-yearly',
-  '470': 'plan-pro-yearly',
-  // Valores numéricos também (para conversão)
-  '29.9': 'plan-starter-monthly',
-  '299': 'plan-starter-yearly',
-  '47': 'plan-pro-monthly',
   '470': 'plan-pro-yearly',
 };
 
