@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Eye, Globe, Layout, Palette, Save, Settings, Trash2, Type, X } from 'lucide-react';
+import { ArrowLeft, Eye, Globe, Layout, Palette, Save, Settings, Trash2, Type, X, Heading, AlignLeft, MousePointerClick, Image, Video, Square, Minus, Code, Flame } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // EDITOR V2 (simplificado) — Seções > Colunas > Widgets
@@ -287,17 +287,28 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
         </div>
         <h3 className="text-sm font-semibold mb-3">Widgets</h3>
         <div className="grid grid-cols-2 gap-2">
-          {[{t:'heading',l:'Título'},{t:'text',l:'Texto'},{t:'button',l:'Botão'},{t:'image',l:'Imagem'},{t:'video',l:'Vídeo'},{t:'spacer',l:'Espaço'},{t:'divider',l:'Divisor'},{t:'html',l:'HTML'},{t:'pixelhot',l:'Pixel Hot'}].map(it => (
+          {[
+            {t:'heading',l:'Título', icon: Heading},
+            {t:'text',l:'Texto', icon: AlignLeft},
+            {t:'button',l:'Botão', icon: MousePointerClick},
+            {t:'image',l:'Imagem', icon: Image},
+            {t:'video',l:'Vídeo', icon: Video},
+            {t:'spacer',l:'Espaço', icon: Square},
+            {t:'divider',l:'Divisor', icon: Minus},
+            {t:'html',l:'HTML', icon: Code},
+            {t:'pixelhot',l:'Pixel Hot', icon: Flame}
+          ].map(it => (
             <button
               key={it.t}
               draggable
               onDragStart={(e) => { setDraggingType(it.t as WidgetType); e.dataTransfer.setData('widgetType', String(it.t)); e.dataTransfer.effectAllowed = 'copy'; }}
               onDragEnd={() => setDraggingType(null)}
               onClick={() => addWidget(it.t as WidgetType)}
-              className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm cursor-grab active:cursor-grabbing"
+              className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm cursor-grab active:cursor-grabbing flex items-center gap-2 justify-center"
               title="Arraste para uma coluna ou clique para adicionar"
             >
-              {it.l}
+              {it.icon && <it.icon className="w-4 h-4" />}
+              <span>{it.l}</span>
             </button>
           ))}
         </div>
