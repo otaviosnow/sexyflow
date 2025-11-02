@@ -322,7 +322,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Carregando projeto...</p>
         </div>
       </div>
@@ -336,7 +336,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Projeto não encontrado</h1>
           <button
             onClick={() => router.push('/projects')}
-            className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg transition-colors"
+            className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg transition-colors shadow-lg shadow-red-500/50"
           >
             Voltar aos Projetos
           </button>
@@ -451,7 +451,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
             <h2 className="text-xl font-semibold text-gray-900">Minhas Páginas</h2>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors"
+              className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-red-700 hover:to-pink-700 transition-colors shadow-lg shadow-red-500/50"
             >
               <Plus className="h-4 w-4" />
               Nova Página
@@ -460,8 +460,8 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
 
           {pages.length === 0 ? (
             <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-pink-100 rounded-full mb-6">
-                <Plus className="h-10 w-10 text-pink-600" />
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-100 to-pink-100 rounded-full mb-6">
+                <Plus className="h-10 w-10 bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 Nenhuma página criada
@@ -471,7 +471,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
               </p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors font-semibold"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-red-700 hover:to-pink-700 transition-colors font-semibold shadow-lg shadow-red-500/50"
               >
                 <Plus className="h-5 w-5" />
                 Criar Primeira Página
@@ -482,7 +482,7 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
               {pages.map((page) => (
                 <div
                   key={page._id}
-                  className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:border-pink-300 transition-colors"
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:border-red-300 transition-colors"
                 >
                   <div className="flex items-center justify-between">
                     {/* Informações da página */}

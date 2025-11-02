@@ -69,7 +69,7 @@ export default function ProjectsPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
       </div>
     );
   }
@@ -263,7 +263,7 @@ export default function ProjectsPage() {
             >
               <Menu className="h-6 w-6 text-gray-700" />
             </button>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
               SexyFlow
             </h1>
             <div className="w-10"></div>
@@ -286,7 +286,7 @@ export default function ProjectsPage() {
                 {!isAdmin && (
                   <button
                     onClick={() => router.push('/projects/create')}
-                    className="flex items-center gap-2 bg-pink-600 text-white px-4 py-2 rounded-md hover:bg-pink-700 transition-colors text-sm font-medium"
+                    className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 text-white px-4 py-2 rounded-md hover:from-red-700 hover:to-pink-700 transition-colors text-sm font-medium shadow-lg shadow-red-500/50"
                   >
                     <Plus className="h-4 w-4" />
                     Novo Projeto

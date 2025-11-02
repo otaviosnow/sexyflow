@@ -58,7 +58,7 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/register"
-                className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow-lg shadow-red-500/50"
               >
                 Criar Conta
               </Link>
@@ -73,7 +73,7 @@ export default function HomePage() {
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 animate-fade-in-up">
               Crie Páginas de Vendas
-              <span className="text-pink-600 animate-pulse" style={{animationDuration: '2s'}}> Profissionais</span>
+              <span className="bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent animate-pulse" style={{animationDuration: '2s'}}> Profissionais</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
               Editor visual drag & drop, hospedagem inclusa, analytics e muito mais. 
@@ -82,7 +82,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up animation-delay-400">
               <Link
                 href="/register"
-                className="bg-pink-600 hover:bg-pink-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 flex items-center justify-center hover:scale-105 hover:shadow-lg"
+                className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 flex items-center justify-center hover:scale-105 hover:shadow-2xl hover:shadow-red-500/50"
               >
                 Começar Grátis
                 <ArrowRight className="ml-2 h-5 w-5 animate-bounce-x" />
@@ -113,7 +113,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center group">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <Zap className="w-8 h-8 text-pink-600 animate-pulse" />
+                <Zap className="w-8 h-8 text-red-600 animate-pulse" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Editor Visual</h3>
               <p className="text-gray-600">
@@ -165,7 +165,7 @@ export default function HomePage() {
                 key={plan._id}
                 className={`relative rounded-2xl border-2 p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-4 ${
                   plan.name === 'PRO'
-                    ? 'border-pink-500 bg-pink-50 scale-105'
+                    ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 scale-105'
                     : plan.name === 'ENTERPRISE'
                     ? 'border-green-500 bg-green-50'
                     : 'border-gray-200 bg-white hover:border-gray-300'
@@ -174,7 +174,7 @@ export default function HomePage() {
                 {/* Plan Header */}
                 <div className="text-center mb-8">
                   {plan.name === 'PRO' && (
-                    <div className="bg-pink-100 text-pink-800 text-xs font-semibold px-3 py-1 rounded-full mb-4 inline-block">
+                    <div className="bg-gradient-to-r from-red-100 to-pink-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full mb-4 inline-block">
                       90% das pessoas escolhem
                     </div>
                   )}
@@ -275,7 +275,7 @@ export default function HomePage() {
                     plan.name === 'ENTERPRISE'
                       ? 'bg-green-600 hover:bg-green-700 text-white'
                       : plan.name === 'PRO'
-                      ? 'bg-pink-600 hover:bg-pink-700 text-white'
+                      ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg shadow-red-500/50'
                       : 'bg-gray-900 hover:bg-gray-800 text-white'
                   }`}
                 >
@@ -359,28 +359,28 @@ export default function HomePage() {
           </div>
 
           {/* Stats Section */}
-          <div className="mt-16 bg-gradient-to-r from-pink-600 to-blue-600 rounded-2xl p-8 text-white">
+          <div className="mt-16 bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl p-8 text-white">
             <div className="text-center mb-8">
               <h3 className="text-2xl font-bold mb-2">Números que falam por si</h3>
-              <p className="text-pink-100">Resultados reais dos nossos clientes</p>
+              <p className="text-red-100">Resultados reais dos nossos clientes</p>
             </div>
             
             <div className="grid md:grid-cols-4 gap-8 text-center">
               <div>
                 <div className="text-3xl font-bold mb-2">82</div>
-                <div className="text-pink-100">Clientes Ativos</div>
+                <div className="text-red-100">Clientes Ativos</div>
               </div>
               <div>
                 <div className="text-3xl font-bold mb-2">492</div>
-                <div className="text-pink-100">Páginas Criadas</div>
+                <div className="text-red-100">Páginas Criadas</div>
               </div>
               <div>
                 <div className="text-3xl font-bold mb-2">+36%</div>
-                <div className="text-pink-100">Aumento em Vendas</div>
+                <div className="text-red-100">Aumento em Vendas</div>
               </div>
               <div>
                 <div className="text-3xl font-bold mb-2">99.9%</div>
-                <div className="text-pink-100">Uptime</div>
+                <div className="text-red-100">Uptime</div>
               </div>
             </div>
           </div>
@@ -388,17 +388,17 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-pink-600">
+      <section className="py-20 bg-gradient-to-r from-red-600 to-pink-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
             Pronto para começar a vender?
           </h2>
-          <p className="text-xl text-purple-100 mb-8">
+          <p className="text-xl text-red-100 mb-8">
             Crie sua primeira página de vendas em minutos
           </p>
           <Link
             href="/register"
-            className="bg-white hover:bg-gray-50 text-pink-600 px-8 py-4 rounded-lg text-lg font-semibold transition-colors inline-flex items-center"
+            className="bg-white hover:bg-gray-50 text-red-600 px-8 py-4 rounded-lg text-lg font-semibold transition-colors inline-flex items-center border-2 border-white hover:border-red-200"
           >
             Criar Conta Grátis
             <ArrowRight className="ml-2 h-5 w-5" />
@@ -425,10 +425,10 @@ export default function HomePage() {
             <div>
               <h3 className="text-lg font-semibold mb-4 text-white">Produto</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#plans" className="hover:text-pink-400 transition-colors">Planos e Preços</a></li>
-                <li><Link href="/features" className="hover:text-pink-400 transition-colors">Recursos</Link></li>
-                <li><Link href="/templates" className="hover:text-pink-400 transition-colors">Templates</Link></li>
-                <li><Link href="/demo" className="hover:text-pink-400 transition-colors">Demonstração</Link></li>
+                <li><a href="#plans" className="hover:text-red-400 transition-colors">Planos e Preços</a></li>
+                <li><Link href="/features" className="hover:text-red-400 transition-colors">Recursos</Link></li>
+                <li><Link href="/templates" className="hover:text-red-400 transition-colors">Templates</Link></li>
+                <li><Link href="/demo" className="hover:text-red-400 transition-colors">Demonstração</Link></li>
               </ul>
             </div>
             
@@ -436,10 +436,10 @@ export default function HomePage() {
             <div>
               <h3 className="text-lg font-semibold mb-4 text-white">Suporte</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/help" className="hover:text-pink-400 transition-colors">Central de Ajuda</Link></li>
-                <li><Link href="/docs" className="hover:text-pink-400 transition-colors">Documentação</Link></li>
-                <li><a href="https://wa.me/5531997783097" className="hover:text-pink-400 transition-colors">WhatsApp</a></li>
-                <li><a href="mailto:suporte@sexyflow.com" className="hover:text-pink-400 transition-colors">Email</a></li>
+                <li><Link href="/help" className="hover:text-red-400 transition-colors">Central de Ajuda</Link></li>
+                <li><Link href="/docs" className="hover:text-red-400 transition-colors">Documentação</Link></li>
+                <li><a href="https://wa.me/5531997783097" className="hover:text-red-400 transition-colors">WhatsApp</a></li>
+                <li><a href="mailto:suporte@sexyflow.com" className="hover:text-red-400 transition-colors">Email</a></li>
               </ul>
             </div>
             
@@ -447,9 +447,9 @@ export default function HomePage() {
             <div>
               <h3 className="text-lg font-semibold mb-4 text-white">Legal</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/terms" className="hover:text-pink-400 transition-colors">Termos de Uso</Link></li>
-                <li><Link href="/privacy" className="hover:text-pink-400 transition-colors">Política de Privacidade</Link></li>
-                <li><Link href="/cookies" className="hover:text-pink-400 transition-colors">Política de Cookies</Link></li>
+                <li><Link href="/terms" className="hover:text-red-400 transition-colors">Termos de Uso</Link></li>
+                <li><Link href="/privacy" className="hover:text-red-400 transition-colors">Política de Privacidade</Link></li>
+                <li><Link href="/cookies" className="hover:text-red-400 transition-colors">Política de Cookies</Link></li>
               </ul>
             </div>
           </div>
@@ -465,7 +465,7 @@ export default function HomePage() {
                   placeholder="Seu melhor email" 
                   className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 />
-                <button className="px-6 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition-colors">
+                <button className="px-6 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-red-500/50">
                   Inscrever
                 </button>
               </div>
@@ -477,9 +477,9 @@ export default function HomePage() {
             <div className="flex flex-col md:flex-row justify-between items-center">
               <p>&copy; 2024 SexyFlow. Todos os direitos reservados.</p>
               <div className="flex space-x-6 mt-4 md:mt-0">
-                <Link href="/terms" className="hover:text-pink-400 transition-colors">Termos</Link>
-                <Link href="/privacy" className="hover:text-pink-400 transition-colors">Privacidade</Link>
-                <Link href="/cookies" className="hover:text-pink-400 transition-colors">Cookies</Link>
+                <Link href="/terms" className="hover:text-red-400 transition-colors">Termos</Link>
+                <Link href="/privacy" className="hover:text-red-400 transition-colors">Privacidade</Link>
+                <Link href="/cookies" className="hover:text-red-400 transition-colors">Cookies</Link>
               </div>
             </div>
           </div>
