@@ -239,13 +239,12 @@ class CaktoService {
 
 export const caktoService = new CaktoService();
 
-// Links de checkout da Cakto (configurar manualmente no painel da Cakto)
-// Você deve criar os links de checkout na Cakto e colar aqui
+// Links de checkout da Cakto (configurados manualmente no painel da Cakto)
 export const CAKTO_CHECKOUT_LINKS = {
-  'plan-starter-monthly': process.env.CAKTO_CHECKOUT_STARTER_MONTHLY || '',
-  'plan-starter-yearly': process.env.CAKTO_CHECKOUT_STARTER_YEARLY || '',
-  'plan-pro-monthly': process.env.CAKTO_CHECKOUT_PRO_MONTHLY || '',
-  'plan-pro-yearly': process.env.CAKTO_CHECKOUT_PRO_YEARLY || '',
+  'plan-starter-monthly': process.env.CAKTO_CHECKOUT_STARTER_MONTHLY || 'https://pay.cakto.com.br/wceycj4',
+  'plan-starter-yearly': process.env.CAKTO_CHECKOUT_STARTER_YEARLY || 'https://pay.cakto.com.br/34h9um7',
+  'plan-pro-monthly': process.env.CAKTO_CHECKOUT_PRO_MONTHLY || 'https://pay.cakto.com.br/3c62vfj',
+  'plan-pro-yearly': process.env.CAKTO_CHECKOUT_PRO_YEARLY || 'https://pay.cakto.com.br/366psux',
 };
 
 // Mapeamento de valores/preços para identificar o plano no webhook
