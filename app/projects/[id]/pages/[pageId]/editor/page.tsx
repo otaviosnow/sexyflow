@@ -451,19 +451,27 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 {selectedWidget.props.src ? (
                   <>
                     <label className="block text-gray-400 text-xs mb-2">Preview</label>
-                    <div className="mb-3 rounded border border-gray-700 overflow-hidden bg-gray-800">
+                    <div className="mb-3 rounded border border-gray-700 overflow-hidden bg-gray-800 aspect-video flex items-center justify-center">
                       <video 
                         src={selectedWidget.props.src} 
-                        className="w-full h-auto max-h-48"
+                        className="w-full h-full max-h-48 object-contain"
                         controls={false}
                         muted
+                        preload="metadata"
+                        onLoadedMetadata={(e) => {
+                          const target = e.target as HTMLVideoElement;
+                          target.currentTime = 1; // Mostrar frame do segundo 1 como thumbnail
+                        }}
                         onError={(e) => {
                           const target = e.target as HTMLVideoElement;
                           target.style.display = 'none';
-                          const errorDiv = document.createElement('div');
-                          errorDiv.className = 'flex items-center justify-center h-48 text-gray-500 text-sm';
-                          errorDiv.textContent = 'Vídeo inválido';
-                          target.parentElement?.appendChild(errorDiv);
+                          const parent = target.parentElement;
+                          if (parent && !parent.querySelector('.error-message')) {
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'error-message flex items-center justify-center h-full text-gray-500 text-sm';
+                            errorDiv.textContent = 'Vídeo inválido';
+                            parent.appendChild(errorDiv);
+                          }
                         }}
                       />
                     </div>
