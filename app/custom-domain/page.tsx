@@ -378,26 +378,46 @@ export default function CustomDomainPage() {
                           }}
                         >
                           <h4 className="font-medium text-yellow-300 mb-2">Configuração DNS necessária</h4>
+                          <p className="text-yellow-200/80 text-xs mb-3">
+                            Adicione um registro CNAME no seu provedor de DNS apontando www.{domain.domain} para sexyflow.onrender.com
+                          </p>
                           <div className="space-y-2 text-sm">
-                            <div className="flex items-center justify-between">
-                              <span className="text-yellow-200">Tipo: CNAME</span>
+                            <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-2">
+                              <div className="flex-1">
+                                <span className="text-yellow-200/70 text-xs block mb-1">Nome do Registro:</span>
+                                <span className="text-yellow-200 font-mono">www.{domain.domain}</span>
+                              </div>
                               <button
                                 onClick={() => copyToClipboard(`www.${domain.domain}`)}
-                                className="text-yellow-300 hover:text-yellow-100 flex items-center gap-1 transition-colors"
+                                className="text-yellow-300 hover:text-yellow-100 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-yellow-500/20"
                               >
                                 <Copy className="h-3 w-3" />
                                 Copiar
                               </button>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-yellow-200">Valor: sexyflow.onrender.com</span>
+                            <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-2">
+                              <div className="flex-1">
+                                <span className="text-yellow-200/70 text-xs block mb-1">Tipo:</span>
+                                <span className="text-yellow-200">CNAME</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-2">
+                              <div className="flex-1">
+                                <span className="text-yellow-200/70 text-xs block mb-1">Valor/Destino:</span>
+                                <span className="text-yellow-200 font-mono">sexyflow.onrender.com</span>
+                              </div>
                               <button
                                 onClick={() => copyToClipboard('sexyflow.onrender.com')}
-                                className="text-yellow-300 hover:text-yellow-100 flex items-center gap-1 transition-colors"
+                                className="text-yellow-300 hover:text-yellow-100 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-yellow-500/20"
                               >
                                 <Copy className="h-3 w-3" />
                                 Copiar
                               </button>
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-yellow-500/20">
+                              <p className="text-yellow-200/70 text-xs">
+                                ⏱️ Após configurar, aguarde alguns minutos para a propagação DNS e clique em "Verificar"
+                              </p>
                             </div>
                           </div>
                         </div>
