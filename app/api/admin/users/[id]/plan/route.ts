@@ -108,7 +108,9 @@ export async function PATCH(
       message: `Plano alterado para ${plan} com sucesso`,
       subscription: {
         plan: plan,
-        planName: mappedPlan,
+        planName: subscription.planName,
+        realPlanName: subscription.realPlanName,
+        billingCycle: subscription.billingCycle,
         status: subscription.status,
         currentPeriodEnd: subscription.currentPeriodEnd
       }
