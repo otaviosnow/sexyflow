@@ -577,8 +577,8 @@ export default function MediaLibrary() {
             textAlign: 'center' 
           }}>
             <div className="max-w-md mx-auto">
-              <div className="w-24 h-24 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-purple-500/30">
-                <Folder className="h-12 w-12 text-purple-400" />
+              <div className="w-24 h-24 bg-gradient-to-br from-red-500/20 to-pink-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-pink-500/30">
+                <Folder className="h-12 w-12 text-pink-400" />
               </div>
               <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-400 mb-3">
                 {searchQuery ? 'Nenhum arquivo encontrado' : 'Biblioteca vazia'}
@@ -620,12 +620,12 @@ export default function MediaLibrary() {
                   cursor: 'pointer'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.6)';
+                  e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.6)';
                   e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(6, 182, 212, 0.2)';
+                  e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(236, 72, 153, 0.2)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.3)';
+                  e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.3)';
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.boxShadow = '0 10px 30px -5px rgba(0, 0, 0, 0.3)';
                 }}
@@ -642,7 +642,7 @@ export default function MediaLibrary() {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Video className="h-20 w-20 text-purple-400/50" />
+                          <Video className="h-20 w-20 text-pink-400/50" />
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
