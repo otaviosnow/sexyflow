@@ -194,20 +194,48 @@ class CaktoService {
 
 export const caktoService = new CaktoService();
 
-// Planos pré-definidos
+// Planos pré-definidos da Cakto
+// Preços em centavos (R$ * 100)
 export const CAKTO_PLANS = {
-  monthly: {
-    name: 'SexyFlow Mensal',
-    description: 'Plano mensal com 5 páginas',
-    amount: 9700, // R$ 97,00 em centavos
+  // STARTER Mensal: R$ 29,90
+  'plan-starter-monthly': {
+    name: 'SexyFlow Starter Mensal',
+    description: 'Plano Starter mensal - 1 subdomínio, 3 páginas por subdomínio, 10 fotos, 10 vídeos',
+    amount: 2990, // R$ 29,90 em centavos
     interval: 'month' as const,
     currency: 'BRL' as const,
   },
-  annual: {
-    name: 'SexyFlow Anual',
-    description: 'Plano anual com 10 páginas - Economize 2 meses!',
-    amount: 97000, // R$ 970,00 em centavos
+  // STARTER Anual: R$ 299,00 (10 meses com desconto de 2 meses)
+  'plan-starter-yearly': {
+    name: 'SexyFlow Starter Anual',
+    description: 'Plano Starter anual - Economize 2 meses! 1 subdomínio, 3 páginas por subdomínio, 10 fotos, 10 vídeos',
+    amount: 29900, // R$ 299,00 em centavos
     interval: 'year' as const,
     currency: 'BRL' as const,
-  }
+  },
+  // PRO Mensal: R$ 47,00
+  'plan-pro-monthly': {
+    name: 'SexyFlow Pro Mensal',
+    description: 'Plano Pro mensal - 3 subdomínios, 8 páginas por subdomínio, domínio customizado, 30 fotos, 20 vídeos, templates premium',
+    amount: 4700, // R$ 47,00 em centavos
+    interval: 'month' as const,
+    currency: 'BRL' as const,
+  },
+  // PRO Anual: R$ 470,00 (10 meses com desconto de 2 meses)
+  'plan-pro-yearly': {
+    name: 'SexyFlow Pro Anual',
+    description: 'Plano Pro anual - Economize 2 meses! 3 subdomínios, 8 páginas por subdomínio, domínio customizado, 30 fotos, 20 vídeos, templates premium',
+    amount: 47000, // R$ 470,00 em centavos
+    interval: 'year' as const,
+    currency: 'BRL' as const,
+  },
 };
+
+// Helper para obter dados do plano na Cakto baseado no planId
+export function getCaktoPlanData(planId: string) {
+  const plan = CAKTO_PLANS[planId as keyof typeof CAKTO_PLANS];
+  if (!plan) {
+    throw new Error(`Plano ${planId} não encontrado na configuração da Cakto`);
+  }
+  return plan;
+}
