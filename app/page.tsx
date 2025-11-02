@@ -165,23 +165,23 @@ export default function HomePage() {
                 key={plan._id}
                 className={`relative rounded-2xl border-2 p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-4 ${
                   plan.name === 'PRO'
-                    ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 scale-105'
+                    ? 'border-green-500 bg-green-50 scale-105'
                     : plan.name === 'ENTERPRISE'
-                    ? 'border-green-500 bg-green-50'
+                    ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50'
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
                 {/* Plan Header */}
                 <div className="text-center mb-8">
                   {plan.name === 'PRO' && (
-                    <div className="bg-gradient-to-r from-red-100 to-pink-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full mb-4 inline-block">
+                    <div className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full mb-4 inline-block">
                       90% das pessoas escolhem
                     </div>
                   )}
                   <div className="flex justify-center mb-4">
                     {plan.name === 'STARTER' && <Star className="w-6 h-6 text-blue-500" />}
-                    {plan.name === 'PRO' && <Crown className="w-6 h-6 text-purple-500" />}
-                    {plan.name === 'ENTERPRISE' && <Phone className="w-6 h-6 text-green-500" />}
+                    {plan.name === 'PRO' && <Crown className="w-6 h-6 text-green-600" />}
+                    {plan.name === 'ENTERPRISE' && <Phone className="w-6 h-6 text-red-600" />}
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">
                     {plan.displayName}
@@ -273,9 +273,9 @@ export default function HomePage() {
                   onClick={() => handlePlanClick(plan.name)}
                   className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
                     plan.name === 'ENTERPRISE'
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : plan.name === 'PRO'
                       ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg shadow-red-500/50'
+                      : plan.name === 'PRO'
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
                       : 'bg-gray-900 hover:bg-gray-800 text-white'
                   }`}
                 >
