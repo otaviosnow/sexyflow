@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       const finalBillingCycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
 
       // Obter link de checkout configurado manualmente na Cakto
-      // Adiciona parâmetros userId e planId na URL para identificar no webhook
+      // A identificação do plano será feita no webhook pelo valor/nome do produto
       const checkoutUrl = getCaktoCheckoutLink(planId, user._id.toString());
 
       // Criar assinatura pendente no nosso banco (será ativada quando o webhook confirmar o pagamento)

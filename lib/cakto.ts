@@ -248,6 +248,28 @@ export const CAKTO_CHECKOUT_LINKS = {
   'plan-pro-yearly': process.env.CAKTO_CHECKOUT_PRO_YEARLY || '',
 };
 
+// Mapeamento de valores/preços para identificar o plano no webhook
+// A Cakto envia o valor do pagamento, então mapeamos para o planId correto
+// Valores em centavos (R$ * 100)
+export const CAKTO_PRICE_TO_PLAN = {
+  2990: 'plan-starter-monthly',   // R$ 29,90
+  29900: 'plan-starter-yearly',  // R$ 299,00
+  4700: 'plan-pro-monthly',      // R$ 47,00
+  47000: 'plan-pro-yearly',      // R$ 470,00
+};
+
+// Mapeamento alternativo por nome do produto/checkout (se a Cakto enviar)
+export const CAKTO_PRODUCT_NAME_TO_PLAN: Record<string, string> = {
+  'sexyflow starter mensal': 'plan-starter-monthly',
+  'sexyflow starter anual': 'plan-starter-yearly',
+  'sexyflow pro mensal': 'plan-pro-monthly',
+  'sexyflow pro anual': 'plan-pro-yearly',
+  'starter mensal': 'plan-starter-monthly',
+  'starter anual': 'plan-starter-yearly',
+  'pro mensal': 'plan-pro-monthly',
+  'pro anual': 'plan-pro-yearly',
+};
+
 // Planos pré-definidos da Cakto (para referência - não usado se tiver links de checkout)
 // Preços em centavos (R$ * 100)
 export const CAKTO_PLANS = {

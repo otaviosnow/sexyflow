@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import connectDB from '@/lib/db';
 import Subscription from '@/models/Subscription';
 import User from '@/models/User';
+import { identifyPlanFromWebhook } from '@/lib/cakto';
 
 // Configurações da Cakto
 const CAKTO_WEBHOOK_SECRET = process.env.CAKTO_WEBHOOK_SECRET || '0082bb51-0cf7-4b49-8f69-11400a59b6e3';
@@ -113,64 +114,54 @@ async function activateSubscription(
 
 // Processar evento de pagamento aprovado
 async function handlePaymentApproved(event: any) {
-  console.log('💰 Pagamento aprovado:', event.data);
+  console.log('💰 Pagamento aprovado');
+  console.log('📋 Evento completo:', JSON.stringify(event, null, 2));
   
   try {
     await connectDB();
 
-    // Extrair dados do evento (a Cakto pode enviar de várias formas)
-    // 1. Via metadata no evento
-    const metadata = event.data?.metadata || event.metadata || event.data?.custom_data || {};
+    // Extrair dados básicos do evento da Cakto
+    const eventData = event.data || event;
+    const paymentId = eventData.payment_id || eventData.id || eventData.transaction_id || event.id;
+    const customerEmail = eventData.customer_email || eventData.email || eventData.customer?.email;
+    const customerId = eventData.customer_id || eventData.customer?.id;
     
-    // 2. Via query parameters na URL de retorno (se a Cakto enviar)
-    const queryParams = event.data?.query_params || event.query_params || {};
+    // Identificar o plano usando valor, nome do produto, ou ID do checkout
+    const planId = identifyPlanFromWebhook(eventData);
     
-    // 3. Via campos diretos no evento
-    const userId = 
-      metadata.userId || 
-      queryParams.userId ||
-      event.data?.userId || 
-      event.userId ||
-      event.data?.customer_id;
-      
-    const planId = 
-      metadata.planId || 
-      queryParams.planId ||
-      event.data?.planId || 
-      event.planId ||
-      event.data?.product_id ||
-      event.data?.plan_name;
-    
-    const paymentId = event.data?.paymentId || event.data?.id || event.id || event.data?.transaction_id;
-    
-    console.log('📋 Dados extraídos do webhook:', { 
-      userId, 
-      planId, 
-      paymentId,
-      metadata: Object.keys(metadata),
-      eventKeys: Object.keys(event.data || event)
-    });
-    
-    if (!userId || !planId) {
-      console.error('❌ Dados incompletos no webhook. Tentando buscar subscription pendente...');
-      console.error('📋 Evento completo:', JSON.stringify(event, null, 2));
-      
-      // Tentar buscar por paymentId se tiver
-      if (paymentId) {
-        const pendingSub = await Subscription.findOne({
-          stripeSubscriptionId: paymentId
-        });
-        if (pendingSub) {
-          console.log('✅ Encontrada subscription pendente pelo paymentId:', pendingSub._id);
-          // Usar dados da subscription encontrada
-          const foundUserId = pendingSub.userId.toString();
-          const foundPlanId = pendingSub.planId;
-          return await activateSubscription(foundUserId, foundPlanId, paymentId, pendingSub);
-        }
-      }
-      
-      return { success: false, message: 'Dados incompletos no webhook (userId e planId não encontrados)' };
+    if (!planId) {
+      console.error('❌ Não foi possível identificar o plano do webhook');
+      console.log('📋 Dados disponíveis:', {
+        amount: eventData.amount || eventData.value || eventData.price,
+        product_name: eventData.product_name || eventData.product || eventData.description,
+        checkout_id: eventData.checkout_id || eventData.product_id,
+        customer_email: customerEmail
+      });
+      return { success: false, message: 'Não foi possível identificar o plano comprado' };
     }
+
+    // Buscar usuário pelo email (mais confiável que ID, já que vem do checkout)
+    let user = null;
+    if (customerEmail) {
+      user = await User.findOne({ email: customerEmail });
+      if (user) {
+        console.log('✅ Usuário encontrado pelo email:', customerEmail);
+      }
+    }
+
+    // Se não encontrou pelo email, tentar pelo customer_id se a Cakto enviar
+    if (!user && customerId) {
+      // Aqui você pode ter um campo no User que armazena o customer_id da Cakto
+      // Por enquanto, vamos precisar do email
+    }
+
+    if (!user) {
+      console.error('❌ Usuário não encontrado. Email recebido:', customerEmail);
+      return { success: false, message: 'Usuário não encontrado no sistema' };
+    }
+
+    const userId = user._id.toString();
+    console.log('✅ Dados identificados:', { userId, planId, paymentId, email: customerEmail });
 
     return await activateSubscription(userId, planId, paymentId, null);
   } catch (error: any) {
