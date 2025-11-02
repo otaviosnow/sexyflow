@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar limites do plano (fotos/vídeos totais na biblioteca)
     await connectDB();
-    const subscription = await Subscription.findOne({ userId }).lean();
+    const subscription = await Subscription.findOne({ userId }).lean() as any;
     
     if (subscription && subscription.status === 'active') {
       // Obter plano do usuário
