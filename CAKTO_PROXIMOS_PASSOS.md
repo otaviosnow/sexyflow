@@ -28,7 +28,6 @@ Se precisar ajustar valores, edite no painel da Cakto e atualize aqui também.
 
    - **Nome:** SexyFlow Webhooks
    - **URL:** `https://sexyflow.onrender.com/api/webhooks/cakto`
-   - **Secret:** Anote o secret gerado (você precisará dele)
    - **Eventos para ativar:**
      - ✅ **Compra aprovada** (`purchase_approved`) - OBRIGATÓRIO
      - ✅ **Compra recusada** (`purchase_refused`) - OBRIGATÓRIO
@@ -43,6 +42,36 @@ Se precisar ajustar valores, edite no painel da Cakto e atualize aqui também.
 
 ---
 
+#### **📝 Onde encontrar o Secret?**
+
+Após salvar o webhook, o secret geralmente aparece em um destes lugares:
+
+**Opção 1: Na lista de webhooks**
+- Após criar, volte para a lista de webhooks
+- Cada webhook deve mostrar o secret (pode ter um botão "Mostrar" ou "Copiar")
+
+**Opção 2: Nos detalhes do webhook**
+- Clique no webhook criado para ver os detalhes
+- O secret deve estar visível ou com um botão para revelar
+
+**Opção 3: Na configuração inicial**
+- Algumas vezes o secret é mostrado logo após criar (anote antes de fechar!)
+
+**Opção 4: Se não encontrar**
+- O secret geralmente vem no campo `secret` dos webhooks que a Cakto envia
+- Você pode testar primeiro sem o secret e verificar nos logs qual secret a Cakto está enviando
+- Ou entre em contato com o suporte da Cakto para obter o secret
+
+**Formato do secret:**
+- Geralmente é um UUID como: `8402b43f-c839-4090-bbd1-186725d185c7`
+- Ou uma string alfanumérica
+
+**⚠️ IMPORTANTE:** 
+- Se você não configurar o `CAKTO_WEBHOOK_SECRET`, o sistema ainda funcionará, mas não verificará a assinatura do webhook (menos seguro)
+- Para produção, é recomendado configurar o secret para validar que os webhooks realmente vêm da Cakto
+
+---
+
 ### **3. Configurar Variáveis de Ambiente** 🔐
 
 Adicione no arquivo `.env.local` (ou nas variáveis de ambiente do Render):
@@ -54,12 +83,14 @@ CAKTO_CHECKOUT_STARTER_YEARLY=https://pay.cakto.com.br/34h9um7
 CAKTO_CHECKOUT_PRO_MONTHLY=https://pay.cakto.com.br/3c62vfj
 CAKTO_CHECKOUT_PRO_YEARLY=https://pay.cakto.com.br/366psux
 
-# Webhook Secret (OBRIGATÓRIO - cole o secret que a Cakto gerou)
-CAKTO_WEBHOOK_SECRET=seu_secret_aqui
+# Webhook Secret (OBRIGATÓRIO - Secret configurado na Cakto)
+CAKTO_WEBHOOK_SECRET=6c8513c9-b645-4f9b-9a7c-e709199466b9
 
 # Base URL (para webhooks e redirects)
 NEXT_PUBLIC_BASE_URL=https://sexyflow.onrender.com
 ```
+
+**✅ Secret encontrado e configurado:** `6c8513c9-b645-4f9b-9a7c-e709199466b9`
 
 **⚠️ IMPORTANTE:** 
 - Se você não configurar o `CAKTO_WEBHOOK_SECRET`, o sistema não verificará a assinatura do webhook (pode ser inseguro)
