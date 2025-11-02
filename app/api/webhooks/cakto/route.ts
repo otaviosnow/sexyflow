@@ -40,26 +40,21 @@ function verifyWebhookSignature(payload: string, signature: string): boolean {
   );
 }
 
-// Processar evento de pagamento aprovado
-async function handlePaymentApproved(event: any) {
-  console.log('💰 Pagamento aprovado:', event.data);
-  
+// Função auxiliar para ativar subscription
+async function activateSubscription(
+  userId: string, 
+  planId: string, 
+  paymentId: string | null, 
+  existingSubscription: any
+) {
   try {
-    await connectDB();
-
-    // Extrair dados do evento (estrutura pode variar conforme a Cakto envia)
-    const metadata = event.data.metadata || event.metadata || {};
-    const userId = metadata.userId || event.data.userId;
-    const planId = metadata.planId || event.data.planId;
-    const paymentId = event.data.paymentId || event.data.id || event.id;
-    
-    if (!userId || !planId) {
-      console.error('❌ Dados incompletos no webhook:', { userId, planId });
-      return { success: false, message: 'Dados incompletos no webhook' };
-    }
+    // Extrair informações do planId
+    const [_, planType, billingCycle] = planId.split('-');
+    const planName = planType.toUpperCase() as 'STARTER' | 'PRO';
+    const finalBillingCycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
 
     // Buscar subscription pendente pelo paymentId ou userId + planId
-    let subscription = await Subscription.findOne({
+    let subscription = existingSubscription || await Subscription.findOne({
       $or: [
         { stripeSubscriptionId: paymentId },
         { userId: userId, planId: planId, status: 'pending' }
@@ -69,32 +64,31 @@ async function handlePaymentApproved(event: any) {
     if (subscription) {
       // Atualizar subscription existente
       subscription.status = 'active';
-      subscription.stripeSubscriptionId = paymentId;
+      if (paymentId) subscription.stripeSubscriptionId = paymentId;
       subscription.currentPeriodStart = new Date();
       
       // Calcular período final baseado no billingCycle
-      const billingCycle = subscription.billingCycle || metadata.billingCycle || 'monthly';
-      subscription.currentPeriodEnd = billingCycle === 'yearly'
+      subscription.currentPeriodEnd = finalBillingCycle === 'yearly'
         ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 365 dias
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 dias
 
       await subscription.save();
       console.log('✅ Subscription atualizada e ativada:', subscription._id);
     } else {
-      // Criar nova subscription se não encontrada (caso o webhook chegue antes do checkout ser criado)
+      // Criar nova subscription se não encontrada
       console.log('⚠️ Subscription não encontrada, criando nova...');
       subscription = new Subscription({
         userId: userId,
         planId: planId,
-        realPlanName: metadata.realPlanName || 'STARTER',
-        billingCycle: metadata.billingCycle || 'monthly',
-        planName: metadata.billingCycle === 'yearly' ? 'yearly' : 'monthly',
+        realPlanName: planName,
+        billingCycle: finalBillingCycle,
+        planName: finalBillingCycle === 'yearly' ? 'yearly' : 'monthly',
         status: 'active',
         currentPeriodStart: new Date(),
-        currentPeriodEnd: metadata.billingCycle === 'yearly'
+        currentPeriodEnd: finalBillingCycle === 'yearly'
           ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        stripeSubscriptionId: paymentId,
+        stripeSubscriptionId: paymentId || undefined,
         cancelAtPeriodEnd: false
       });
       await subscription.save();
@@ -111,6 +105,74 @@ async function handlePaymentApproved(event: any) {
     console.log('✅ Assinatura ativada para usuário:', userId);
     
     return { success: true, message: 'Pagamento processado com sucesso' };
+  } catch (error: any) {
+    console.error('❌ Erro ao ativar subscription:', error);
+    throw error;
+  }
+}
+
+// Processar evento de pagamento aprovado
+async function handlePaymentApproved(event: any) {
+  console.log('💰 Pagamento aprovado:', event.data);
+  
+  try {
+    await connectDB();
+
+    // Extrair dados do evento (a Cakto pode enviar de várias formas)
+    // 1. Via metadata no evento
+    const metadata = event.data?.metadata || event.metadata || event.data?.custom_data || {};
+    
+    // 2. Via query parameters na URL de retorno (se a Cakto enviar)
+    const queryParams = event.data?.query_params || event.query_params || {};
+    
+    // 3. Via campos diretos no evento
+    const userId = 
+      metadata.userId || 
+      queryParams.userId ||
+      event.data?.userId || 
+      event.userId ||
+      event.data?.customer_id;
+      
+    const planId = 
+      metadata.planId || 
+      queryParams.planId ||
+      event.data?.planId || 
+      event.planId ||
+      event.data?.product_id ||
+      event.data?.plan_name;
+    
+    const paymentId = event.data?.paymentId || event.data?.id || event.id || event.data?.transaction_id;
+    
+    console.log('📋 Dados extraídos do webhook:', { 
+      userId, 
+      planId, 
+      paymentId,
+      metadata: Object.keys(metadata),
+      eventKeys: Object.keys(event.data || event)
+    });
+    
+    if (!userId || !planId) {
+      console.error('❌ Dados incompletos no webhook. Tentando buscar subscription pendente...');
+      console.error('📋 Evento completo:', JSON.stringify(event, null, 2));
+      
+      // Tentar buscar por paymentId se tiver
+      if (paymentId) {
+        const pendingSub = await Subscription.findOne({
+          stripeSubscriptionId: paymentId
+        });
+        if (pendingSub) {
+          console.log('✅ Encontrada subscription pendente pelo paymentId:', pendingSub._id);
+          // Usar dados da subscription encontrada
+          const foundUserId = pendingSub.userId.toString();
+          const foundPlanId = pendingSub.planId;
+          return await activateSubscription(foundUserId, foundPlanId, paymentId, pendingSub);
+        }
+      }
+      
+      return { success: false, message: 'Dados incompletos no webhook (userId e planId não encontrados)' };
+    }
+
+    return await activateSubscription(userId, planId, paymentId, null);
   } catch (error: any) {
     console.error('❌ Erro ao processar pagamento aprovado:', error);
     return { success: false, message: error.message || 'Erro interno do servidor' };

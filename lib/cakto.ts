@@ -286,12 +286,20 @@ export const CAKTO_PLANS = {
 };
 
 // Helper para obter link de checkout baseado no planId
-export function getCaktoCheckoutLink(planId: string): string {
+// Adiciona parâmetros na URL para identificar o plano e usuário quando o webhook chegar
+export function getCaktoCheckoutLink(planId: string, userId: string): string {
   const link = CAKTO_CHECKOUT_LINKS[planId as keyof typeof CAKTO_CHECKOUT_LINKS];
   if (!link) {
     throw new Error(`Link de checkout não configurado para o plano ${planId}. Configure as variáveis de ambiente CAKTO_CHECKOUT_* ou adicione o link em lib/cakto.ts`);
   }
-  return link;
+  
+  // Adicionar parâmetros na URL para identificar o plano e usuário
+  // Isso permite que o webhook saiba qual plano foi comprado
+  const url = new URL(link);
+  url.searchParams.set('planId', planId);
+  url.searchParams.set('userId', userId);
+  
+  return url.toString();
 }
 
 // Helper para obter dados do plano na Cakto baseado no planId (método alternativo via API)
