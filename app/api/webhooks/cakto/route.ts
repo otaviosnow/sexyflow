@@ -10,22 +10,15 @@ const CAKTO_WEBHOOK_SECRET = process.env.CAKTO_WEBHOOK_SECRET || '0082bb51-0cf7-
 
 // Tipos de eventos da Cakto
 interface CaktoWebhookEvent {
-  event: 'payment.approved' | 'payment.failed' | 'payment.refunded' | 'subscription.created' | 'subscription.cancelled';
-  data: {
-    paymentId: string;
-    userId: string;
-    planId: string;
-    amount: number;
-    currency: string;
-    status: 'pending' | 'paid' | 'failed' | 'refunded';
-    createdAt: string;
-    updatedAt: string;
-    metadata?: {
-      subscriptionId?: string;
-      billingCycle?: string;
-      nextBillingDate?: string;
-    };
-  };
+  type?: string; // Formato alternativo: event.type
+  event?: string; // Formato padrão: event.event
+  action?: string; // Formato alternativo: event.action
+  data?: any;
+  offer?: any;
+  subscription?: any;
+  customer?: any;
+  payment?: any;
+  [key: string]: any; // Permitir propriedades adicionais do webhook real
 }
 
 // Verificar assinatura do webhook
