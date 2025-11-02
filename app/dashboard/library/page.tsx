@@ -70,6 +70,21 @@ export default function MediaLibrary() {
     }
   }, [status, router]);
 
+  // Forçar fundo escuro no body
+  useEffect(() => {
+    const originalBg = document.body.style.background;
+    const originalColor = document.body.style.color;
+    document.body.style.background = '#0f172a';
+    document.body.style.color = '#ffffff';
+    document.documentElement.style.background = '#0f172a';
+    
+    return () => {
+      document.body.style.background = originalBg;
+      document.body.style.color = originalColor;
+      document.documentElement.style.background = '';
+    };
+  }, []);
+
   const loadMediaFiles = async () => {
     try {
       setLoading(true);
@@ -344,10 +359,18 @@ export default function MediaLibrary() {
 
   return (
     <div 
-      className="min-h-screen relative" 
+      className="relative" 
       style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         background: 'linear-gradient(to bottom right, #0f172a, #581c87, #0f172a)',
-        minHeight: '100vh'
+        minHeight: '100vh',
+        width: '100%',
+        overflowY: 'auto',
+        zIndex: 1
       }}
     >
       {/* Animated Background Elements */}
