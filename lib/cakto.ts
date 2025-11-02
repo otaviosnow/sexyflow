@@ -320,20 +320,93 @@ export const CAKTO_PLANS = {
 };
 
 // Helper para obter link de checkout baseado no planId
-// Adiciona parâmetros na URL para identificar o plano e usuário quando o webhook chegar
 export function getCaktoCheckoutLink(planId: string, userId: string): string {
   const link = CAKTO_CHECKOUT_LINKS[planId as keyof typeof CAKTO_CHECKOUT_LINKS];
   if (!link) {
     throw new Error(`Link de checkout não configurado para o plano ${planId}. Configure as variáveis de ambiente CAKTO_CHECKOUT_* ou adicione o link em lib/cakto.ts`);
   }
   
-  // Adicionar parâmetros na URL para identificar o plano e usuário
-  // Isso permite que o webhook saiba qual plano foi comprado
-  const url = new URL(link);
-  url.searchParams.set('planId', planId);
-  url.searchParams.set('userId', userId);
+  // Retornar link simples - identificação será feita via valor/nome no webhook
+  return link;
+}
+
+// Helper para normalizar valor de preço (aceita número ou string)
+function normalizePrice(value: any): string {
+  if (value === null || value === undefined) return '';
+  // Converter para string e normalizar vírgula/ponto
+  let str = String(value).trim().replace(',', '.');
+  // Remover zeros desnecessários no final (29.90 -> 29.9, mas manter 29.00 -> 29)
+  const parts = str.split('.');
+  if (parts.length === 2 && parts[1] === '00') {
+    str = parts[0];
+  }
+  return str;
+}
+
+// Helper para identificar planId a partir dos dados do webhook da Cakto
+export function identifyPlanFromWebhook(webhookData: any): string | null {
+  // A Cakto envia valores em REAIS (não centavos):
+  // - data.offer.price (número: 29.90, 299, etc)
+  // - data.subscription.amount (string: "29.90", "299.00")
+  // - data.amount ou data.baseAmount (número)
   
-  return url.toString();
+  // 1. Tentar pelo offer.price (valor numérico em reais) - PRIORIDADE
+  const offerPrice = webhookData.offer?.price;
+  if (offerPrice !== undefined && offerPrice !== null) {
+    const normalizedPrice = normalizePrice(offerPrice);
+    const planId = CAKTO_PRICE_TO_PLAN[normalizedPrice];
+    if (planId) {
+      console.log(`✅ Plano identificado pelo offer.price: ${offerPrice} (${normalizedPrice}) -> ${planId}`);
+      return planId;
+    }
+  }
+
+  // 2. Tentar pelo subscription.amount (string em reais, ex: "29.90")
+  const subscriptionAmount = webhookData.subscription?.amount;
+  if (subscriptionAmount) {
+    const normalizedPrice = normalizePrice(subscriptionAmount);
+    const planId = CAKTO_PRICE_TO_PLAN[normalizedPrice];
+    if (planId) {
+      console.log(`✅ Plano identificado pelo subscription.amount: ${subscriptionAmount} (${normalizedPrice}) -> ${planId}`);
+      return planId;
+    }
+  }
+
+  // 3. Tentar pelo amount direto (valor do pagamento)
+  const amount = webhookData.amount || webhookData.baseAmount;
+  if (amount !== undefined && amount !== null) {
+    const normalizedPrice = normalizePrice(amount);
+    const planId = CAKTO_PRICE_TO_PLAN[normalizedPrice];
+    if (planId) {
+      console.log(`✅ Plano identificado pelo amount: ${amount} (${normalizedPrice}) -> ${planId}`);
+      return planId;
+    }
+  }
+
+  // 4. Tentar identificar pelo nome do produto/offer (fallback)
+  const offerName = (webhookData.offer?.name || '').toLowerCase();
+  const productName = (webhookData.product?.name || '').toLowerCase();
+  const searchName = offerName || productName;
+  
+  if (searchName) {
+    for (const [key, planId] of Object.entries(CAKTO_PRODUCT_NAME_TO_PLAN)) {
+      if (searchName.includes(key)) {
+        console.log(`✅ Plano identificado pelo nome: ${searchName} -> ${planId}`);
+        return planId;
+      }
+    }
+  }
+
+  console.error('❌ Não foi possível identificar o plano do webhook');
+  console.log('📋 Dados disponíveis:', {
+    offer_price: webhookData.offer?.price,
+    subscription_amount: webhookData.subscription?.amount,
+    amount: webhookData.amount,
+    baseAmount: webhookData.baseAmount,
+    offer_name: webhookData.offer?.name,
+    product_name: webhookData.product?.name
+  });
+  return null;
 }
 
 // Helper para obter dados do plano na Cakto baseado no planId (método alternativo via API)
