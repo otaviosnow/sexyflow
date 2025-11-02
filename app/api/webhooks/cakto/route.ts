@@ -178,29 +178,47 @@ async function handlePaymentApproved(event: any) {
   }
 }
 
-// Processar evento de pagamento falhado
+// Processar evento de pagamento falhado/recusado (purchase_refused)
 async function handlePaymentFailed(event: any) {
-  console.log('❌ Pagamento falhado:', event.data);
+  console.log('❌ Pagamento recusado (purchase_refused)');
+  console.log('📋 Evento:', JSON.stringify(event, null, 2));
   
   try {
     await connectDB();
 
-    const metadata = event.data.metadata || event.metadata || {};
-    const userId = metadata.userId || event.data.userId;
-    const paymentId = event.data.paymentId || event.data.id || event.id;
+    const eventData = event.data || event;
+    const paymentId = eventData.id;
+    const customerEmail = eventData.customer?.email;
+    const subscriptionId = eventData.subscription?.id;
 
-    // Buscar subscription pelo paymentId
-    const subscription = await Subscription.findOne({
-      stripeSubscriptionId: paymentId
-    });
+    // Buscar subscription pelo ID da Cakto ou pelo email do usuário
+    let subscription = null;
+    
+    if (subscriptionId) {
+      subscription = await Subscription.findOne({
+        stripeSubscriptionId: subscriptionId
+      });
+    }
+    
+    if (!subscription && customerEmail) {
+      const user = await User.findOne({ email: customerEmail });
+      if (user) {
+        subscription = await Subscription.findOne({
+          userId: user._id,
+          status: { $in: ['active', 'pending'] }
+        });
+      }
+    }
 
     if (subscription) {
       subscription.status = 'unpaid';
       await subscription.save();
       console.log('⚠️ Subscription marcada como unpaid:', subscription._id);
+    } else {
+      console.warn('⚠️ Subscription não encontrada para marcar como unpaid. Payment ID:', paymentId);
     }
 
-    console.log('⚠️ Pagamento falhado para usuário:', userId);
+    console.log('⚠️ Pagamento recusado. Email:', customerEmail);
     
     return { success: true, message: 'Status de pagamento atualizado' };
   } catch (error: any) {
@@ -209,30 +227,48 @@ async function handlePaymentFailed(event: any) {
   }
 }
 
-// Processar evento de reembolso
+// Processar evento de reembolso (refund)
 async function handlePaymentRefunded(event: any) {
-  console.log('🔄 Reembolso processado:', event.data);
+  console.log('💸 Reembolso processado (refund)');
+  console.log('📋 Evento:', JSON.stringify(event, null, 2));
   
   try {
     await connectDB();
 
-    const metadata = event.data.metadata || event.metadata || {};
-    const userId = metadata.userId || event.data.userId;
-    const paymentId = event.data.paymentId || event.data.id || event.id;
+    const eventData = event.data || event;
+    const paymentId = eventData.id;
+    const customerEmail = eventData.customer?.email;
+    const subscriptionId = eventData.subscription?.id;
 
-    // Buscar e cancelar subscription
-    const subscription = await Subscription.findOne({
-      stripeSubscriptionId: paymentId
-    });
+    // Buscar subscription pelo ID da Cakto ou pelo email do usuário
+    let subscription = null;
+    
+    if (subscriptionId) {
+      subscription = await Subscription.findOne({
+        stripeSubscriptionId: subscriptionId
+      });
+    }
+    
+    if (!subscription && customerEmail) {
+      const user = await User.findOne({ email: customerEmail });
+      if (user) {
+        subscription = await Subscription.findOne({
+          userId: user._id,
+          status: 'active'
+        });
+      }
+    }
 
     if (subscription) {
       subscription.status = 'canceled';
-      subscription.canceledAt = new Date();
+      subscription.canceledAt = new Date(eventData.refundedAt || Date.now());
       await subscription.save();
       console.log('💸 Subscription cancelada por reembolso:', subscription._id);
+    } else {
+      console.warn('⚠️ Subscription não encontrada para reembolso. Payment ID:', paymentId);
     }
 
-    console.log('💸 Reembolso processado para usuário:', userId);
+    console.log('💸 Reembolso processado. Email:', customerEmail);
     
     return { success: true, message: 'Reembolso processado' };
   } catch (error: any) {
@@ -412,15 +448,25 @@ export async function POST(request: NextRequest) {
         result = await handlePaymentApproved(event);
         break;
         
+      case 'purchase_refused':
+        // Compra recusada (formato real da Cakto)
+        result = await handlePaymentFailed(event);
+        break;
+
       case 'payment.failed':
       case 'payment.declined':
-        // Pagamento falhado
+        // Formatos alternativos (retrocompatibilidade)
         result = await handlePaymentFailed(event);
         break;
         
+      case 'refund':
+        // Reembolso (formato real da Cakto)
+        result = await handlePaymentRefunded(event);
+        break;
+
       case 'payment.refunded':
       case 'refund.processed':
-        // Reembolso
+        // Formatos alternativos (retrocompatibilidade)
         result = await handlePaymentRefunded(event);
         break;
         
@@ -476,11 +522,12 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     webhookUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/api/webhooks/cakto`,
     eventsSupported: [
-      'purchase_approved',      // Pagamento aprovado (formato real da Cakto)
+      'purchase_approved',      // Compra aprovada (formato real da Cakto)
+      'purchase_refused',      // Compra recusada (formato real da Cakto)
       'subscription_canceled',  // Assinatura cancelada (formato real da Cakto)
       'subscription_renewed',   // Renovação (formato real da Cakto)
-      'payment.failed',
-      'payment.refunded'
+      'refund',                // Reembolso (formato real da Cakto)
+      'chargeback'             // Chargeback (formato real da Cakto)
     ]
   });
 }
