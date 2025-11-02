@@ -126,7 +126,8 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
   async function loadMedia(kind: 'image' | 'video') {
     try {
       setMediaLoading(true);
-      const res = await fetch(`/api/media/list?type=${kind}`);
+      // Buscar todos os arquivos, não filtrar por tipo - o usuário pode escolher qualquer arquivo
+      const res = await fetch(`/api/media/list`);
       if (!res.ok) {
         console.error('Erro ao buscar mídia:', res.status, res.statusText);
         toast.error('Erro ao carregar biblioteca');
@@ -136,8 +137,19 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
       const data = await res.json();
       console.log('📦 Dados recebidos da API:', data);
       const items = data.items || [];
-      console.log(`📊 ${items.length} arquivos ${kind} encontrados`);
-      setMediaItems(items);
+      console.log(`📊 ${items.length} arquivos encontrados`);
+      
+      // Filtrar apenas os tipos relevantes para o widget
+      const filteredItems = items.filter((item: any) => {
+        if (kind === 'image') {
+          return item.kind === 'image' || item.kind === 'video'; // Mostrar imagens e vídeos para widget de imagem
+        } else {
+          return item.kind === 'video' || item.kind === 'image'; // Mostrar vídeos e imagens para widget de vídeo
+        }
+      });
+      
+      console.log(`📊 ${filteredItems.length} arquivos ${kind} filtrados`);
+      setMediaItems(filteredItems);
     } catch(e) {
       console.error('❌ Erro ao carregar mídia:', e);
       toast.error('Erro ao carregar biblioteca');
