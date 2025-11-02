@@ -91,8 +91,8 @@ export default function CheckoutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">S</span>
+              <div className="flex-shrink-0">
+                <img src="/logo-sxflow.svg" alt="Logo" className="h-8 w-auto" />
               </div>
               <h1 className="ml-3 text-2xl font-bold text-gray-900">SexyFlow</h1>
             </div>
