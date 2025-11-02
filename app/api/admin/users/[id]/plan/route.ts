@@ -30,18 +30,30 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { plan } = body;
+    const { plan, billingCycle } = body; // billingCycle: 'monthly' | 'yearly'
 
-    console.log('📦 Novo plano:', plan);
+    console.log('📦 Novo plano:', plan, 'Billing Cycle:', billingCycle);
 
-    // Mapear plano para o formato do modelo Subscription
-    const planMapping: { [key: string]: string } = {
-      'STARTER': 'monthly',
-      'PRO': 'annual',
-      'ENTERPRISE': 'annual'
-    };
+    // Validar billingCycle
+    const validBillingCycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
+    
+    // Para ENTERPRISE, sempre usar yearly (mas pode ser ajustado)
+    const finalBillingCycle = plan === 'ENTERPRISE' ? 'yearly' : validBillingCycle;
 
-    const mappedPlan = planMapping[plan] || 'monthly';
+    // Calcular duração do período
+    const now = new Date();
+    let periodEnd: Date;
+    
+    if (finalBillingCycle === 'yearly') {
+      // 365 dias para plano anual
+      periodEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    } else {
+      // 30 dias para plano mensal
+      periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Criar planId baseado no plano e billingCycle
+    const planId = `plan-${plan.toLowerCase()}-${finalBillingCycle === 'yearly' ? 'yearly' : 'monthly'}`;
 
     // Verificar se usuário existe
     const user = await User.findById(params.id);
@@ -52,17 +64,15 @@ export async function PATCH(
 
     // Buscar ou criar assinatura
     let subscription = await Subscription.findOne({ userId: params.id });
-    
-    const now = new Date();
-    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 dias
 
     if (!subscription) {
       // Criar nova assinatura
       subscription = new Subscription({
         userId: params.id,
-        planId: mappedPlan,
-        planName: mappedPlan,
-        realPlanName: plan as 'STARTER' | 'PRO' | 'ENTERPRISE', // Armazenar plano real
+        planId: planId,
+        planName: finalBillingCycle === 'yearly' ? 'yearly' : 'monthly', // Para retrocompatibilidade
+        realPlanName: plan as 'STARTER' | 'PRO' | 'ENTERPRISE',
+        billingCycle: finalBillingCycle,
         status: 'active',
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
@@ -70,9 +80,10 @@ export async function PATCH(
       });
     } else {
       // Atualizar plano existente
-      subscription.planId = mappedPlan;
-      subscription.planName = mappedPlan;
-      subscription.realPlanName = plan as 'STARTER' | 'PRO' | 'ENTERPRISE'; // Armazenar plano real
+      subscription.planId = planId;
+      subscription.planName = finalBillingCycle === 'yearly' ? 'yearly' : 'monthly'; // Para retrocompatibilidade
+      subscription.realPlanName = plan as 'STARTER' | 'PRO' | 'ENTERPRISE';
+      subscription.billingCycle = finalBillingCycle;
       subscription.status = 'active';
       subscription.currentPeriodStart = now;
       subscription.currentPeriodEnd = periodEnd;
@@ -82,15 +93,16 @@ export async function PATCH(
     await subscription.save();
 
     // Atualizar também o modelo User
-    const userPlanType = mappedPlan === 'monthly' ? 'MONTHLY' : 'YEARLY';
+    const userPlanType = finalBillingCycle === 'yearly' ? 'YEARLY' : 'MONTHLY';
     await User.findByIdAndUpdate(params.id, {
       planType: userPlanType,
       planStartDate: now,
       planEndDate: periodEnd
     });
 
-    console.log(`✅ Plano do usuário ${user.email} alterado para: ${plan} (${mappedPlan})`);
-    console.log(`📊 Atualizado no modelo User: ${userPlanType}`);
+    console.log(`✅ Plano do usuário ${user.email} alterado para: ${plan} (${finalBillingCycle})`);
+    console.log(`📊 Duração: ${finalBillingCycle === 'yearly' ? '365 dias' : '30 dias'}`);
+    console.log(`📅 Válido até: ${periodEnd.toLocaleDateString('pt-BR')}`);
 
     return NextResponse.json({ 
       message: `Plano alterado para ${plan} com sucesso`,

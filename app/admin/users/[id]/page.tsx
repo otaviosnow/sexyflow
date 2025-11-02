@@ -201,21 +201,31 @@ export default function AdminUserDetailsPage({ params }: { params: { id: string 
     }
   };
 
+  const [adminBillingCycle, setAdminBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
   const changeUserPlan = async (newPlan: string) => {
     try {
+      // Para ENTERPRISE, sempre usar yearly
+      const billingCycle = newPlan === 'ENTERPRISE' ? 'yearly' : adminBillingCycle;
+      
       const response = await fetch(`/api/admin/users/${user?._id}/plan`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ plan: newPlan }),
+        body: JSON.stringify({ 
+          plan: newPlan,
+          billingCycle: billingCycle
+        }),
       });
 
       if (response.ok) {
-        toast.success('Plano alterado com sucesso!');
+        const data = await response.json();
+        toast.success(`Plano alterado para ${newPlan} (${billingCycle === 'yearly' ? 'Anual' : 'Mensal'}) com sucesso!`);
         loadUserData(); // Recarregar dados
       } else {
-        toast.error('Erro ao alterar plano');
+        const error = await response.json();
+        toast.error(error.error || 'Erro ao alterar plano');
       }
     } catch (error) {
       console.error('Erro ao alterar plano:', error);
@@ -373,6 +383,41 @@ export default function AdminUserDetailsPage({ params }: { params: { id: string 
                   )}
                 </div>
                 
+                {/* Toggle Billing Cycle para Starter e Pro */}
+                <div className="mb-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <label className="block text-xs text-gray-400 mb-2">Ciclo de Cobrança (Starter/Pro)</label>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className={`text-xs ${adminBillingCycle === 'monthly' ? 'text-white font-medium' : 'text-gray-500'}`}>
+                      Mensal
+                    </span>
+                    <button
+                      onClick={() => setAdminBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly')}
+                      className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                        adminBillingCycle === 'yearly' ? 'bg-pink-600' : 'bg-gray-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          adminBillingCycle === 'yearly' ? 'translate-x-7' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                    <span className={`text-xs ${adminBillingCycle === 'yearly' ? 'text-white font-medium' : 'text-gray-500'}`}>
+                      Anual
+                    </span>
+                  </div>
+                  {adminBillingCycle === 'yearly' && (
+                    <p className="text-xs text-green-400 mt-2 text-center">
+                      Duração: 365 dias
+                    </p>
+                  )}
+                  {adminBillingCycle === 'monthly' && (
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      Duração: 30 dias
+                    </p>
+                  )}
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => changeUserPlan('STARTER')}
@@ -382,7 +427,9 @@ export default function AdminUserDetailsPage({ params }: { params: { id: string 
                         : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400'
                     }`}
                   >
-                    {user.subscription?.plan === 'STARTER' ? '✓ STARTER (Atual)' : 'Definir como STARTER'}
+                    {user.subscription?.plan === 'STARTER' 
+                      ? `✓ STARTER (Atual - ${user.subscription?.billingCycle === 'yearly' ? 'Anual' : 'Mensal'})` 
+                      : `Definir como STARTER (${adminBillingCycle === 'yearly' ? 'Anual' : 'Mensal'})`}
                   </button>
                   <button
                     onClick={() => changeUserPlan('PRO')}
@@ -392,7 +439,9 @@ export default function AdminUserDetailsPage({ params }: { params: { id: string 
                         : 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-400'
                     }`}
                   >
-                    {user.subscription?.plan === 'PRO' ? '✓ PRO (Atual)' : 'Definir como PRO'}
+                    {user.subscription?.plan === 'PRO' 
+                      ? `✓ PRO (Atual - ${user.subscription?.billingCycle === 'yearly' ? 'Anual' : 'Mensal'})` 
+                      : `Definir como PRO (${adminBillingCycle === 'yearly' ? 'Anual' : 'Mensal'})`}
                   </button>
                   <button
                     onClick={() => changeUserPlan('ENTERPRISE')}
@@ -402,7 +451,9 @@ export default function AdminUserDetailsPage({ params }: { params: { id: string 
                         : 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
                     }`}
                   >
-                    {user.subscription?.plan === 'ENTERPRISE' ? '✓ ENTERPRISE (Atual)' : 'Definir como ENTERPRISE'}
+                    {user.subscription?.plan === 'ENTERPRISE' 
+                      ? '✓ ENTERPRISE (Atual - Anual)' 
+                      : 'Definir como ENTERPRISE (Anual)'}
                   </button>
                 </div>
               </div>
