@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
 import Subscription from '@/models/Subscription';
-import { caktoService, getCaktoPlanData } from '@/lib/cakto';
+import { getCaktoCheckoutLink } from '@/lib/cakto';
 import { getPlanByNameAndBilling } from '@/lib/models/Plan';
 
 export async function POST(request: NextRequest) {
@@ -54,53 +54,16 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Obter dados do plano na Cakto
-      const planData = getCaktoPlanData(planId);
-      
       // Extrair informações do plano
       const [_, planType, billingCycle] = planId.split('-'); // plan-starter-monthly -> ['plan', 'starter', 'monthly']
       const planName = planType.toUpperCase() as 'STARTER' | 'PRO';
       const finalBillingCycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
 
-      // Criar cliente na Cakto
-      const caktoCustomer = await caktoService.createCustomer({
-        name: customerData.name,
-        email: customerData.email,
-        document: customerData.document // CPF
-      });
-
-      // Criar plano na Cakto (se não existir) - pode ser feito manualmente no painel da Cakto
-      let caktoPlan;
-      try {
-        // Tentar criar o plano (pode já existir)
-        caktoPlan = await caktoService.createPlan(planData);
-        console.log('✅ Plano criado na Cakto:', caktoPlan.id);
-      } catch (error: any) {
-        // Se falhar, assumir que o plano já existe
-        console.log('⚠️ Plano pode já existir na Cakto:', planData.name);
-      }
-
-      // Criar link de checkout na Cakto
-      // O usuário será redirecionado para este link para completar o pagamento
-      const checkout = await caktoService.createCheckoutLink({
-        planId: planId,
-        planName: planData.name,
-        amount: planData.amount,
-        interval: planData.interval,
-        customer: {
-          name: customerData.name,
-          email: customerData.email,
-          document: customerData.document
-        },
-        metadata: {
-          userId: user._id.toString(),
-          planId: planId,
-          realPlanName: planName,
-          billingCycle: finalBillingCycle
-        }
-      });
+      // Obter link de checkout configurado manualmente na Cakto
+      const checkoutUrl = getCaktoCheckoutLink(planId);
 
       // Criar assinatura pendente no nosso banco (será ativada quando o webhook confirmar o pagamento)
+      // O webhook da Cakto deve incluir metadata com userId e planId
       const subscription = new Subscription({
         userId: user._id,
         planId: planId,
@@ -112,21 +75,20 @@ export async function POST(request: NextRequest) {
         currentPeriodEnd: finalBillingCycle === 'yearly' 
           ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 365 dias
           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias
-        cancelAtPeriodEnd: false,
-        stripeSubscriptionId: checkout.paymentId, // ID do checkout/pagamento na Cakto
-        stripeCustomerId: caktoCustomer.id // ID do cliente na Cakto
+        cancelAtPeriodEnd: false
+        // stripeSubscriptionId e stripeCustomerId serão preenchidos quando o webhook chegar
       });
 
       await subscription.save();
 
-      console.log(`✅ Link de checkout criado para ${planName} (${finalBillingCycle}) - usuário ${user.email}`);
-      console.log(`🔗 URL: ${checkout.checkoutUrl}`);
+      console.log(`✅ Link de checkout obtido para ${planName} (${finalBillingCycle}) - usuário ${user.email}`);
+      console.log(`🔗 URL: ${checkoutUrl}`);
+      console.log(`📝 Subscription ID: ${subscription._id} (aguardando webhook)`);
 
       // Retornar link de checkout para redirecionamento
       return NextResponse.json({
         success: true,
-        checkoutUrl: checkout.checkoutUrl,
-        paymentId: checkout.paymentId,
+        checkoutUrl: checkoutUrl,
         subscription: {
           id: subscription._id,
           status: subscription.status
@@ -134,12 +96,12 @@ export async function POST(request: NextRequest) {
         message: 'Redirecione o usuário para o link de checkout para completar o pagamento'
       });
 
-    } catch (caktoError: any) {
-      console.error('❌ Erro na integração com Cakto:', caktoError);
+    } catch (error: any) {
+      console.error('❌ Erro ao obter link de checkout:', error);
       
       return NextResponse.json({
-        error: 'Erro ao criar checkout na Cakto',
-        details: caktoError.message || 'Erro desconhecido na Cakto'
+        error: 'Erro ao obter link de checkout',
+        details: error.message || 'Link de checkout não configurado. Configure as variáveis de ambiente CAKTO_CHECKOUT_*'
       }, { status: 400 });
     }
 

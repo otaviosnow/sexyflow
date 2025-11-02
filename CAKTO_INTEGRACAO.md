@@ -2,12 +2,12 @@
 
 ## 📋 Como Funciona a Integração
 
-A integração com a Cakto funciona através de **links de checkout** e **webhooks**:
+A integração com a Cakto funciona através de **links de checkout** (configurados manualmente) e **webhooks**:
 
 ### **Fluxo Completo:**
 
 1. **Usuário escolhe um plano** na página `/choose-plan`
-2. **Sistema cria link de checkout** na Cakto via API (`/api/subscriptions/create`)
+2. **Sistema obtém link de checkout** configurado manualmente na Cakto (`/api/subscriptions/create`)
 3. **Usuário é redirecionado** para o link de checkout da Cakto
 4. **Usuário paga** na página da Cakto (cartão, PIX, boleto)
 5. **Cakto envia webhook** para `/api/webhooks/cakto` quando:
@@ -22,9 +22,38 @@ A integração com a Cakto funciona através de **links de checkout** e **webhoo
 
 ## 🚀 Configuração na Cakto
 
-### **1. Criar Planos na Cakto**
+### **1. Criar Links de Checkout na Cakto**
 
-Você precisa criar os planos na Cakto manualmente com os seguintes nomes exatos:
+Você precisa criar os links de checkout na Cakto manualmente para cada plano. Veja `CAKTO_LINKS_SETUP.md` para instruções detalhadas.
+
+**Links necessários:**
+- Starter Mensal
+- Starter Anual  
+- Pro Mensal
+- Pro Anual
+
+### **2. Configurar URLs de Callback**
+
+Ao criar cada link de checkout, configure:
+
+- **URL de Sucesso:** `https://sexyflow.onrender.com/payment/success`
+- **URL de Cancelamento:** `https://sexyflow.onrender.com/payment/cancel`
+- **Webhook URL:** `https://sexyflow.onrender.com/api/webhooks/cakto`
+
+### **3. Adicionar Links nas Variáveis de Ambiente**
+
+Após criar os links, adicione no `.env.local`:
+
+```env
+CAKTO_CHECKOUT_STARTER_MONTHLY=https://checkout.cakto.com/seu-link-starter-mensal
+CAKTO_CHECKOUT_STARTER_YEARLY=https://checkout.cakto.com/seu-link-starter-anual
+CAKTO_CHECKOUT_PRO_MONTHLY=https://checkout.cakto.com/seu-link-pro-mensal
+CAKTO_CHECKOUT_PRO_YEARLY=https://checkout.cakto.com/seu-link-pro-anual
+```
+
+### **4. (Opcional) Criar Planos na Cakto**
+
+Se a Cakto exigir, você pode criar os planos com os seguintes nomes exatos:
 
 #### **Planos Mensais:**
 - **Nome:** `SexyFlow Starter Mensal`
@@ -45,7 +74,7 @@ Você precisa criar os planos na Cakto manualmente com os seguintes nomes exatos
   - Valor: R$ 470,00
   - Intervalo: Anual
 
-### **2. Configurar Webhook**
+### **5. Configurar Webhook**
 
 No painel da Cakto, configure o webhook:
 
@@ -53,7 +82,7 @@ No painel da Cakto, configure o webhook:
 - **Método:** POST
 - **Secret:** Configure o `CAKTO_WEBHOOK_SECRET` no `.env.local`
 
-### **3. Eventos para Configurar**
+### **6. Eventos para Configurar**
 
 Ative os seguintes eventos no webhook da Cakto:
 
@@ -70,7 +99,13 @@ Ative os seguintes eventos no webhook da Cakto:
 Adicione no seu `.env.local`:
 
 ```env
-# Cakto Configuration
+# Links de Checkout (OBRIGATÓRIO - cole os links que você criou na Cakto)
+CAKTO_CHECKOUT_STARTER_MONTHLY=https://checkout.cakto.com/seu-link-starter-mensal
+CAKTO_CHECKOUT_STARTER_YEARLY=https://checkout.cakto.com/seu-link-starter-anual
+CAKTO_CHECKOUT_PRO_MONTHLY=https://checkout.cakto.com/seu-link-pro-mensal
+CAKTO_CHECKOUT_PRO_YEARLY=https://checkout.cakto.com/seu-link-pro-anual
+
+# Cakto Configuration (opcional se não usar API para criar checkouts)
 CAKTO_API_KEY=sua_api_key_aqui
 CAKTO_SECRET_KEY=sua_secret_key_aqui
 CAKTO_WEBHOOK_SECRET=seu_webhook_secret_aqui
@@ -84,7 +119,7 @@ NEXT_PUBLIC_BASE_URL=https://sexyflow.onrender.com
 
 ## 🔧 Endpoints da API
 
-### **Criar Checkout** (`POST /api/subscriptions/create`)
+### **Obter Link de Checkout** (`POST /api/subscriptions/create`)
 
 Recebe:
 ```json
@@ -94,9 +129,6 @@ Recebe:
     "name": "João Silva",
     "email": "joao@example.com",
     "document": "12345678901"
-  },
-  "paymentMethod": {
-    "type": "credit_card"
   }
 }
 ```
@@ -105,14 +137,15 @@ Retorna:
 ```json
 {
   "success": true,
-  "checkoutUrl": "https://checkout.cakto.com/...",
-  "paymentId": "pay_123456",
+  "checkoutUrl": "https://checkout.cakto.com/seu-link-configurado",
   "subscription": {
     "id": "...",
     "status": "pending"
   }
 }
 ```
+
+**Nota:** O sistema não cria o checkout via API, apenas retorna o link que você configurou nas variáveis de ambiente.
 
 ### **Webhook** (`POST /api/webhooks/cakto`)
 

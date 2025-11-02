@@ -239,7 +239,16 @@ class CaktoService {
 
 export const caktoService = new CaktoService();
 
-// Planos pré-definidos da Cakto
+// Links de checkout da Cakto (configurar manualmente no painel da Cakto)
+// Você deve criar os links de checkout na Cakto e colar aqui
+export const CAKTO_CHECKOUT_LINKS = {
+  'plan-starter-monthly': process.env.CAKTO_CHECKOUT_STARTER_MONTHLY || '',
+  'plan-starter-yearly': process.env.CAKTO_CHECKOUT_STARTER_YEARLY || '',
+  'plan-pro-monthly': process.env.CAKTO_CHECKOUT_PRO_MONTHLY || '',
+  'plan-pro-yearly': process.env.CAKTO_CHECKOUT_PRO_YEARLY || '',
+};
+
+// Planos pré-definidos da Cakto (para referência - não usado se tiver links de checkout)
 // Preços em centavos (R$ * 100)
 export const CAKTO_PLANS = {
   // STARTER Mensal: R$ 29,90
@@ -276,7 +285,16 @@ export const CAKTO_PLANS = {
   },
 };
 
-// Helper para obter dados do plano na Cakto baseado no planId
+// Helper para obter link de checkout baseado no planId
+export function getCaktoCheckoutLink(planId: string): string {
+  const link = CAKTO_CHECKOUT_LINKS[planId as keyof typeof CAKTO_CHECKOUT_LINKS];
+  if (!link) {
+    throw new Error(`Link de checkout não configurado para o plano ${planId}. Configure as variáveis de ambiente CAKTO_CHECKOUT_* ou adicione o link em lib/cakto.ts`);
+  }
+  return link;
+}
+
+// Helper para obter dados do plano na Cakto baseado no planId (método alternativo via API)
 export function getCaktoPlanData(planId: string) {
   const plan = CAKTO_PLANS[planId as keyof typeof CAKTO_PLANS];
   if (!plan) {
