@@ -700,8 +700,8 @@ export default function MediaLibrary() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0 mr-5">
-                      <h3 className="font-semibold text-purple-100 truncate">{file.name}</h3>
-                      <div className="flex items-center space-x-4 text-sm text-purple-300/70 mt-2">
+                      <h3 className="font-semibold text-pink-100 truncate">{file.name}</h3>
+                      <div className="flex items-center space-x-4 text-sm text-pink-300/70 mt-2">
                         <span>{formatFileSize(file.size)}</span>
                         <span>•</span>
                         <span>{new Date(file.uploadedAt).toLocaleDateString('pt-BR')}</span>
