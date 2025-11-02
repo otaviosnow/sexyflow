@@ -249,13 +249,25 @@ export const CAKTO_CHECKOUT_LINKS = {
 };
 
 // Mapeamento de valores/preços para identificar o plano no webhook
-// A Cakto envia o valor do pagamento, então mapeamos para o planId correto
-// Valores em centavos (R$ * 100)
-export const CAKTO_PRICE_TO_PLAN = {
-  2990: 'plan-starter-monthly',   // R$ 29,90
-  29900: 'plan-starter-yearly',  // R$ 299,00
-  4700: 'plan-pro-monthly',      // R$ 47,00
-  47000: 'plan-pro-yearly',      // R$ 470,00
+// A Cakto envia o valor em REAIS (não centavos)
+// Aceita valores como números (5, 25, 29.90) ou strings ("5.00", "29.90")
+export const CAKTO_PRICE_TO_PLAN: Record<string, string> = {
+  '29.90': 'plan-starter-monthly',
+  '29,90': 'plan-starter-monthly',
+  '299.00': 'plan-starter-yearly',
+  '299,00': 'plan-starter-yearly',
+  '299': 'plan-starter-yearly',
+  '47.00': 'plan-pro-monthly',
+  '47,00': 'plan-pro-monthly',
+  '47': 'plan-pro-monthly',
+  '470.00': 'plan-pro-yearly',
+  '470,00': 'plan-pro-yearly',
+  '470': 'plan-pro-yearly',
+  // Valores numéricos também (para conversão)
+  '29.9': 'plan-starter-monthly',
+  '299': 'plan-starter-yearly',
+  '47': 'plan-pro-monthly',
+  '470': 'plan-pro-yearly',
 };
 
 // Mapeamento alternativo por nome do produto/checkout (se a Cakto enviar)

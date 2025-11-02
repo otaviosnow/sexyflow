@@ -112,58 +112,66 @@ async function activateSubscription(
   }
 }
 
-// Processar evento de pagamento aprovado
+// Processar evento de pagamento aprovado (purchase_approved)
 async function handlePaymentApproved(event: any) {
-  console.log('💰 Pagamento aprovado');
+  console.log('💰 Pagamento aprovado (purchase_approved)');
   console.log('📋 Evento completo:', JSON.stringify(event, null, 2));
   
   try {
     await connectDB();
 
-    // Extrair dados básicos do evento da Cakto
     const eventData = event.data || event;
-    const paymentId = eventData.payment_id || eventData.id || eventData.transaction_id || event.id;
-    const customerEmail = eventData.customer_email || eventData.email || eventData.customer?.email;
-    const customerId = eventData.customer_id || eventData.customer?.id;
     
-    // Identificar o plano usando valor, nome do produto, ou ID do checkout
+    // Extrair dados do formato real da Cakto
+    const paymentId = eventData.id; // ID do pagamento
+    const customerEmail = eventData.customer?.email;
+    const subscriptionId = eventData.subscription?.id;
+    const subscriptionStatus = eventData.subscription?.status; // "active"
+    
+    // Identificar o plano usando valor, nome do produto
     const planId = identifyPlanFromWebhook(eventData);
     
     if (!planId) {
       console.error('❌ Não foi possível identificar o plano do webhook');
-      console.log('📋 Dados disponíveis:', {
-        amount: eventData.amount || eventData.value || eventData.price,
-        product_name: eventData.product_name || eventData.product || eventData.description,
-        checkout_id: eventData.checkout_id || eventData.product_id,
-        customer_email: customerEmail
-      });
       return { success: false, message: 'Não foi possível identificar o plano comprado' };
     }
 
-    // Buscar usuário pelo email (mais confiável que ID, já que vem do checkout)
-    let user = null;
-    if (customerEmail) {
-      user = await User.findOne({ email: customerEmail });
-      if (user) {
-        console.log('✅ Usuário encontrado pelo email:', customerEmail);
-      }
+    // Buscar usuário pelo email
+    if (!customerEmail) {
+      console.error('❌ Email do cliente não encontrado no webhook');
+      return { success: false, message: 'Email do cliente não encontrado' };
     }
 
-    // Se não encontrou pelo email, tentar pelo customer_id se a Cakto enviar
-    if (!user && customerId) {
-      // Aqui você pode ter um campo no User que armazena o customer_id da Cakto
-      // Por enquanto, vamos precisar do email
-    }
-
+    const user = await User.findOne({ email: customerEmail });
     if (!user) {
       console.error('❌ Usuário não encontrado. Email recebido:', customerEmail);
       return { success: false, message: 'Usuário não encontrado no sistema' };
     }
 
     const userId = user._id.toString();
-    console.log('✅ Dados identificados:', { userId, planId, paymentId, email: customerEmail });
+    console.log('✅ Dados identificados:', { 
+      userId, 
+      planId, 
+      paymentId, 
+      subscriptionId,
+      email: customerEmail 
+    });
 
-    return await activateSubscription(userId, planId, paymentId, null);
+    // Ativar subscription e salvar subscription ID da Cakto
+    const result = await activateSubscription(userId, planId, paymentId, null);
+    
+    // Se temos subscription ID da Cakto, atualizar
+    if (subscriptionId && result.success) {
+      await Subscription.findOneAndUpdate(
+        { userId: userId, planId: planId, status: 'active' },
+        { 
+          stripeSubscriptionId: subscriptionId, // Guardar ID da subscription da Cakto
+          stripeCustomerId: eventData.customer?.id // Guardar customer ID se tiver
+        }
+      );
+    }
+
+    return result;
   } catch (error: any) {
     console.error('❌ Erro ao processar pagamento aprovado:', error);
     return { success: false, message: error.message || 'Erro interno do servidor' };
@@ -233,32 +241,46 @@ async function handlePaymentRefunded(event: any) {
   }
 }
 
-// Processar evento de assinatura cancelada ou renovação
+// Processar evento de assinatura cancelada (subscription_canceled)
 async function handleSubscriptionCancelled(event: any) {
-  console.log('🚫 Assinatura cancelada:', event.data);
+  console.log('🚫 Assinatura cancelada (subscription_canceled)');
+  console.log('📋 Evento:', JSON.stringify(event, null, 2));
   
   try {
     await connectDB();
 
-    const subscriptionId = event.data.subscriptionId || event.data.id;
-    const userId = event.data.customer_id ? 
-      await Subscription.findOne({ stripeCustomerId: event.data.customer_id }).then(s => s?.userId) :
-      null;
+    const eventData = event.data || event;
+    const subscriptionId = eventData.subscription?.id;
+    const customerEmail = eventData.customer?.email || eventData.subscription?.customer?.email;
 
-    // Buscar subscription
-    const subscription = await Subscription.findOne({
-      $or: [
-        { stripeSubscriptionId: subscriptionId },
-        { stripeCustomerId: event.data.customer_id }
-      ]
-    });
+    // Buscar subscription pelo ID da Cakto ou pelo email do usuário
+    let subscription = null;
+    
+    if (subscriptionId) {
+      subscription = await Subscription.findOne({
+        stripeSubscriptionId: subscriptionId
+      });
+    }
+    
+    // Se não encontrou pelo ID, buscar pelo email do usuário
+    if (!subscription && customerEmail) {
+      const user = await User.findOne({ email: customerEmail });
+      if (user) {
+        subscription = await Subscription.findOne({
+          userId: user._id,
+          status: 'active'
+        });
+      }
+    }
 
     if (subscription) {
       subscription.status = 'canceled';
       subscription.cancelAtPeriodEnd = true;
-      subscription.canceledAt = new Date();
+      subscription.canceledAt = new Date(eventData.subscription?.canceledAt || Date.now());
       await subscription.save();
       console.log('🚫 Subscription cancelada:', subscription._id);
+    } else {
+      console.warn('⚠️ Subscription não encontrada para cancelamento. Subscription ID:', subscriptionId);
     }
 
     return { success: true, message: 'Assinatura cancelada' };
@@ -268,26 +290,56 @@ async function handleSubscriptionCancelled(event: any) {
   }
 }
 
-// Processar renovação de assinatura (pagamento recorrente)
+// Processar renovação de assinatura (subscription_renewed)
 async function handleSubscriptionRenewed(event: any) {
-  console.log('🔄 Assinatura renovada:', event.data);
+  console.log('🔄 Assinatura renovada (subscription_renewed)');
+  console.log('📋 Evento:', JSON.stringify(event, null, 2));
   
   try {
     await connectDB();
 
-    const subscriptionId = event.data.subscriptionId || event.data.id;
+    const eventData = event.data || event;
+    const subscriptionId = eventData.subscription?.id;
+    const customerEmail = eventData.customer?.email || eventData.subscription?.customer?.email;
+    const nextPaymentDate = eventData.subscription?.next_payment_date;
+    const recurrencePeriod = eventData.subscription?.recurrence_period; // em dias
 
-    const subscription = await Subscription.findOne({
-      stripeSubscriptionId: subscriptionId
-    });
+    // Buscar subscription pelo ID da Cakto ou pelo email do usuário
+    let subscription = null;
+    
+    if (subscriptionId) {
+      subscription = await Subscription.findOne({
+        stripeSubscriptionId: subscriptionId
+      });
+    }
+    
+    if (!subscription && customerEmail) {
+      const user = await User.findOne({ email: customerEmail });
+      if (user) {
+        subscription = await Subscription.findOne({
+          userId: user._id,
+          status: 'active'
+        });
+      }
+    }
 
     if (subscription) {
-      // Atualizar período
-      subscription.currentPeriodStart = new Date(event.data.current_period_start || Date.now());
-      subscription.currentPeriodEnd = new Date(event.data.current_period_end || 
-        (subscription.billingCycle === 'yearly' 
-          ? Date.now() + 365 * 24 * 60 * 60 * 1000 
-          : Date.now() + 30 * 24 * 60 * 60 * 1000));
+      // Atualizar período baseado na data de próximo pagamento ou período de recorrência
+      if (nextPaymentDate) {
+        subscription.currentPeriodEnd = new Date(nextPaymentDate);
+        subscription.currentPeriodStart = new Date(); // Renovação começa agora
+      } else if (recurrencePeriod) {
+        // Calcular baseado no período de recorrência (em dias)
+        const daysInMs = recurrencePeriod * 24 * 60 * 60 * 1000;
+        subscription.currentPeriodStart = new Date();
+        subscription.currentPeriodEnd = new Date(Date.now() + daysInMs);
+      } else {
+        // Fallback: usar billingCycle da subscription
+        const days = subscription.billingCycle === 'yearly' ? 365 : 30;
+        subscription.currentPeriodStart = new Date();
+        subscription.currentPeriodEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      }
+      
       subscription.status = 'active';
       await subscription.save();
 
@@ -297,6 +349,12 @@ async function handleSubscriptionRenewed(event: any) {
       });
 
       console.log('✅ Subscription renovada:', subscription._id);
+      console.log('📅 Novo período:', {
+        start: subscription.currentPeriodStart,
+        end: subscription.currentPeriodEnd
+      });
+    } else {
+      console.warn('⚠️ Subscription não encontrada para renovação. Subscription ID:', subscriptionId);
     }
 
     return { success: true, message: 'Renovação processada' };
@@ -339,13 +397,18 @@ export async function POST(request: NextRequest) {
 
     let result;
     
-    // Processar evento baseado no tipo
+    // Processar evento baseado no tipo (formatos reais da Cakto)
     switch (eventType) {
+      case 'purchase_approved':
+        // Pagamento aprovado (primeira compra ou renovação paga)
+        result = await handlePaymentApproved(event);
+        break;
+
       case 'payment.approved':
       case 'payment.succeeded':
       case 'payment.completed':
       case 'subscription.created':
-        // Pagamento aprovado ou assinatura criada
+        // Formatos alternativos (retrocompatibilidade)
         result = await handlePaymentApproved(event);
         break;
         
@@ -361,12 +424,14 @@ export async function POST(request: NextRequest) {
         result = await handlePaymentRefunded(event);
         break;
         
+      case 'subscription_canceled':
       case 'subscription.cancelled':
       case 'subscription.canceled':
         // Assinatura cancelada
         result = await handleSubscriptionCancelled(event);
         break;
 
+      case 'subscription_renewed':
       case 'subscription.renewed':
       case 'subscription.updated':
         // Renovação de assinatura
@@ -411,12 +476,11 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     webhookUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/api/webhooks/cakto`,
     eventsSupported: [
-      'payment.approved',
+      'purchase_approved',      // Pagamento aprovado (formato real da Cakto)
+      'subscription_canceled',  // Assinatura cancelada (formato real da Cakto)
+      'subscription_renewed',   // Renovação (formato real da Cakto)
       'payment.failed',
-      'payment.refunded',
-      'subscription.created',
-      'subscription.cancelled',
-      'subscription.renewed'
+      'payment.refunded'
     ]
   });
 }
