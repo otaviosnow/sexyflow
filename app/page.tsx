@@ -230,29 +230,31 @@ export default function HomePage() {
                     </h3>
                     {plan.name === 'ENTERPRISE' ? (
                       <p className="text-lg text-gray-600">Contato Direto</p>
-                    ) : (
+                    ) : billingCycle === 'yearly' ? (
                       <div>
+                        {/* Destacar valor mensal equivalente */}
                         <div className="flex items-baseline justify-center">
                           <span className="text-4xl font-bold text-gray-900">
-                            R$ {plan.price.toFixed(2).replace('.', ',')}
+                            R$ {(plan.price / 12).toFixed(2).replace('.', ',')}
                           </span>
-                          {billingCycle === 'yearly' && (
-                            <span className="text-gray-600 ml-2 text-sm">/ano</span>
-                          )}
+                          <span className="text-gray-600 ml-2">/mês</span>
                         </div>
-                        {billingCycle === 'yearly' && (
-                          <div className="mt-2">
-                            <p className="text-sm text-gray-600">
-                              R$ {(plan.price / 12).toFixed(2).replace('.', ',')} /mês
-                            </p>
-                            <p className="text-xs text-green-600 font-semibold mt-1">
-                              Economize R$ {yearlySavings.toFixed(2).replace('.', ',')}
-                            </p>
-                          </div>
-                        )}
-                        {billingCycle === 'monthly' && (
-                          <span className="text-gray-600 text-sm">/mês</span>
-                        )}
+                        <div className="mt-2">
+                          {/* Mostrar valor total anual de forma discreta */}
+                          <p className="text-sm text-gray-500">
+                            R$ {plan.price.toFixed(2).replace('.', ',')} /ano
+                          </p>
+                          <p className="text-xs text-green-600 font-semibold mt-1">
+                            Economize R$ {yearlySavings.toFixed(2).replace('.', ',')}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-baseline justify-center">
+                        <span className="text-4xl font-bold text-gray-900">
+                          R$ {plan.price.toFixed(2).replace('.', ',')}
+                        </span>
+                        <span className="text-gray-600 ml-2">/mês</span>
                       </div>
                     )}
                   </div>
