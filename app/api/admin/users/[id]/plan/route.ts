@@ -62,6 +62,7 @@ export async function PATCH(
         userId: params.id,
         planId: mappedPlan,
         planName: mappedPlan,
+        realPlanName: plan as 'STARTER' | 'PRO' | 'ENTERPRISE', // Armazenar plano real
         status: 'active',
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
@@ -71,6 +72,7 @@ export async function PATCH(
       // Atualizar plano existente
       subscription.planId = mappedPlan;
       subscription.planName = mappedPlan;
+      subscription.realPlanName = plan as 'STARTER' | 'PRO' | 'ENTERPRISE'; // Armazenar plano real
       subscription.status = 'active';
       subscription.currentPeriodStart = now;
       subscription.currentPeriodEnd = periodEnd;

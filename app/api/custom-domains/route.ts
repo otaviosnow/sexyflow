@@ -4,7 +4,8 @@ import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/db';
 import CustomDomain from '@/models/CustomDomain';
 import User from '@/models/User';
-import { canUseCustomDomain } from '@/lib/utils/PlanRestrictions';
+import Subscription from '@/models/Subscription';
+import { canUseCustomDomainWithSubscription } from '@/lib/utils/PlanRestrictions';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,8 +21,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
 
+    // Buscar subscription do usuário
+    const subscription = await Subscription.findOne({ userId: session.user.id });
+
     // Verificar se o usuário tem permissão para usar domínio customizado
-    const restriction = canUseCustomDomain(user as any);
+    const restriction = canUseCustomDomainWithSubscription(subscription);
     if (!restriction.allowed) {
       return NextResponse.json({ 
         error: restriction.message || 'Seu plano não permite domínio customizado' 
@@ -56,8 +60,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
 
+    // Buscar subscription do usuário
+    const subscription = await Subscription.findOne({ userId: session.user.id });
+
     // Verificar se o usuário tem permissão para usar domínio customizado
-    const restriction = canUseCustomDomain(user as any);
+    const restriction = canUseCustomDomainWithSubscription(subscription);
     if (!restriction.allowed) {
       return NextResponse.json({ 
         error: restriction.message || 'Seu plano não permite domínio customizado' 

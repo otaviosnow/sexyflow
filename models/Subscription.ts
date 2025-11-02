@@ -4,6 +4,7 @@ export interface ISubscription extends Document {
   userId: mongoose.Types.ObjectId;
   planId: string;
   planName: 'monthly' | 'annual';
+  realPlanName?: 'STARTER' | 'PRO' | 'ENTERPRISE'; // Plano real para distinguir PRO de ENTERPRISE
   status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'expired';
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
@@ -33,6 +34,11 @@ const SubscriptionSchema = new Schema<ISubscription>({
     type: String,
     required: true,
     enum: ['monthly', 'annual']
+  },
+  realPlanName: {
+    type: String,
+    enum: ['STARTER', 'PRO', 'ENTERPRISE'],
+    required: false
   },
   status: {
     type: String,

@@ -161,6 +161,57 @@ export function canUseCustomDomain(user: User): RestrictionResult {
   return { allowed: true };
 }
 
+// Verificar se pode usar domínio customizado usando Subscription diretamente
+export function canUseCustomDomainWithSubscription(subscription: any): RestrictionResult {
+  if (!subscription) {
+    return {
+      allowed: false,
+      message: 'Você não possui um plano ativo. Faça upgrade para o plano PRO ou ENTERPRISE.'
+    };
+  }
+
+  // Verificar se a assinatura está ativa
+  if (subscription.status !== 'active') {
+    return {
+      allowed: false,
+      message: 'Sua assinatura não está ativa. Renove sua assinatura para usar domínios customizados.'
+    };
+  }
+
+  // Obter o plano real (STARTER, PRO ou ENTERPRISE)
+  // Se realPlanName não existir, tentar mapear de planName (retrocompatibilidade)
+  let planName: string | null = subscription.realPlanName;
+  
+  if (!planName) {
+    // Mapear de volta para o plano real (retrocompatibilidade)
+    if (subscription.planName === 'monthly') {
+      planName = 'STARTER';
+    } else if (subscription.planName === 'annual') {
+      // Se não tiver realPlanName, assumir PRO (padrão para annual antigo)
+      planName = 'PRO';
+    }
+  }
+
+  if (!planName) {
+    return {
+      allowed: false,
+      message: 'Não foi possível determinar seu plano. Entre em contato com o suporte.'
+    };
+  }
+
+  // Verificar se o plano permite domínio customizado
+  const plan = PLANS.find(p => p.name === planName);
+  
+  if (!plan || !plan.features.customDomain) {
+    return {
+      allowed: false,
+      message: 'Domínio customizado não está disponível no seu plano. Faça upgrade para o plano PRO ou ENTERPRISE.'
+    };
+  }
+
+  return { allowed: true };
+}
+
 // Verificar se pode acessar analytics
 export function canAccessAnalytics(user: User): RestrictionResult {
   const limits = getPlanLimits(user);
