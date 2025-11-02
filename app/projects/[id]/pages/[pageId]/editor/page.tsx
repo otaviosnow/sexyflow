@@ -139,17 +139,8 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
       const items = data.items || [];
       console.log(`📊 ${items.length} arquivos encontrados`);
       
-      // Filtrar apenas os tipos relevantes para o widget
-      const filteredItems = items.filter((item: any) => {
-        if (kind === 'image') {
-          return item.kind === 'image' || item.kind === 'video'; // Mostrar imagens e vídeos para widget de imagem
-        } else {
-          return item.kind === 'video' || item.kind === 'image'; // Mostrar vídeos e imagens para widget de vídeo
-        }
-      });
-      
-      console.log(`📊 ${filteredItems.length} arquivos ${kind} filtrados`);
-      setMediaItems(filteredItems);
+      // Mostrar todos os arquivos (imagens e vídeos) - o usuário pode escolher qualquer um
+      setMediaItems(items);
     } catch(e) {
       console.error('❌ Erro ao carregar mídia:', e);
       toast.error('Erro ao carregar biblioteca');
