@@ -59,22 +59,105 @@ export default function LibraryPage() {
 
   if (status === 'loading') return null;
 
+  // Forçar fundo escuro
+  useEffect(() => {
+    document.body.style.background = '#0f172a';
+    document.body.style.color = '#ffffff';
+    document.documentElement.style.background = '#0f172a';
+    return () => {
+      document.body.style.background = '';
+      document.body.style.color = '';
+      document.documentElement.style.background = '';
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
+    <div 
+      className="min-h-screen relative" 
+      style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'linear-gradient(to bottom right, #0f172a, #581c87, #0f172a)',
+        minHeight: '100vh',
+        width: '100%',
+        overflowY: 'auto',
+        zIndex: 1
+      }}
+    >
+      <div className="max-w-5xl mx-auto p-6" style={{ position: 'relative', zIndex: 10 }}>
+        <div className="flex items-center justify-between mb-6" style={{ 
+          background: 'rgba(15, 23, 42, 0.8)', 
+          backdropFilter: 'blur(12px)', 
+          padding: '1.5rem', 
+          borderRadius: '1rem', 
+          border: '1px solid rgba(147, 51, 234, 0.3)'
+        }}>
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="px-3 py-2 border rounded text-sm bg-white flex items-center gap-1"><ArrowLeft className="w-4 h-4"/>Voltar ao editor</button>
-            <h1 className="text-xl font-semibold text-gray-900">Biblioteca</h1>
+            <button 
+              onClick={() => router.back()} 
+              style={{ 
+                padding: '0.5rem 1rem', 
+                border: '1px solid rgba(147, 51, 234, 0.3)', 
+                borderRadius: '0.5rem', 
+                fontSize: '0.875rem', 
+                background: 'rgba(30, 41, 59, 0.9)', 
+                color: '#e9d5ff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <ArrowLeft className="w-4 h-4"/>Voltar ao editor
+            </button>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#e9d5ff' }}>Biblioteca</h1>
           </div>
           <div className="flex items-center gap-2">
-            <select value={filter} onChange={(e)=>setFilter(e.target.value as any)} className="px-3 py-2 border rounded text-sm">
-              <option value="all">Todos</option>
-              <option value="image">Imagens</option>
-              <option value="video">Vídeos</option>
+            <select 
+              value={filter} 
+              onChange={(e)=>setFilter(e.target.value as any)} 
+              style={{ 
+                padding: '0.5rem 1rem', 
+                border: '1px solid rgba(147, 51, 234, 0.3)', 
+                borderRadius: '0.5rem', 
+                fontSize: '0.875rem',
+                background: 'rgba(30, 41, 59, 0.9)',
+                color: '#e9d5ff'
+              }}
+            >
+              <option value="all" style={{ background: '#1e293b' }}>Todos</option>
+              <option value="image" style={{ background: '#1e293b' }}>Imagens</option>
+              <option value="video" style={{ background: '#1e293b' }}>Vídeos</option>
             </select>
-            <button onClick={fetchItems} className="px-3 py-2 border rounded text-sm bg-white flex items-center gap-1"><RefreshCcw className="w-4 h-4"/>Atualizar</button>
-            <label className="px-3 py-2 bg-pink-600 text-white rounded text-sm cursor-pointer flex items-center gap-2">
+            <button 
+              onClick={fetchItems} 
+              style={{ 
+                padding: '0.5rem 1rem', 
+                border: '1px solid rgba(147, 51, 234, 0.3)', 
+                borderRadius: '0.5rem', 
+                fontSize: '0.875rem', 
+                background: 'rgba(30, 41, 59, 0.9)', 
+                color: '#e9d5ff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <RefreshCcw className="w-4 h-4"/>Atualizar
+            </button>
+            <label style={{ 
+              padding: '0.5rem 1rem', 
+              background: 'linear-gradient(to right, #9333ea, #ec4899)', 
+              color: 'white', 
+              borderRadius: '0.5rem', 
+              fontSize: '0.875rem', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem'
+            }}>
               <Upload className="w-4 h-4"/> Upload
               <input type="file" accept="image/*,video/*" onChange={handleUpload} className="hidden" />
             </label>
@@ -92,26 +175,55 @@ export default function LibraryPage() {
         )}
 
         {loading ? (
-          <div className="text-gray-500">Carregando...</div>
+          <div style={{ color: '#c084fc', textAlign: 'center', padding: '3rem' }}>Carregando...</div>
         ) : items.length === 0 ? (
-          <div className="text-gray-500">Nenhum arquivo</div>
+          <div style={{ color: '#c084fc', textAlign: 'center', padding: '3rem' }}>Nenhum arquivo</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {items.map(it => (
-              <div key={it.path} className="bg-white border rounded overflow-hidden">
-                <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
+              <div 
+                key={it.path} 
+                style={{ 
+                  background: 'rgba(30, 41, 59, 0.9)', 
+                  border: '1px solid rgba(147, 51, 234, 0.3)', 
+                  borderRadius: '0.75rem', 
+                  overflow: 'hidden',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.6)';
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(147, 51, 234, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <div className="aspect-video flex items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(to bottom right, #0f172a, #581c87)' }}>
                   {it.kind==='image' ? (
                     <img src={it.url} alt={it.name} className="w-full h-full object-cover" />
                   ) : it.kind==='video' ? (
                     <video src={it.url} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="text-gray-400 text-xs p-4 break-all">{it.name}</div>
+                    <div style={{ color: '#94a3b8', fontSize: '0.75rem', padding: '1rem', wordBreak: 'break-all' }}>{it.name}</div>
                   )}
                 </div>
                 <div className="p-2 flex items-center justify-between">
-                  <div className="text-xs text-gray-700 truncate" title={it.name}>{it.name}</div>
-                  <button onClick={() => { navigator.clipboard.writeText(it.url); toast.success('URL copiada'); }} title="Copiar URL" className="p-1 hover:bg-gray-100 rounded">
-                    <Copy className="w-4 h-4 text-gray-600"/>
+                  <div style={{ fontSize: '0.75rem', color: '#e9d5ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>{it.name}</div>
+                  <button 
+                    onClick={() => { navigator.clipboard.writeText(it.url); toast.success('URL copiada'); }} 
+                    title="Copiar URL" 
+                    style={{ 
+                      padding: '0.25rem', 
+                      borderRadius: '0.25rem',
+                      color: '#c084fc'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(147, 51, 234, 0.2)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Copy className="w-4 h-4"/>
                   </button>
                 </div>
               </div>
