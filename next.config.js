@@ -19,11 +19,6 @@ const nextConfig = {
       },
     ];
   },
-  // Otimizações para reduzir erros de cache
-  generateBuildId: async () => {
-    // Usar hash baseado em timestamp para evitar conflitos
-    return `build-${Date.now()}`;
-  },
   // Headers para melhor gerenciamento de cache
   async headers() {
     return [
