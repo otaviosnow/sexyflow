@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import connectDB from '@/lib/db';
 import Project from '@/models/Project';
 import Page from '@/models/Page';
+import PageRenderer from '@/components/PageRenderer';
 
 interface SubdomainPageProps {
   params: {
