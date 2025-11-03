@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Eye, Save, Settings, Trash2, Type, X, Heading, AlignLeft, MousePointerClick, Image, Video, Square, Minus, Code, Flame, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Eye, Save, Settings, Trash2, Type, X, Heading, AlignLeft, MousePointerClick, Image, Video, Square, Minus, Code, Flame, ChevronLeft, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // EDITOR V2 (mesmo sistema dos usuários) — Seções > Colunas > Widgets
-type WidgetType = 'heading' | 'text' | 'button' | 'image' | 'video' | 'spacer' | 'divider' | 'html' | 'pixelhot';
+type WidgetType = 'heading' | 'text' | 'button' | 'image' | 'video' | 'spacer' | 'divider' | 'html' | 'pixelhot' | 'pixelpageview';
 
 interface Widget { id: string; type: WidgetType; props: any; }
 interface Column { id: string; widgets: Widget[]; }
@@ -200,6 +200,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       case 'divider': return { color: '#e5e7eb', thickness: 1 };
       case 'html': return { html: '<p>HTML</p>' };
       case 'pixelhot': return { pixelId: '', purchaseValue: 0, currency: 'BRL' };
+      case 'pixelpageview': return { pixelId: '' };
     }
   }
 
