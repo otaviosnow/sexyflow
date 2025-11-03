@@ -643,6 +643,8 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
             </div>
           )})()}
         </div>
+          </>
+        )}
       </main>
       {/* Media Picker Modal */}
       {mediaPicker.open && (
