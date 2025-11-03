@@ -1,2010 +1,715 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-import { 
-  Plus, 
-  Save, 
-  Eye, 
-  Undo, 
-  Redo, 
-  Settings, 
-  Type, 
-  Image, 
-  Video, 
-  Square, 
-  AlignLeft, 
-  AlignCenter, 
-  AlignRight, 
-  AlignJustify,
-  Bold,
-  Italic,
-  Underline,
-  Palette,
-  Move,
-  Copy,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-  Monitor,
-  Tablet,
-  Smartphone,
-  Code,
-  Facebook,
-  Minus,
-  Upload,
-  List,
-  X
-} from 'lucide-react';
-import ImageUpload from '@/components/ImageUpload';
+import { useSession } from 'next-auth/react';
+import { ArrowLeft, Eye, Save, Settings, Trash2, Type, X, Heading, AlignLeft, MousePointerClick, Image, Video, Square, Minus, Code, Flame, ChevronLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-// Tipos
-interface Element {
-  id: string;
-  type: string;
-  content: any;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  style: { alignment: string };
-  spacing: { top: number; bottom: number; left: number; right: number };
-  responsive: {
-    desktop: { position: { x: number; y: number }; size: { width: number; height: number }; content: any };
-    tablet: { position: { x: number; y: number }; size: { width: number; height: number }; content: any };
-    mobile: { position: { x: number; y: number }; size: { width: number; height: number }; content: any };
-  };
-}
+// EDITOR V2 (mesmo sistema dos usuários) — Seções > Colunas > Widgets
+type WidgetType = 'heading' | 'text' | 'button' | 'image' | 'video' | 'spacer' | 'divider' | 'html' | 'pixelhot';
 
-interface TemplateData {
+interface Widget { id: string; type: WidgetType; props: any; }
+interface Column { id: string; widgets: Widget[]; }
+interface Section { id: string; columns: Column[]; }
+
+interface TemplateDoc {
   _id: string;
   name: string;
-  content: Element[];
-  createdAt: string;
-  updatedAt: string;
   type?: string;
   description?: string;
+  content: any;
   previewImage?: string;
   isActive?: boolean;
 }
 
 export default function VisualEditor({ params }: { params: { id: string } }) {
-  const { data: session, status } = useSession();
   const router = useRouter();
-  const templateId = params.id;
-  
-  // Estados
-  const [elements, setElements] = useState<Element[]>([]);
-  const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
-  const [templateData, setTemplateData] = useState<TemplateData | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
-  const [dragStartY, setDragStartY] = useState(0);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [background, setBackground] = useState({ type: 'color', value: '#ffffff', opacity: 1, image: '' });
-  const [showStructure, setShowStructure] = useState(false);
-  const [showStructurePanel, setShowStructurePanel] = useState(false);
-  const [showElementsLibrary, setShowElementsLibrary] = useState(true);
-  const hasLoadedRef = useRef(false);
+  const { data: session, status } = useSession();
 
-  // Detectar mudanças no background para marcar como não salvo
+  const [template, setTemplate] = useState<TemplateDoc | null>(null);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [selected, setSelected] = useState<{ sectionId?: string; columnId?: string; widgetId?: string }>({});
+  const [saving, setSaving] = useState(false);
+  const [hasUnsaved, setHasUnsaved] = useState(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [draggingType, setDraggingType] = useState<WidgetType | null>(null);
+  const [viewport, setViewport] = useState<'desktop'|'tablet'|'mobile'>('desktop');
+  const previewOuterRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [showBgSettings, setShowBgSettings] = useState(false);
+  const [background, setBackground] = useState<{ type: 'color' | 'image'; value: string }>({ type: 'color', value: '#ffffff' });
+  const [mediaPicker, setMediaPicker] = useState<{ open: boolean; kind: 'image' | 'video'; target: { type: 'background' } | { type: 'widget'; widgetId: string } }>(() => ({ open: false, kind: 'image', target: { type: 'background' } }));
+  const [mediaItems, setMediaItems] = useState<Array<{ url: string; name: string; kind: string }>>([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+
+  const CONTENT_MAX = 1140; // largura do conteúdo
+  const COL_GUTTER = 24;
+
   useEffect(() => {
-    if (hasLoadedRef.current) {
-      setHasUnsavedChanges(true);
-    }
-  }, [background]);
+    if (status === 'unauthenticated') { router.push('/login'); return; }
+    if (status === 'authenticated' && session?.user?.role !== 'ADMIN') { router.push('/dashboard'); return; }
+    if (status === 'authenticated') { load(); }
+  }, [status]);
 
-  // Minimizar biblioteca de elementos quando um elemento for selecionado
-  useEffect(() => {
-    if (selectedElement) {
-      setShowElementsLibrary(false);
-    } else {
-      // Quando não há elemento selecionado, expandir a biblioteca
-      setShowElementsLibrary(true);
-    }
-  }, [selectedElement]);
-
-  // Função para converter hex para RGB
-  const hexToRgb = (hex: string) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 255, 255';
-  };
-
-  // Verificação de autenticação
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated' && session?.user?.role !== 'ADMIN') {
-      router.push('/dashboard');
-    }
-  }, [status, session, router]);
-
-  // Carregar template
-  useEffect(() => {
-    if (hasLoadedRef.current) return;
-    if (session?.user?.id && params.id) {
-      const isLocalDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-      
-      if (isLocalDev) {
-        // Primeiro, tentar carregar do localStorage
-        const savedData = localStorage.getItem(`template_${params.id}`);
-        if (savedData) {
-          try {
-            console.log('📂 Dados encontrados no localStorage:', savedData);
-            const templateData = JSON.parse(savedData);
-            console.log('📋 Template parseado:', templateData);
-            console.log('📝 Nome do template:', templateData.name);
-            
-            const finalTemplate = {
-              _id: params.id,
-              name: templateData.name || 'Template sem nome',
-              content: templateData.content || [],
-              createdAt: templateData.createdAt || new Date().toISOString(),
-              updatedAt: templateData.updatedAt || new Date().toISOString()
-            };
-            
-            console.log('🎯 Template final para estado:', finalTemplate);
-            setTemplateData(finalTemplate);
-            setElements(templateData.content || []);
-            if (templateData.background) {
-              setBackground(templateData.background);
-              console.log('🎨 Background carregado:', templateData.background);
-            }
-            console.log('✅ Template carregado do localStorage com sucesso');
-          } catch (error) {
-            console.error('❌ Erro ao carregar template do localStorage:', error);
-          }
-        } else {
-          console.log('📭 Nenhum dado encontrado no localStorage');
-          // Se não há dados salvos, carregar template mock da API
-          fetch(`/api/admin/templates/${params.id}`)
-            .then(res => res.json())
-            .then(data => {
-              if (data._id) {
-                setTemplateData({
-                  _id: data._id,
-                  name: data.name || 'Template sem nome',
-                  content: data.content?.elements || [],
-                  createdAt: data.createdAt || new Date().toISOString(),
-                  updatedAt: data.updatedAt || new Date().toISOString()
-                });
-                setElements(data.content?.elements || []);
-                console.log('Template carregado da API:', data);
-              }
-            })
-            .catch(error => console.error('Erro ao carregar template da API:', error));
+  async function load() {
+    try {
+      const res = await fetch(`/api/admin/templates/${params.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTemplate(data);
+        // Se existir builder v2, usa; caso contrário inicia vazio
+        const v2 = data.content?.sections as Section[] | undefined;
+        setSections(Array.isArray(v2) ? v2 : []);
+        const bg = data.content?.background as any;
+        if (bg && (bg.type === 'color' || bg.type === 'image')) {
+          setBackground({ type: bg.type, value: bg.value || bg.image || '#ffffff' });
         }
-      } else {
-        console.log('🌐 Carregando template do servidor...');
-        fetch(`/api/admin/templates/${params.id}`)
-          .then(res => res.json())
-          .then(data => {
-            console.log('📦 Dados recebidos da API:', data);
-            console.log('📋 Content:', data.content);
-            console.log('🔍 Elements:', data.content?.elements);
-            console.log('🎨 Background:', data.content?.background);
-            
-            if (data._id) {
-              const elementsToLoad = data.content?.elements || [];
-              const backgroundToLoad = data.content?.background || { type: 'color', value: '#ffffff', opacity: 1, image: '' };
-              
-              console.log('✅ Carregando elementos:', elementsToLoad);
-              console.log('✅ Carregando background:', backgroundToLoad);
-              
-              setTemplateData({
-                _id: data._id,
-                name: data.name || 'Template sem nome',
-                type: data.type,
-                description: data.description,
-                previewImage: data.previewImage,
-                isActive: data.isActive,
-                content: elementsToLoad,
-                createdAt: data.createdAt || new Date().toISOString(),
-                updatedAt: data.updatedAt || new Date().toISOString()
-              });
-              setElements(elementsToLoad);
-              setBackground(backgroundToLoad);
-              
-              console.log('✅ Template carregado com sucesso!');
-              console.log('📊 Total de elementos:', elementsToLoad.length);
-            } else {
-              console.error('❌ Template não encontrado');
-            }
-          })
-          .catch(error => console.error('❌ Erro ao carregar template:', error));
       }
-      
-      hasLoadedRef.current = true;
-      setIsLoading(false);
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao carregar template');
     }
-  }, [session, params.id]);
+  }
 
-  // Salvar template
-  const saveTemplate = async () => {
-    console.log('💾 Iniciando salvamento do template');
-    console.log('📋 Template data atual:', templateData);
-    
-    if (!templateData) {
-      console.log('❌ Nenhum template data encontrado');
-      return;
+  // Ajuste de escala para caber na tela
+  useEffect(() => {
+    function recompute() {
+      const el = previewOuterRef.current;
+      if (!el) return;
+      const avail = el.offsetWidth;
+      const target = viewport === 'desktop' ? CONTENT_MAX : viewport === 'tablet' ? 768 : 390;
+      const factor = Math.min(1, avail / target);
+      setScale(factor);
     }
+    recompute();
+    window.addEventListener('resize', recompute);
+    return () => window.removeEventListener('resize', recompute);
+  }, [viewport]);
 
-    const isLocalDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-    console.log('🌐 Modo local:', isLocalDev);
-    
-    if (isLocalDev) {
-      const templateToSave = {
-        ...templateData,
-        content: elements,
-        background: background,
-        updatedAt: new Date().toISOString()
-      };
-      
-      console.log('🔄 Template para salvar:', templateToSave);
-      console.log('📝 Nome do template:', templateToSave.name);
-      
-      const key = `template_${params.id}`;
-      console.log('🔑 Chave do localStorage:', key);
-      
-      localStorage.setItem(key, JSON.stringify(templateToSave));
-      console.log('💾 Template salvo no localStorage');
-      
-      // Verificar se foi salvo corretamente
-      const savedData = localStorage.getItem(key);
-      console.log('🔍 Dados salvos verificados:', savedData);
-      
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        console.log('📋 Nome salvo verificado:', parsedData.name);
-      }
-      
-      // Atualizar o estado local com os dados salvos
-      setTemplateData(templateToSave);
-      console.log('✅ Estado local atualizado');
-      
-      toast.success('Template salvo localmente!');
-    } else {
-      try {
-        console.log('💾 Salvando no servidor...');
-        console.log('📋 Elementos:', elements);
-        console.log('🎨 Background:', background);
-        
-        const response = await fetch(`/api/admin/templates/${params.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            name: templateData.name,
-            content: {
-              elements: elements,
-              background: background
-            },
-            type: templateData.type || 'presell',
-            description: templateData.description || '',
-            previewImage: templateData.previewImage || '',
-            isActive: templateData.isActive !== undefined ? templateData.isActive : true
-          })
-        });
-        
-        console.log('📥 Resposta do servidor:', response.status);
-        
-        if (response.ok) {
-          const updatedTemplate = await response.json();
-          console.log('✅ Template atualizado:', updatedTemplate);
-          setTemplateData(updatedTemplate);
-          toast.success('Template salvo com sucesso!');
-        } else {
-          const errorData = await response.json();
-          console.error('❌ Erro ao salvar:', errorData);
-          toast.error('Erro ao salvar template');
-        }
-      } catch (error) {
-        console.error('❌ Erro ao salvar:', error);
-        toast.error('Erro ao salvar template');
-      }
-    }
-    
-    setHasUnsavedChanges(false);
-  };
+  // Helpers de propriedades responsivas
+  function getR(w: Widget, key: string, fallback?: any) {
+    const r = w.props?._r?.[viewport]?.[key];
+    return r !== undefined ? r : (w.props?.[key] !== undefined ? w.props[key] : fallback);
+  }
 
-  // Funções de elementos
-  const getDefaultContent = (type: string) => {
-    switch (type) {
-      case 'title': return { text: 'Título', fontSize: 30, fontFamily: 'Arial', fontWeight: 'bold', color: '#000000', alignment: 'center' };
-      case 'text': return { text: 'Texto', fontSize: 16, fontFamily: 'Arial', fontWeight: 'normal', color: '#000000', alignment: 'left' };
-      case 'button': return { text: 'Botão', fontSize: 16, fontFamily: 'Arial', fontWeight: 'normal', color: '#ffffff', backgroundColor: '#3b82f6', alignment: 'center', paddingTop: 12, paddingBottom: 12, paddingLeft: 24, paddingRight: 24 };
-      case 'image': return { src: '', alt: 'Imagem', width: 300, height: 200 };
-      case 'video': return { src: '', width: 300, height: 200 };
-      case 'spacer': return { height: 50, backgroundColor: '#f3f4f6', borderColor: '#d1d5db' };
-      case 'container': return { backgroundColor: '#ffffff', padding: 20 };
-      case 'html': return { html: '<p>HTML personalizado</p>' };
-      case 'fbpixel': return { pixelId: '', purchaseValue: '' };
-      default: return {};
-    }
-  };
-
-  const getDefaultSize = (type: string) => {
-    switch (type) {
-      case 'title': return { width: 300, height: 50 };
-      case 'text': return { width: 300, height: 100 };
-      case 'button': return { width: 150, height: 50 };
-      case 'image': return { width: 300, height: 200 };
-      case 'video': return { width: 300, height: 200 };
-      case 'spacer': return { width: 300, height: 50 };
-      case 'container': return { width: 300, height: 200 };
-      case 'html': return { width: 300, height: 100 };
-      case 'fbpixel': return { width: 300, height: 50 };
-      default: return { width: 300, height: 100 };
-    }
-  };
-
-  const getCenteredPosition = (width: number) => {
-    const containerWidth = 800;
-    return (containerWidth - width) / 2;
-  };
-
-  const addElement = (type: string, x?: number, y?: number) => {
-    const defaultSize = getDefaultSize(type);
-    const centeredX = getCenteredPosition(defaultSize.width);
-
-    const newElement: Element = {
-      id: `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type: type,
-      content: {
-        ...getDefaultContent(type),
-        ...(type === 'image' || type === 'video' ? { size: 'medium' } : {})
-      },
-      position: { x: centeredX, y: 50 },
-      size: defaultSize,
-      style: { alignment: 'center' },
-      spacing: { 
-        top: 0, 
-        bottom: 20, 
-        left: 0, 
-        right: 0 
-      },
-      responsive: {
-        desktop: { position: { x: centeredX, y: 50 }, size: defaultSize, content: getDefaultContent(type) },
-        tablet: { position: { x: centeredX, y: 50 }, size: defaultSize, content: getDefaultContent(type) },
-        mobile: { position: { x: centeredX, y: 50 }, size: defaultSize, content: getDefaultContent(type) }
-      }
-    };
-
-    setElements([...elements, newElement]);
-    setSelectedElement(newElement.id);
-    setHasUnsavedChanges(true);
-    toast.success('Elemento adicionado!');
-  };
-
-  const deleteElement = (id: string) => {
-    setElements(elements.filter(el => el.id !== id));
-    if (selectedElement === id) {
-      setSelectedElement(null);
-    }
-    setHasUnsavedChanges(true);
-    toast.success('Elemento removido!');
-  };
-
-  const duplicateElement = (id: string) => {
-    const element = elements.find(el => el.id === id);
-    if (element) {
-      const duplicatedElement = {
-        ...element,
-        id: `element_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        position: { ...element.position, y: element.position.y + 50 }
-      };
-      setElements([...elements, duplicatedElement]);
-      setSelectedElement(duplicatedElement.id);
-      setHasUnsavedChanges(true);
-      toast.success('Elemento duplicado!');
-    }
-  };
-
-  const updateElement = (id: string, updates: Partial<Element>) => {
-    setElements(elements.map(el => 
-      el.id === id ? { ...el, ...updates } : el
-    ));
-    setHasUnsavedChanges(true);
-  };
-
-  // Função para sincronizar mudanças entre viewports
-  const syncElementAcrossViewports = (id: string, property: string, value: any) => {
-    setElements(elements.map(el => {
-      if (el.id === id) {
-        const updatedElement = { ...el };
-        
-        // Sincronizar propriedades específicas entre todos os viewports
-        if (property === 'content') {
-          // Atualizar o conteúdo principal do elemento
-          updatedElement.content = { ...updatedElement.content, ...value };
-          
-          // Sincronizar com todos os viewports
-          updatedElement.responsive = {
-            desktop: { 
-              ...updatedElement.responsive.desktop, 
-              content: { ...updatedElement.responsive.desktop.content, ...value } 
-            },
-            tablet: { 
-              ...updatedElement.responsive.tablet, 
-              content: { ...updatedElement.responsive.tablet.content, ...value } 
-            },
-            mobile: { 
-              ...updatedElement.responsive.mobile, 
-              content: { ...updatedElement.responsive.mobile.content, ...value } 
-            }
+  function updateWidgetResponsive(widgetId: string, patch: Record<string, any>) {
+    setSections(prev => prev.map(sec => ({
+      ...sec,
+      columns: sec.columns.map(col => ({
+        ...col,
+        widgets: col.widgets.map(w => {
+          if (w.id !== widgetId) return w;
+          const current = w.props?._r?.[viewport] || {};
+          const nextR = {
+            ...(w.props?._r || {}),
+            [viewport]: { ...current, ...patch }
           };
-        } else if (property === 'spacing') {
-          updatedElement.spacing = { ...updatedElement.spacing, ...value };
-        }
-        
-        return updatedElement;
+          return { ...w, props: { ...w.props, _r: nextR } };
+        })
+      }))
+    })));
+    setHasUnsaved(true);
+  }
+
+  function openMediaPicker(kind: 'image' | 'video', target: { type: 'background' } | { type: 'widget'; widgetId: string }) {
+    setMediaPicker({ open: true, kind, target });
+    loadMedia(kind);
+  }
+
+  async function loadMedia(kind: 'image' | 'video') {
+    try {
+      setMediaLoading(true);
+      const res = await fetch(`/api/media/list?type=${kind}`);
+      if (!res.ok) {
+        console.error('Erro ao buscar mídia:', res.status, res.statusText);
+        toast.error('Erro ao carregar biblioteca');
+        setMediaItems([]);
+        return;
       }
-      return el;
+      const data = await res.json();
+      const items = data.items || [];
+      setMediaItems(items);
+    } catch(e) {
+      console.error('❌ Erro ao carregar mídia:', e);
+      toast.error('Erro ao carregar biblioteca');
+      setMediaItems([]);
+    } finally {
+      setMediaLoading(false);
+    }
+  }
+
+  function handlePickMedia(url: string) {
+    const t = mediaPicker.target;
+    if (t.type === 'background') {
+      setBackground({ type: 'image', value: url });
+      setHasUnsaved(true);
+    } else {
+      updateWidget(t.widgetId, { src: url });
+    }
+    setMediaPicker(prev => ({ ...prev, open: false }));
+  }
+
+  function addSection(cols: number) {
+    const section: Section = {
+      id: `sec_${crypto.randomUUID()}`,
+      columns: Array.from({ length: cols }).map(() => ({ id: `col_${crypto.randomUUID()}`, widgets: [] }))
+    };
+    setSections(prev => [...prev, section]);
+    setSelected({ sectionId: section.id, columnId: section.columns[0].id });
+    setHasUnsaved(true);
+  }
+
+  function addWidget(type: WidgetType) {
+    if (!selected.columnId) return toast.error('Selecione uma coluna');
+    const widget: Widget = { id: `w_${crypto.randomUUID()}`, type, props: getDefaultProps(type) };
+    setSections(prev => prev.map(sec => sec.id !== selected.sectionId ? sec : {
+      ...sec,
+      columns: sec.columns.map(c => c.id !== selected.columnId ? c : { ...c, widgets: [...c.widgets, widget] })
     }));
-    setHasUnsavedChanges(true);
-  };
+    setSelected(sel => ({ ...sel, widgetId: widget.id }));
+    setHasUnsaved(true);
+  }
 
-  // Drag & Drop
-  const handleElementMouseDown = (e: React.MouseEvent, elementId: string) => {
-    e.preventDefault();
-    setIsDragging(true);
-    setDraggedElementId(elementId);
-    setDragStartY(e.clientY);
-    setDragOffset(0);
-  };
+  function addWidgetToColumn(sectionId: string, columnId: string, type: WidgetType) {
+    const widget: Widget = { id: `w_${crypto.randomUUID()}`, type, props: getDefaultProps(type) };
+    setSections(prev => prev.map(sec => sec.id !== sectionId ? sec : {
+      ...sec,
+      columns: sec.columns.map(c => c.id !== columnId ? c : { ...c, widgets: [...c.widgets, widget] })
+    }));
+    setSelected({ sectionId, columnId, widgetId: widget.id });
+    setHasUnsaved(true);
+  }
 
-  const handleElementMouseMove = (e: React.MouseEvent) => {
-    if (isDragging && draggedElementId) {
-      const deltaY = e.clientY - dragStartY;
-      setDragOffset(deltaY);
+  function deleteSection(sectionId: string) {
+    const confirmed = window.confirm('Excluir esta seção? Os widgets dentro dela serão removidos.');
+    if (!confirmed) return;
+    setSections(prev => prev.filter(s => s.id !== sectionId));
+    setSelected(sel => sel.sectionId === sectionId ? {} : sel);
+    setHasUnsaved(true);
+  }
+
+  function getDefaultProps(type: WidgetType) {
+    switch (type) {
+      case 'heading': return { text: 'Título', tag: 'h2', align: 'center', color: '#111', size: 36 };
+      case 'text': return { text: 'Texto', align: 'center', color: '#333', size: 16 };
+      case 'button': return { text: 'Botão', url: '#', align: 'center', bg: '#3b82f6', color: '#fff', radius: 8, padV: 12, padH: 24, width: 200, height: 48 };
+      case 'image': return { src: '', alt: 'Imagem', align: 'center', width: 600 };
+      case 'video': return { src: '', align: 'center', width: 720 };
+      case 'spacer': return { height: 24 };
+      case 'divider': return { color: '#e5e7eb', thickness: 1 };
+      case 'html': return { html: '<p>HTML</p>' };
+      case 'pixelhot': return { pixelId: '', purchaseValue: 0, currency: 'BRL' };
     }
-  };
+  }
 
-  const handleElementMouseUp = (e: React.MouseEvent) => {
-    if (isDragging && draggedElementId) {
-      // Encontrar o elemento mais próximo baseado na posição Y
-      const draggedElement = elements.find(el => el.id === draggedElementId);
-      if (!draggedElement) return;
-      
-      const currentIndex = elements.findIndex(el => el.id === draggedElementId);
-      const mouseY = e.clientY;
-      
-      // Encontrar o índice de destino baseado na posição do mouse
-      let targetIndex = currentIndex;
-      
-      for (let i = 0; i < elements.length; i++) {
-        if (i === currentIndex) continue;
-        
-        const element = elements[i];
-        const elementRect = document.querySelector(`[data-element-id="${element.id}"]`)?.getBoundingClientRect();
-        
-        if (elementRect) {
-          const elementCenterY = elementRect.top + elementRect.height / 2;
-          
-          if (mouseY < elementCenterY && i < currentIndex) {
-            targetIndex = i;
-            break;
-          } else if (mouseY > elementCenterY && i > currentIndex) {
-            targetIndex = i + 1;
-          }
-        }
+  function updateWidget(widgetId: string, patch: any) {
+    setSections(prev => prev.map(sec => ({
+      ...sec,
+      columns: sec.columns.map(col => ({
+        ...col,
+        widgets: col.widgets.map(w => w.id === widgetId ? { ...w, props: { ...w.props, ...patch } } : w)
+      }))
+    })));
+    setHasUnsaved(true);
+  }
+
+  function deleteWidget(widgetId: string) {
+    setSections(prev => prev.map(sec => ({
+      ...sec,
+      columns: sec.columns.map(col => ({ ...col, widgets: col.widgets.filter(w => w.id !== widgetId) }))
+    })));
+    setSelected(sel => ({ sectionId: sel.sectionId, columnId: sel.columnId }));
+    setHasUnsaved(true);
+  }
+
+  async function save() {
+    if (!template) return;
+    try {
+      setSaving(true);
+      const res = await fetch(`/api/admin/templates/${params.id}`, {
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: template.name,
+          content: { builder: 'v2', sections, background },
+          type: template.type || 'presell',
+          description: template.description || '',
+          previewImage: template.previewImage || '',
+          isActive: template.isActive !== undefined ? template.isActive : true
+        })
+      });
+      if (res.ok) { 
+        toast.success('Template salvo com sucesso!'); 
+        setHasUnsaved(false);
+        // Recarregar para garantir sincronização
+        load();
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || 'Erro ao salvar template');
       }
-      
-      if (targetIndex !== currentIndex) {
-        reorderElement(draggedElementId, targetIndex);
-      }
-      
-      setIsDragging(false);
-      setDraggedElementId(null);
-      setDragOffset(0);
+    } catch(e) { 
+      console.error(e); 
+      toast.error('Erro ao salvar template'); 
     }
-  };
-
-  // Função para reordenar elementos
-  const reorderElement = (elementId: string, newIndex: number) => {
-    const currentIndex = elements.findIndex(el => el.id === elementId);
-    if (currentIndex === -1) return;
-    
-    const clampedIndex = Math.max(0, Math.min(elements.length - 1, newIndex));
-    if (clampedIndex === currentIndex) return;
-    
-    const newElements = [...elements];
-    const [movedElement] = newElements.splice(currentIndex, 1);
-    newElements.splice(clampedIndex, 0, movedElement);
-    
-    setElements(newElements);
-    setHasUnsavedChanges(true);
-    toast.success('Elemento reordenado!');
-  };
-
-  // Event listeners globais para drag
-  useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (isDragging) {
-        handleElementMouseMove(e as any);
-      }
-    };
-
-    const handleGlobalMouseUp = (e: MouseEvent) => {
-      if (isDragging) {
-        handleElementMouseUp(e as any);
-      }
-    };
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleGlobalMouseMove);
-      document.addEventListener('mouseup', handleGlobalMouseUp);
+    finally { 
+      setSaving(false); 
     }
+  }
 
-    return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove);
-      document.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-  }, [isDragging, draggedElementId, dragStartY]);
-
-  // Click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      
-      if (!target.closest('[data-element]') && 
-          !target.closest('[data-properties-panel]') &&
-          !target.closest('[data-sidebar]')) {
-        setSelectedElement(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Renderizar elemento
-  const renderElement = (element: Element) => {
-    const viewportElement = element.responsive[viewport];
-    
-    switch (element.type) {
-      case 'title':
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: element.style?.alignment === 'left' ? 'flex-start' : 
-                            element.style?.alignment === 'right' ? 'flex-end' : 'center',
-              padding: '10px 0'
-            }}
-          >
-            <h1
-              style={{
-                fontSize: `${viewportElement.content?.fontSize || 30}px`,
-                fontFamily: viewportElement.content?.fontFamily || 'Arial',
-                fontWeight: viewportElement.content?.fontWeight || 'bold',
-                color: viewportElement.content?.color || '#000000',
-                textAlign: viewportElement.content?.alignment || 'center',
-                margin: 0,
-                lineHeight: 1.2,
-                wordBreak: 'break-word',
-                overflowWrap: 'break-word',
-                whiteSpace: 'pre-line'
-              }}
-            >
-              {viewportElement.content?.text || 'Título'}
-            </h1>
-          </div>
-        );
-
-      case 'text':
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: element.style?.alignment === 'left' ? 'flex-start' : 
-                            element.style?.alignment === 'right' ? 'flex-end' : 'center',
-              padding: '10px 0'
-            }}
-          >
-            <p
-              style={{
-                fontSize: `${viewportElement.content?.fontSize || 16}px`,
-                fontFamily: viewportElement.content?.fontFamily || 'Arial',
-                fontWeight: viewportElement.content?.fontWeight || 'normal',
-                color: viewportElement.content?.color || '#000000',
-                textAlign: viewportElement.content?.alignment || 'left',
-                margin: 0,
-                lineHeight: 1.5,
-                wordBreak: 'break-word',
-                overflowWrap: 'break-word',
-                whiteSpace: 'pre-wrap'
-              }}
-            >
-              {viewportElement.content?.text || 'Texto'}
-            </p>
-          </div>
-        );
-
-      case 'button':
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: element.style?.alignment === 'left' ? 'flex-start' : 
-                            element.style?.alignment === 'right' ? 'flex-end' : 'center',
-              padding: '10px 0'
-            }}
-          >
-            {viewportElement.content?.link ? (
-              <a
-                href={viewportElement.content.link}
-                target={viewportElement.content?.openNewTab ? '_blank' : '_self'}
-                rel={viewportElement.content?.openNewTab ? 'noopener noreferrer' : ''}
-                style={{
-                  fontSize: `${viewportElement.content?.fontSize || 16}px`,
-                  fontFamily: viewportElement.content?.fontFamily || 'Arial',
-                  fontWeight: viewportElement.content?.fontWeight || 'normal',
-                  color: viewportElement.content?.color || '#ffffff',
-                  backgroundColor: viewportElement.content?.backgroundColor || '#3b82f6',
-                  padding: `${viewportElement.content?.paddingTop || 12}px ${viewportElement.content?.paddingRight || 24}px ${viewportElement.content?.paddingBottom || 12}px ${viewportElement.content?.paddingLeft || 24}px`,
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  minWidth: '120px',
-                  textDecoration: 'none',
-                  display: 'inline-block'
-                }}
-              >
-                {viewportElement.content?.text || 'Botão'}
-              </a>
-            ) : (
-              <button
-                style={{
-                  fontSize: `${viewportElement.content?.fontSize || 16}px`,
-                  fontFamily: viewportElement.content?.fontFamily || 'Arial',
-                  fontWeight: viewportElement.content?.fontWeight || 'normal',
-                  color: viewportElement.content?.color || '#ffffff',
-                  backgroundColor: viewportElement.content?.backgroundColor || '#3b82f6',
-                  padding: `${viewportElement.content?.paddingTop || 12}px ${viewportElement.content?.paddingRight || 24}px ${viewportElement.content?.paddingBottom || 12}px ${viewportElement.content?.paddingLeft || 24}px`,
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  minWidth: '120px'
-                }}
-              >
-                {viewportElement.content?.text || 'Botão'}
-              </button>
-            )}
-          </div>
-        );
-
-      case 'image':
-        return (
-          <div style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: element.style?.alignment === 'left' ? 'flex-start' : 
-                          element.style?.alignment === 'right' ? 'flex-end' : 'center'
-          }}>
-            {viewportElement.content.src ? (
-              <img
-                src={viewportElement.content.src}
-                alt={viewportElement.content.alt}
-                style={{
-                  maxWidth: '100%',
-                  height: 'auto',
-                  maxHeight: `${viewportElement.content?.maxHeight || 400}px`,
-                  objectFit: viewportElement.content?.objectFit || 'contain',
-                  borderRadius: '8px',
-                  display: 'block'
-                }}
-              />
-            ) : (
-              <div style={{
-                width: '100%',
-                height: '200px',
-                backgroundColor: '#f3f4f6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '8px',
-                color: '#6b7280'
-              }}>
-                <Image className="h-8 w-8" />
-              </div>
-            )}
-          </div>
-        );
-
-      case 'video':
-        return (
-          <div style={{
-            width: '100%',
-            height: '300px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: element.style?.alignment === 'left' ? 'flex-start' : 
-                          element.style?.alignment === 'right' ? 'flex-end' : 'center'
-          }}>
-            {viewportElement.content.src ? (
-              <video
-                src={viewportElement.content.src}
-                style={{ 
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  borderRadius: '8px'
-                }}
-                controls
-              />
-            ) : (
-              <div style={{
-                width: '100%',
-                height: '100%',
-                backgroundColor: '#f3f4f6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '8px',
-                color: '#6b7280'
-              }}>
-                <Video className="h-8 w-8" />
-              </div>
-            )}
-          </div>
-        );
-
-      case 'spacer':
-        const isSelected = selectedElement === element.id;
-        const spacerHeight = viewportElement.content?.height || 50;
-        const spacerBgColor = viewportElement.content?.backgroundColor || '#f3f4f6';
-        const spacerBorderColor = viewportElement.content?.borderColor || '#d1d5db';
-        
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: `${spacerHeight}px`,
-              backgroundColor: spacerBgColor,
-              border: isSelected ? '4px solid rgba(59, 130, 246, 0.8)' : `1px solid ${spacerBorderColor}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              boxSizing: 'border-box',
-              opacity: 0.8
-            }}
-          >
-            <span style={{ 
-              color: '#6b7280', 
-              fontSize: '12px',
-              fontWeight: '500'
-            }}>
-              Espaçador ({spacerHeight}px)
-            </span>
-          </div>
-        );
-
-      case 'container':
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: '200px',
-              backgroundColor: viewportElement.content.backgroundColor,
-              padding: viewportElement.content.padding,
-              borderRadius: '8px',
-              border: '1px dashed #d1d5db',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: element.style?.alignment === 'left' ? 'flex-start' : 
-                            element.style?.alignment === 'right' ? 'flex-end' : 'center'
-            }}
-          >
-            Container
-          </div>
-        );
-
-      case 'html':
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: element.style?.alignment === 'left' ? 'flex-start' : 
-                            element.style?.alignment === 'right' ? 'flex-end' : 'center',
-              padding: '10px 0'
-            }}
-          >
-            <div
-              dangerouslySetInnerHTML={{ __html: viewportElement.content.html }}
-              style={{ 
-                width: '100%', 
-                height: 'auto',
-                color: '#1f2937',
-                fontSize: '16px',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-              }}
-              className="html-content"
-            />
-          </div>
-        );
-
-      case 'fbpixel':
-        return (
-          <div
-            style={{
-              width: '100%',
-              height: '50px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px dashed #d1d5db',
-              borderRadius: 8,
-              background: '#fff',
-              color: '#111827',
-              fontSize: 14,
-              padding: 12
-            }}
-            title="Elemento restrito: apenas admin adiciona; usuário informa o Pixel"
-          >
-            {viewportElement.content?.pixelId ? (
-              <span>Facebook Pixel configurado: {viewportElement.content.pixelId}</span>
-            ) : (
-              <span>Coloque seu Pixel (ID)</span>
-            )}
-          </div>
-        );
-      
-      default:
-        return <div>Elemento não suportado</div>;
+  // UI helpers
+  const selectedWidget = (() => {
+    if (!selected.widgetId) return null;
+    for (const s of sections) for (const c of s.columns) {
+      const w = c.widgets.find(x => x.id === selected.widgetId); if (w) return w;
     }
-  };
+    return null;
+  })();
 
-  // Função para obter estilo de padding
-  const getPaddingStyle = (content: any) => {
-    return {
-      paddingTop: content.paddingTop || 0,
-      paddingRight: content.paddingRight || 0,
-      paddingBottom: content.paddingBottom || 0,
-      paddingLeft: content.paddingLeft || 0
-    };
-  };
-
-  if (isLoading) {
+  if (status === 'loading' || !session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
-        <div className="text-white text-xl">Carregando...</div>
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-white">Carregando...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex flex-col">
-      {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => router.back()}
-            className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-white text-xl font-bold">
-              {templateData?.name || 'Editor Visual'}
-            </h1>
+    <div className="min-h-screen bg-gray-950 text-white flex">
+      {/* Sidebar Esquerda - Alterna entre Widgets e Propriedades */}
+      <aside className={`w-72 border-r border-gray-800 bg-gray-900 p-4 transition-all duration-300`}>
+        {/* Header com botão de voltar quando propriedades estão visíveis */}
+        {selectedWidget && (
+          <div className="mb-4">
             <button
-              onClick={() => {
-                console.log('🔧 Iniciando edição do nome do template');
-                console.log('📝 Nome atual:', templateData?.name);
-                
-                const newName = prompt('Digite o nome do template:', templateData?.name || '');
-                console.log('✏️ Novo nome inserido:', newName);
-                
-                if (newName && newName.trim() !== '') {
-                  console.log('✅ Nome válido, processando...');
-                  
-                  const updatedTemplate = {
-                    ...templateData,
-                    name: newName.trim(),
-                    updatedAt: new Date().toISOString()
-                  } as TemplateData;
-                  
-                  console.log('🔄 Template atualizado:', updatedTemplate);
-                  
-                  setTemplateData(updatedTemplate);
-                  setHasUnsavedChanges(true);
-                  
-                  console.log('💾 Estado local atualizado');
-                  
-                  // Salvar imediatamente no localStorage em modo local
-                  const isLocalDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-                  console.log('🌐 Modo local:', isLocalDev);
-                  
-                  if (isLocalDev) {
-                    const key = `template_${params.id}`;
-                    console.log('🔑 Chave do localStorage:', key);
-                    
-                    localStorage.setItem(key, JSON.stringify(updatedTemplate));
-                    console.log('💾 Dados salvos no localStorage');
-                    
-                    // Verificar se foi salvo corretamente
-                    const savedData = localStorage.getItem(key);
-                    console.log('🔍 Dados recuperados do localStorage:', savedData);
-                    
-                    if (savedData) {
-                      const parsedData = JSON.parse(savedData);
-                      console.log('📋 Nome salvo:', parsedData.name);
-                    }
-                  }
-                } else {
-                  console.log('❌ Nome inválido ou cancelado');
-                }
-              }}
-              className="bg-gray-700 hover:bg-gray-600 text-white p-1 rounded transition-colors"
-              title="Editar nome do template"
+              onClick={() => setSelected({ sectionId: selected.sectionId, columnId: selected.columnId })}
+              className="flex items-center gap-2 text-sm text-gray-300 hover:text-white mb-3"
             >
-              <Settings className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" />
+              Voltar para Widgets
             </button>
-            
-            <button
-              onClick={() => setShowStructurePanel(!showStructurePanel)}
-              className={`p-1 rounded transition-colors ${
-                showStructurePanel 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
-              }`}
-              title="Estrutura da Página"
-            >
-              <List className="w-4 h-4" />
-            </button>
+            <h3 className="text-sm font-semibold">Propriedades</h3>
           </div>
-        </div>
+        )}
         
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={saveTemplate}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>Salvar</span>
-          </button>
-          
-          <button
-            onClick={() => window.open(`/admin/templates/${params.id}/preview`, '_blank')}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
-          >
-            <Eye className="w-4 h-4" />
-            <span>Visualizar</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="flex flex-1">
-
-        {/* Sidebar */}
-        <div className="w-80 bg-gray-800 border-r border-gray-700 p-4 overflow-y-auto" data-sidebar>
-          {/* Viewport Controls */}
-          <div className="mb-6">
+        {/* Barra de Widgets - só mostra quando nenhum widget está selecionado */}
+        {!selectedWidget && (
+          <>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white text-sm font-semibold">Dispositivo</h3>
-              <div className="flex items-center space-x-2 text-sm">
-                <span className="text-white font-medium capitalize">{viewport}</span>
-                <span className="text-gray-400">{elements.length} elementos</span>
-              </div>
-            </div>
-            <div className="flex space-x-2">
+              <h3 className="text-sm font-semibold">Seções</h3>
               <button
-                onClick={() => setViewport('desktop')}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewport === 'desktop' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
+                onClick={() => setShowBgSettings(v => !v)}
+                className={`p-1.5 rounded border text-xs ${showBgSettings? 'bg-pink-600 border-pink-500 text-white':'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'}`}
+                title="Fundo da página"
               >
-                <Monitor className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewport('tablet')}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewport === 'tablet' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                <Tablet className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewport('mobile')}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewport === 'mobile' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                <Smartphone className="w-4 h-4" />
+                <Settings className="w-4 h-4" />
               </button>
             </div>
-          </div>
-
-          {/* Background Settings */}
-          <div className="mb-6">
-            <h3 className="text-white text-sm font-semibold mb-3">Fundo</h3>
-            <div className="space-y-3">
-              {/* Background Type Selector */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setBackground({ ...background, type: 'color' })}
-                  className={`px-3 py-1 rounded text-xs ${
-                    background.type === 'color' 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                  }`}
-                >
-                  Cor
-                </button>
-                <button
-                  onClick={() => setBackground({ ...background, type: 'image' })}
-                  className={`px-3 py-1 rounded text-xs ${
-                    background.type === 'image' 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                  }`}
-                >
-                  Imagem
-                </button>
-              </div>
-
-              {/* Color Background */}
-              {background.type === 'color' && (
-                <div className="space-y-2">
-                  <label className="text-gray-300 text-xs">Cor de fundo:</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      value={background.value}
-                      onChange={(e) => setBackground({ ...background, value: e.target.value })}
-                      className="w-8 h-8 rounded border border-gray-600 cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={background.value}
-                      onChange={(e) => setBackground({ ...background, value: e.target.value })}
-                      className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                      placeholder="#ffffff"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <label className="text-gray-300 text-xs">Opacidade:</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      value={background.opacity}
-                      onChange={(e) => setBackground({ ...background, opacity: parseFloat(e.target.value) })}
-                      className="flex-1"
-                    />
-                    <span className="text-gray-300 text-xs w-8">
-                      {Math.round(background.opacity * 100)}%
-                    </span>
-                  </div>
+            {showBgSettings && (
+              <div className="mb-4 p-3 rounded border border-gray-800 bg-gray-800/40">
+                <div className="text-xs text-gray-400 mb-2">Fundo da página</div>
+                <div className="flex gap-2 mb-3">
+                  <button onClick={()=>{setBackground(b=>({ ...b, type:'color' })); setHasUnsaved(true);}} className={`px-2 py-1 rounded text-xs ${background.type==='color'?'bg-pink-600 text-white':'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>Cor</button>
+                  <button onClick={()=>{setBackground(b=>({ ...b, type:'image' })); setHasUnsaved(true);}} className={`px-2 py-1 rounded text-xs ${background.type==='image'?'bg-pink-600 text-white':'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>Imagem</button>
                 </div>
-              )}
-
-              {/* Image Background */}
-              {background.type === 'image' && (
-                <div className="space-y-2">
-                  <label className="text-gray-300 text-xs">Imagem de fundo:</label>
-                  <div className="space-y-2">
-                    <input
-                      type="url"
-                      value={background.image}
-                      onChange={(e) => setBackground({ ...background, image: e.target.value })}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                      placeholder="URL da imagem"
-                    />
-                    <div className="flex items-center space-x-2">
-                      <label className="text-gray-300 text-xs">Opacidade:</label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={background.opacity}
-                        onChange={(e) => setBackground({ ...background, opacity: parseFloat(e.target.value) })}
-                        className="flex-1"
-                      />
-                      <span className="text-gray-300 text-xs w-8">
-                        {Math.round(background.opacity * 100)}%
-                      </span>
-                    </div>
-                    {background.image && (
-                      <div className="mt-2">
-                        <img
-                          src={background.image}
-                          alt="Preview"
-                          className="w-full h-20 object-cover rounded border border-gray-600"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Element Library */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white text-sm font-semibold">Elementos</h3>
-              <button
-                onClick={() => setShowElementsLibrary(!showElementsLibrary)}
-                className="text-gray-400 hover:text-white transition-colors"
-                title={showElementsLibrary ? "Minimizar" : "Expandir"}
-              >
-                {showElementsLibrary ? (
-                  <ChevronUp className="w-4 h-4" />
+                {background.type==='color' ? (
+                  <input type="color" className="w-full h-9 rounded bg-gray-800 border border-gray-700" value={background.value} onChange={(e)=>{setBackground({ type:'color', value: e.target.value }); setHasUnsaved(true);}} />
                 ) : (
-                  <ChevronDown className="w-4 h-4" />
+                  <div className="space-y-2">
+                    <input placeholder="https://..." className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700 text-sm" value={background.value} onChange={(e)=>{setBackground({ type:'image', value: e.target.value }); setHasUnsaved(true);}} />
+                    <button type="button" onClick={()=>openMediaPicker('image', { type:'background' })} className="text-[11px] text-pink-400 hover:underline">Abrir Biblioteca</button>
+                  </div>
                 )}
-              </button>
-            </div>
-            
-            {showElementsLibrary && (
-              <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => addElement('title')}
-                className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-colors flex flex-col items-center space-y-1"
-              >
-                <Type className="w-4 h-4" />
-                <span className="text-xs">Título</span>
-              </button>
-              
-              <button
-                onClick={() => addElement('text')}
-                className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-colors flex flex-col items-center space-y-1"
-              >
-                <Type className="w-4 h-4" />
-                <span className="text-xs">Texto</span>
-              </button>
-              
-              <button
-                onClick={() => addElement('button')}
-                className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-colors flex flex-col items-center space-y-1"
-              >
-                <Square className="w-4 h-4" />
-                <span className="text-xs">Botão</span>
-              </button>
-              
-              <button
-                onClick={() => addElement('image')}
-                className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-colors flex flex-col items-center space-y-1"
-              >
-                <Image className="w-4 h-4" />
-                <span className="text-xs">Imagem</span>
-              </button>
-              
-              <button
-                onClick={() => addElement('video')}
-                className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-colors flex flex-col items-center space-y-1"
-              >
-                <Video className="w-4 h-4" />
-                <span className="text-xs">Vídeo</span>
-              </button>
-              
-              <button
-                onClick={() => addElement('spacer')}
-                className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-colors flex flex-col items-center space-y-1"
-              >
-                <Square className="w-4 h-4" />
-                <span className="text-xs">Espaçador</span>
-              </button>
-              
-              <button
-                onClick={() => addElement('container')}
-                className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-colors flex flex-col items-center space-y-1"
-              >
-                <Square className="w-4 h-4" />
-                <span className="text-xs">Container</span>
-              </button>
-              
-              <button
-                onClick={() => addElement('html')}
-                className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-colors flex flex-col items-center space-y-1"
-              >
-                <Code className="w-4 h-4" />
-                <span className="text-xs">HTML</span>
-              </button>
-              
-              {session?.user?.role === 'ADMIN' && (
-                <button
-                  onClick={() => addElement('fbpixel')}
-                  className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg transition-colors flex flex-col items-center space-y-1"
-                >
-                  <Facebook className="w-4 h-4" />
-                  <span className="text-xs">Pixel</span>
-                </button>
-              )}
               </div>
             )}
-          </div>
-
-          {/* Element Properties */}
-          {selectedElement && (
-            <div className="bg-gray-700 rounded-lg p-4" data-properties-panel>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white text-sm font-semibold">Propriedades</h3>
-                <button
-                  onClick={() => setShowElementsLibrary(true)}
-                  className="text-gray-400 hover:text-white text-xs transition-colors"
-                  title="Mostrar biblioteca de elementos"
-                >
-                  + Elementos
-                </button>
-              </div>
-              
-              {(() => {
-                const element = elements.find(el => el.id === selectedElement);
-                if (!element) return null;
-
-                return (
-                  <div className="space-y-4">
-                    {/* Spacing Controls */}
-                    <div>
-                      <h4 className="text-white text-xs font-semibold mb-2">ESPAÇAMENTO</h4>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-gray-300 text-xs">Superior</label>
-                          <div className="flex items-center space-x-1">
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'spacing', { top: Math.max(0, element.spacing.top - 10) })}
-                              className="bg-gray-600 hover:bg-gray-500 text-white p-1 rounded"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <input
-                              type="number"
-                              value={element.spacing.top}
-                              onChange={(e) => syncElementAcrossViewports(selectedElement, 'spacing', { top: parseInt(e.target.value) || 0 })}
-                              className="w-full bg-gray-600 text-white text-xs p-1 rounded border-0"
-                            />
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'spacing', { top: element.spacing.top + 10 })}
-                              className="bg-gray-600 hover:bg-gray-500 text-white p-1 rounded"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Inferior</label>
-                          <div className="flex items-center space-x-1">
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'spacing', { bottom: Math.max(0, element.spacing.bottom - 10) })}
-                              className="bg-gray-600 hover:bg-gray-500 text-white p-1 rounded"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <input
-                              type="number"
-                              value={element.spacing.bottom}
-                              onChange={(e) => syncElementAcrossViewports(selectedElement, 'spacing', { bottom: parseInt(e.target.value) || 0 })}
-                              className="w-full bg-gray-600 text-white text-xs p-1 rounded border-0"
-                            />
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'spacing', { bottom: element.spacing.bottom + 10 })}
-                              className="bg-gray-600 hover:bg-gray-500 text-white p-1 rounded"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Esquerda</label>
-                          <div className="flex items-center space-x-1">
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'spacing', { left: Math.max(0, element.spacing.left - 10) })}
-                              className="bg-gray-600 hover:bg-gray-500 text-white p-1 rounded"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <input
-                              type="number"
-                              value={element.spacing.left}
-                              onChange={(e) => syncElementAcrossViewports(selectedElement, 'spacing', { left: parseInt(e.target.value) || 0 })}
-                              className="w-full bg-gray-600 text-white text-xs p-1 rounded border-0"
-                            />
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'spacing', { left: element.spacing.left + 10 })}
-                              className="bg-gray-600 hover:bg-gray-500 text-white p-1 rounded"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Direita</label>
-                          <div className="flex items-center space-x-1">
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'spacing', { right: Math.max(0, element.spacing.right - 10) })}
-                              className="bg-gray-600 hover:bg-gray-500 text-white p-1 rounded"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <input
-                              type="number"
-                              value={element.spacing.right}
-                              onChange={(e) => syncElementAcrossViewports(selectedElement, 'spacing', { right: parseInt(e.target.value) || 0 })}
-                              className="w-full bg-gray-600 text-white text-xs p-1 rounded border-0"
-                            />
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'spacing', { right: element.spacing.right + 10 })}
-                              className="bg-gray-600 hover:bg-gray-500 text-white p-1 rounded"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Content Controls based on element type */}
-                    {element.type === 'title' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-gray-300 text-xs">Texto</label>
-                          <textarea
-                            value={element.responsive[viewport].content?.text || ''}
-                            onChange={(e) => syncElementAcrossViewports(selectedElement, 'content', { text: e.target.value })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0 resize-none"
-                            rows={3}
-                            placeholder="Digite o título (use Enter para quebra de linha)"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Tamanho da Fonte</label>
-                          <input
-                            type="number"
-                            value={element.responsive[viewport].content?.fontSize || 30}
-                            onChange={(e) => syncElementAcrossViewports(selectedElement, 'content', { fontSize: parseInt(e.target.value) || 30 })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Alinhamento</label>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => updateElement(selectedElement, {
-                                responsive: {
-                                  ...element.responsive,
-                                  [viewport]: {
-                                    ...element.responsive[viewport],
-                                    content: { ...element.responsive[viewport].content, alignment: 'left' }
-                                  }
-                                }
-                              })}
-                              className={`p-2 rounded ${element.responsive[viewport].content?.alignment === 'left' ? 'bg-blue-600' : 'bg-gray-600'}`}
-                            >
-                              <AlignLeft className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => updateElement(selectedElement, {
-                                responsive: {
-                                  ...element.responsive,
-                                  [viewport]: {
-                                    ...element.responsive[viewport],
-                                    content: { ...element.responsive[viewport].content, alignment: 'center' }
-                                  }
-                                }
-                              })}
-                              className={`p-2 rounded ${element.responsive[viewport].content?.alignment === 'center' ? 'bg-blue-600' : 'bg-gray-600'}`}
-                            >
-                              <AlignCenter className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => updateElement(selectedElement, {
-                                responsive: {
-                                  ...element.responsive,
-                                  [viewport]: {
-                                    ...element.responsive[viewport],
-                                    content: { ...element.responsive[viewport].content, alignment: 'right' }
-                                  }
-                                }
-                              })}
-                              className={`p-2 rounded ${element.responsive[viewport].content?.alignment === 'right' ? 'bg-blue-600' : 'bg-gray-600'}`}
-                            >
-                              <AlignRight className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {element.type === 'text' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-gray-300 text-xs">Texto</label>
-                          <textarea
-                            value={element.responsive[viewport].content?.text || ''}
-                            onChange={(e) => updateElement(selectedElement, {
-                              responsive: {
-                                ...element.responsive,
-                                [viewport]: {
-                                  ...element.responsive[viewport],
-                                  content: { ...element.responsive[viewport].content, text: e.target.value }
-                                }
-                              }
-                            })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0 h-20"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Tamanho da Fonte</label>
-                          <input
-                            type="number"
-                            value={element.responsive[viewport].content?.fontSize || 16}
-                            onChange={(e) => updateElement(selectedElement, {
-                              responsive: {
-                                ...element.responsive,
-                                [viewport]: {
-                                  ...element.responsive[viewport],
-                                  content: { ...element.responsive[viewport].content, fontSize: parseInt(e.target.value) || 16 }
-                                }
-                              }
-                            })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Alinhamento</label>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => updateElement(selectedElement, {
-                                responsive: {
-                                  ...element.responsive,
-                                  [viewport]: {
-                                    ...element.responsive[viewport],
-                                    content: { ...element.responsive[viewport].content, alignment: 'left' }
-                                  }
-                                }
-                              })}
-                              className={`p-2 rounded ${element.responsive[viewport].content?.alignment === 'left' ? 'bg-blue-600' : 'bg-gray-600'}`}
-                            >
-                              <AlignLeft className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => updateElement(selectedElement, {
-                                responsive: {
-                                  ...element.responsive,
-                                  [viewport]: {
-                                    ...element.responsive[viewport],
-                                    content: { ...element.responsive[viewport].content, alignment: 'center' }
-                                  }
-                                }
-                              })}
-                              className={`p-2 rounded ${element.responsive[viewport].content?.alignment === 'center' ? 'bg-blue-600' : 'bg-gray-600'}`}
-                            >
-                              <AlignCenter className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => updateElement(selectedElement, {
-                                responsive: {
-                                  ...element.responsive,
-                                  [viewport]: {
-                                    ...element.responsive[viewport],
-                                    content: { ...element.responsive[viewport].content, alignment: 'right' }
-                                  }
-                                }
-                              })}
-                              className={`p-2 rounded ${element.responsive[viewport].content?.alignment === 'right' ? 'bg-blue-600' : 'bg-gray-600'}`}
-                            >
-                              <AlignRight className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => updateElement(selectedElement, {
-                                responsive: {
-                                  ...element.responsive,
-                                  [viewport]: {
-                                    ...element.responsive[viewport],
-                                    content: { ...element.responsive[viewport].content, alignment: 'justify' }
-                                  }
-                                }
-                              })}
-                              className={`p-2 rounded ${element.responsive[viewport].content?.alignment === 'justify' ? 'bg-blue-600' : 'bg-gray-600'}`}
-                            >
-                              <AlignJustify className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {element.type === 'button' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-gray-300 text-xs">Texto</label>
-                          <input
-                            type="text"
-                            value={element.responsive[viewport].content?.text || ''}
-                            onChange={(e) => updateElement(selectedElement, {
-                              responsive: {
-                                ...element.responsive,
-                                [viewport]: {
-                                  ...element.responsive[viewport],
-                                  content: { ...element.responsive[viewport].content, text: e.target.value }
-                                }
-                              }
-                            })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Cor de Fundo</label>
-                          <input
-                            type="color"
-                            value={element.responsive[viewport].content?.backgroundColor || '#3b82f6'}
-                            onChange={(e) => updateElement(selectedElement, {
-                              responsive: {
-                                ...element.responsive,
-                                [viewport]: {
-                                  ...element.responsive[viewport],
-                                  content: { ...element.responsive[viewport].content, backgroundColor: e.target.value }
-                                }
-                              }
-                            })}
-                            className="w-full h-10 rounded border-0"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Cor do Texto</label>
-                          <input
-                            type="color"
-                            value={element.responsive[viewport].content?.color || '#ffffff'}
-                            onChange={(e) => updateElement(selectedElement, {
-                              responsive: {
-                                ...element.responsive,
-                                [viewport]: {
-                                  ...element.responsive[viewport],
-                                  content: { ...element.responsive[viewport].content, color: e.target.value }
-                                }
-                              }
-                            })}
-                            className="w-full h-10 rounded border-0"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Link (URL)</label>
-                          <input
-                            type="url"
-                            value={element.responsive[viewport].content?.link || ''}
-                            onChange={(e) => updateElement(selectedElement, {
-                              responsive: {
-                                ...element.responsive,
-                                [viewport]: {
-                                  ...element.responsive[viewport],
-                                  content: { ...element.responsive[viewport].content, link: e.target.value }
-                                }
-                              }
-                            })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                            placeholder="https://exemplo.com"
-                          />
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id={`openNewTab-${element.id}`}
-                            checked={element.responsive[viewport].content?.openNewTab || false}
-                            onChange={(e) => updateElement(selectedElement, {
-                              responsive: {
-                                ...element.responsive,
-                                [viewport]: {
-                                  ...element.responsive[viewport],
-                                  content: { ...element.responsive[viewport].content, openNewTab: e.target.checked }
-                                }
-                              }
-                            })}
-                            className="w-4 h-4 text-blue-600 bg-gray-600 border-gray-500 rounded focus:ring-blue-500"
-                          />
-                          <label htmlFor={`openNewTab-${element.id}`} className="text-gray-300 text-xs">
-                            Abrir em nova guia
-                          </label>
-                        </div>
-                      </div>
-                    )}
-
-                    {element.type === 'image' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-gray-300 text-xs mb-2 block">Upload de Imagem</label>
-                          <ImageUpload
-                            currentImage={element.responsive[viewport].content?.src || ''}
-                            onImageSelect={(url) => syncElementAcrossViewports(selectedElement, 'content', { src: url })}
-                            className="w-full"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Ou cole uma URL</label>
-                          <input
-                            type="url"
-                            value={element.responsive[viewport].content?.src || ''}
-                            onChange={(e) => syncElementAcrossViewports(selectedElement, 'content', { src: e.target.value })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0 mt-1"
-                            placeholder="https://exemplo.com/imagem.jpg"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Texto Alternativo</label>
-                          <input
-                            type="text"
-                            value={element.responsive[viewport].content?.alt || ''}
-                            onChange={(e) => syncElementAcrossViewports(selectedElement, 'content', { alt: e.target.value })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                            placeholder="Descrição da imagem"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Altura Máxima (px)</label>
-                          <input
-                            type="number"
-                            value={element.responsive[viewport].content?.maxHeight || 400}
-                            onChange={(e) => syncElementAcrossViewports(selectedElement, 'content', { maxHeight: parseInt(e.target.value) || 400 })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                            placeholder="400"
-                            min="100"
-                            max="800"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Ajuste da Imagem</label>
-                          <div className="flex space-x-1 mt-1">
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'content', { objectFit: 'contain' })}
-                              className={`px-3 py-1 rounded text-xs ${
-                                element.responsive[viewport].content?.objectFit === 'contain' 
-                                  ? 'bg-blue-600 text-white' 
-                                  : 'bg-gray-600 text-gray-300'
-                              }`}
-                            >
-                              Contém
-                            </button>
-                            <button
-                              onClick={() => syncElementAcrossViewports(selectedElement, 'content', { objectFit: 'cover' })}
-                              className={`px-3 py-1 rounded text-xs ${
-                                element.responsive[viewport].content?.objectFit === 'cover' 
-                                  ? 'bg-blue-600 text-white' 
-                                  : 'bg-gray-600 text-gray-300'
-                              }`}
-                            >
-                              Preenche
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {element.type === 'video' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-gray-300 text-xs">URL do Vídeo</label>
-                          <input
-                            type="url"
-                            value={element.responsive[viewport].content?.src || ''}
-                            onChange={(e) => syncElementAcrossViewports(selectedElement, 'content', { src: e.target.value })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                            placeholder="https://exemplo.com/video.mp4"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {element.type === 'spacer' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-gray-300 text-xs">Altura (px)</label>
-                          <input
-                            type="number"
-                            value={element.responsive[viewport].content?.height || 50}
-                            onChange={(e) => updateElement(selectedElement, {
-                              responsive: {
-                                ...element.responsive,
-                                [viewport]: {
-                                  ...element.responsive[viewport],
-                                  content: { ...element.responsive[viewport].content, height: parseInt(e.target.value) || 50 }
-                                }
-                              }
-                            })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {element.type === 'html' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-gray-300 text-xs">Código HTML</label>
-                          <textarea
-                            value={element.responsive[viewport].content?.html || ''}
-                            onChange={(e) => syncElementAcrossViewports(selectedElement, 'content', { html: e.target.value })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0 h-20 font-mono"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {element.type === 'fbpixel' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-gray-300 text-xs">Pixel ID</label>
-                          <input
-                            type="text"
-                            value={element.responsive[viewport].content?.pixelId || ''}
-                            onChange={(e) => syncElementAcrossViewports(selectedElement, 'content', { pixelId: e.target.value })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                            placeholder="123456789012345"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-gray-300 text-xs">Valor da Compra</label>
-                          <input
-                            type="number"
-                            value={element.responsive[viewport].content?.purchaseValue || ''}
-                            onChange={(e) => syncElementAcrossViewports(selectedElement, 'content', { purchaseValue: e.target.value })}
-                            className="w-full bg-gray-600 text-white text-sm p-2 rounded border-0"
-                            placeholder="99.90"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+            <div className="grid grid-cols-2 gap-2 mb-6">
+              {[1,2,3,4].map(n => (
+                <button key={n} onClick={() => addSection(n)} className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm">{n} coluna{n>1?'s':''}</button>
+              ))}
             </div>
-          )}
+            <h3 className="text-sm font-semibold mb-3">Widgets</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                {t:'heading',l:'Título', icon: Heading},
+                {t:'text',l:'Texto', icon: AlignLeft},
+                {t:'button',l:'Botão', icon: MousePointerClick},
+                {t:'image',l:'Imagem', icon: Image},
+                {t:'video',l:'Vídeo', icon: Video},
+                {t:'spacer',l:'Espaço', icon: Square},
+                {t:'divider',l:'Divisor', icon: Minus},
+                {t:'html',l:'HTML', icon: Code},
+                {t:'pixelhot',l:'Pixel Hot', icon: Flame}
+              ].map(it => (
+                <button
+                  key={it.t}
+                  draggable
+                  onDragStart={(e) => { setDraggingType(it.t as WidgetType); e.dataTransfer.setData('widgetType', String(it.t)); e.dataTransfer.effectAllowed = 'copy'; }}
+                  onDragEnd={() => setDraggingType(null)}
+                  onClick={() => addWidget(it.t as WidgetType)}
+                  className="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm cursor-grab active:cursor-grabbing flex items-center gap-2 justify-center"
+                  title="Arraste para uma coluna ou clique para adicionar"
+                >
+                  {it.icon && <it.icon className="w-4 h-4" />}
+                  <span>{it.l}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Barra de Propriedades - só mostra quando widget está selecionado */}
+        {selectedWidget && (
+          <div className="space-y-3 text-sm">
+            {selectedWidget.type==='heading' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">Texto</label>
+                <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.text} onChange={(e)=>updateWidget(selectedWidget.id,{text:e.target.value})}/>
+                <label className="block text-gray-400 text-xs mb-1">Tamanho</label>
+                <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any, 'size', 36)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{size:parseInt(e.target.value)||0})}/>
+                <label className="block text-gray-400 text-xs mb-1">Cor</label>
+                <input type="color" className="w-full h-9 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.color} onChange={(e)=>updateWidget(selectedWidget.id,{color:e.target.value})}/>
+              </>
+            )}
+            {selectedWidget.type==='text' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">Texto</label>
+                <textarea rows={4} className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.text} onChange={(e)=>updateWidget(selectedWidget.id,{text:e.target.value})}/>
+                <label className="block text-gray-400 text-xs mb-1">Tamanho</label>
+                <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any, 'size', 16)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{size:parseInt(e.target.value)||0})}/>
+                <label className="block text-gray-400 text-xs mb-1">Cor</label>
+                <input type="color" className="w-full h-9 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.color} onChange={(e)=>updateWidget(selectedWidget.id,{color:e.target.value})}/>
+              </>
+            )}
+            {selectedWidget.type==='button' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">Texto</label>
+                <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.text} onChange={(e)=>updateWidget(selectedWidget.id,{text:e.target.value})}/>
+                <label className="block text-gray-400 text-xs mb-1">URL</label>
+                <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.url} onChange={(e)=>updateWidget(selectedWidget.id,{url:e.target.value})}/>
+                <label className="block text-gray-400 text-xs mb-1">Cores</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[11px] text-gray-500">Fundo</span>
+                    <input type="color" className="w-full h-9 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.bg} onChange={(e)=>updateWidget(selectedWidget.id,{bg:e.target.value})}/>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-gray-500">Texto</span>
+                    <input type="color" className="w-full h-9 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.color} onChange={(e)=>updateWidget(selectedWidget.id,{color:e.target.value})}/>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <span className="text-[11px] text-gray-500">Largura (px)</span>
+                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'width', selectedWidget.props.width || 0)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{width:parseInt(e.target.value)||0})}/>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-gray-500">Altura (px)</span>
+                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'height', selectedWidget.props.height || 0)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{height:parseInt(e.target.value)||0})}/>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <span className="text-[11px] text-gray-500">Padding Vertical</span>
+                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'padV', selectedWidget.props.padV || 0)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{padV:parseInt(e.target.value)||0})}/>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-gray-500">Padding Horizontal</span>
+                    <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'padH', selectedWidget.props.padH || 0)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{padH:parseInt(e.target.value)||0})}/>
+                  </div>
+                </div>
+              </>
+            )}
+            {selectedWidget.type==='image' && (
+              <>
+                {selectedWidget.props.src ? (
+                  <>
+                    <label className="block text-gray-400 text-xs mb-2">Preview</label>
+                    <div className="mb-3 rounded border border-gray-700 overflow-hidden bg-gray-800">
+                      <img 
+                        src={selectedWidget.props.src} 
+                        alt="Preview" 
+                        className="w-full h-auto max-h-48 object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzMzMzMzMyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZW0gaW52w6FsaWRhPC90ZXh0Pjwvc3ZnPg==';
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={()=>openMediaPicker('image', { type:'widget', widgetId: selectedWidget!.id })}
+                      className="w-full mb-3 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm text-gray-300 hover:text-white transition-colors border border-gray-700"
+                    >
+                      Trocar Imagem
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={()=>openMediaPicker('image', { type:'widget', widgetId: selectedWidget!.id })}
+                    className="w-full mb-3 px-3 py-2 bg-pink-600 hover:bg-pink-700 rounded text-sm text-white transition-colors"
+                  >
+                    Selecionar Imagem
+                  </button>
+                )}
+                <label className="block text-gray-400 text-xs mb-1">URL</label>
+                <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
+                <div className="mt-2">
+                  <span className="text-[11px] text-gray-500">Largura (px)</span>
+                  <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'width', selectedWidget.props.width || 600)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{width:parseInt(e.target.value)||0})}/>
+                </div>
+              </>
+            )}
+            {selectedWidget.type==='video' && (
+              <>
+                {selectedWidget.props.src ? (
+                  <>
+                    <label className="block text-gray-400 text-xs mb-2">Preview</label>
+                    <div className="mb-3 rounded border border-gray-700 overflow-hidden bg-gray-800 aspect-video flex items-center justify-center">
+                      <video 
+                        src={selectedWidget.props.src} 
+                        className="w-full h-full max-h-48 object-contain"
+                        controls={false}
+                        muted
+                        preload="metadata"
+                        onLoadedMetadata={(e) => {
+                          const target = e.target as HTMLVideoElement;
+                          target.currentTime = 1;
+                        }}
+                        onError={(e) => {
+                          const target = e.target as HTMLVideoElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent && !parent.querySelector('.error-message')) {
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'error-message flex items-center justify-center h-full text-gray-500 text-sm';
+                            errorDiv.textContent = 'Vídeo inválido';
+                            parent.appendChild(errorDiv);
+                          }
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={()=>openMediaPicker('video', { type:'widget', widgetId: selectedWidget!.id })}
+                      className="w-full mb-3 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm text-gray-300 hover:text-white transition-colors border border-gray-700"
+                    >
+                      Trocar Vídeo
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={()=>openMediaPicker('video', { type:'widget', widgetId: selectedWidget!.id })}
+                    className="w-full mb-3 px-3 py-2 bg-pink-600 hover:bg-pink-700 rounded text-sm text-white transition-colors"
+                  >
+                    Selecionar Vídeo
+                  </button>
+                )}
+                <label className="block text-gray-400 text-xs mb-1">URL</label>
+                <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.src || ''} onChange={(e)=>updateWidget(selectedWidget.id,{src:e.target.value})}/>
+                <div className="mt-2">
+                  <span className="text-[11px] text-gray-500">Largura (px)</span>
+                  <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={getR(selectedWidget as any,'width', selectedWidget.props.width || 720)} onChange={(e)=>updateWidgetResponsive(selectedWidget!.id,{width:parseInt(e.target.value)||0})}/>
+                </div>
+              </>
+            )}
+            {selectedWidget.type==='spacer' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">Altura</label>
+                <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.height} onChange={(e)=>updateWidget(selectedWidget.id,{height:parseInt(e.target.value)||0})}/>
+              </>
+            )}
+            {selectedWidget.type==='divider' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">Cor</label>
+                <input type="color" className="w-full h-9 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.color} onChange={(e)=>updateWidget(selectedWidget.id,{color:e.target.value})}/>
+                <label className="block text-gray-400 text-xs mb-1">Espessura</label>
+                <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.thickness} onChange={(e)=>updateWidget(selectedWidget.id,{thickness:parseInt(e.target.value)||1})}/>
+              </>
+            )}
+            {selectedWidget.type==='html' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">HTML</label>
+                <textarea rows={6} className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.html} onChange={(e)=>updateWidget(selectedWidget.id,{html:e.target.value})}/>
+              </>
+            )}
+            {selectedWidget.type==='pixelhot' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">Pixel ID</label>
+                <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.pixelId} onChange={(e)=>updateWidget(selectedWidget.id,{pixelId:e.target.value})}/>
+                <label className="block text-gray-400 text-xs mb-1">Valor da Compra</label>
+                <input type="number" className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.purchaseValue} onChange={(e)=>updateWidget(selectedWidget.id,{purchaseValue:parseFloat(e.target.value)||0})}/>
+                <label className="block text-gray-400 text-xs mb-1">Moeda</label>
+                <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.currency} onChange={(e)=>updateWidget(selectedWidget.id,{currency:e.target.value})}/>
+              </>
+            )}
+          </div>
+        )}
+      </aside>
+
+      {/* Canvas */}
+      <main className="flex-1 bg-gray-100 text-gray-900 overflow-auto">
+        <div className="bg-gray-900 border-b border-gray-800 p-3 flex items-center justify-between sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/admin/templates')} className="text-gray-300 hover:text-white flex items-center gap-1">
+              <ArrowLeft className="w-4 h-4"/> Voltar
+            </button>
+            {hasUnsaved && <span className="text-xs text-yellow-400">• Não salvo</span>}
+            <span className="text-sm text-gray-400">{template?.name || 'Template'}</span>
+            <div className="hidden sm:flex items-center gap-1 ml-2">
+              <button onClick={() => setViewport('desktop')} className={`px-2 py-1 text-xs rounded ${viewport==='desktop'?'bg-pink-600 text-white':'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>Desktop</button>
+              <button onClick={() => setViewport('tablet')} className={`px-2 py-1 text-xs rounded ${viewport==='tablet'?'bg-pink-600 text-white':'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>Tablet</button>
+              <button onClick={() => setViewport('mobile')} className={`px-2 py-1 text-xs rounded ${viewport==='mobile'?'bg-pink-600 text-white':'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>Mobile</button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={save} disabled={saving} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white text-sm disabled:opacity-50 flex items-center gap-1">
+              <Save className="w-4 h-4"/>{saving ? 'Salvando...' : 'Salvar'}
+            </button>
+            <a target="_blank" href={`/admin/templates/${params.id}/preview`} className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm flex items-center gap-1">
+              <Eye className="w-4 h-4"/>Preview
+            </a>
+          </div>
         </div>
 
-        {/* Main Editor Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Viewport Header */}
-          <div className="bg-gray-700 border-b border-gray-600 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <h2 className="text-white text-lg font-semibold">
-                  {viewport === 'desktop' ? 'Desktop' : viewport === 'tablet' ? 'Tablet' : 'Mobile'}
-                </h2>
-                <div className="text-gray-300 text-sm">
-                  {elements.length} elemento{elements.length !== 1 ? 's' : ''}
-                </div>
-              </div>
-              
-              <div className="text-gray-300 text-sm">
-                {hasUnsavedChanges && '• Alterações não salvas'}
+        <div className="p-8 flex justify-center" ref={previewOuterRef}>
+          {(() => { const w = viewport==='desktop'? CONTENT_MAX : viewport==='tablet'? 768 : 390; return (
+            <div style={{ width: w, transform: `scale(${scale})`, transformOrigin: 'top center' }}>
+              <div
+                ref={canvasRef}
+                className="rounded shadow w-full"
+                style={{
+                  background: background.type==='color' ? background.value : `url(${background.value})`,
+                  backgroundSize: background.type==='image' ? 'cover' : undefined,
+                  backgroundPosition: background.type==='image' ? 'center' : undefined,
+                  backgroundRepeat: 'no-repeat'
+                }}
+              >
+                {sections.length === 0 && (
+                  <div className="text-center text-gray-400 py-16">Adicione uma seção para começar</div>
+                )}
+                {sections.map(sec => (
+                  <div key={sec.id} className="px-6 py-8 border-b border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs text-gray-400">Seção</span>
+                      <button
+                        onClick={() => deleteSection(sec.id)}
+                        className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white flex items-center gap-1"
+                        title="Excluir seção"
+                      >
+                        <Trash2 className="w-3 h-3" /> Excluir seção
+                      </button>
+                    </div>
+                    <div className="grid" style={{ gridTemplateColumns: `repeat(${sec.columns.length}, 1fr)`, gap: COL_GUTTER }}>
+                      {sec.columns.map(col => (
+                        <div
+                          key={col.id}
+                          className={`min-h-[80px] p-3 rounded border ${selected.columnId===col.id? 'border-pink-500':'border-gray-200'} ${draggingType? 'ring-2 ring-pink-300 ring-offset-2 ring-offset-gray-50':''} bg-gray-50`}
+                          onClick={() => setSelected({ sectionId: sec.id, columnId: col.id })}
+                          onDragOver={(e) => { if (draggingType) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } }}
+                          onDrop={(e) => {
+                            const t = e.dataTransfer.getData('widgetType') as WidgetType;
+                            if (t) addWidgetToColumn(sec.id, col.id, t);
+                            setDraggingType(null);
+                          }}
+                        >
+                          {col.widgets.length===0 && (
+                            <div className="text-xs text-gray-400 text-center">Arraste um widget aqui</div>
+                          )}
+                          {col.widgets.map(w => (
+                            <div key={w.id} className={`relative group ${selected.widgetId===w.id?'outline outline-2 outline-pink-500':''} mb-4 last:mb-0`} onClick={(e)=>{e.stopPropagation(); setSelected({ sectionId: sec.id, columnId: col.id, widgetId: w.id });}}>
+                              {selected.widgetId===w.id && (
+                                <button onClick={(e)=>{e.stopPropagation(); deleteWidget(w.id);}} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1"><Trash2 className="w-3 h-3"/></button>
+                              )}
+                              {renderWidget(w)}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-
-          {/* Canvas */}
-          <div className="flex-1 bg-gray-100 p-8 overflow-auto">
-            <div 
-              className="max-w-4xl mx-auto min-h-screen"
-              style={{
-                backgroundColor: background.type === 'color' 
-                  ? `rgba(${hexToRgb(background.value)}, ${background.opacity})` 
-                  : 'transparent',
-                backgroundImage: background.type === 'image' && background.image 
-                  ? `url(${background.image})` 
-                  : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat'
-              }}
-            >
-              {elements.length === 0 ? (
-                <div className="text-center py-20">
-                  <div className="text-gray-500 text-lg mb-4">
-                    Nenhum elemento adicionado
-                  </div>
-                  <div className="text-gray-400 text-sm">
-                    Use a barra lateral para adicionar elementos
-                  </div>
-                </div>
+          )})()}
+        </div>
+      </main>
+      
+      {/* Media Picker Modal */}
+      {mediaPicker.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setMediaPicker(p=>({ ...p, open:false }))}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative bg-white rounded-lg shadow-xl w-[90vw] max-w-4xl max-h-[80vh] overflow-hidden" onClick={(e)=>e.stopPropagation()}>
+            <div className="px-4 py-3 border-b flex items-center justify-between">
+              <div className="text-sm font-medium">Biblioteca ({mediaPicker.kind === 'image' ? 'Imagens' : 'Vídeos'})</div>
+              <button className="text-xs px-2 py-1 rounded bg-gray-100" onClick={()=>setMediaPicker(p=>({ ...p, open:false }))}>Fechar</button>
+            </div>
+            <div className="p-4 overflow-auto" style={{ maxHeight: 'calc(80vh - 48px)' }}>
+              {mediaLoading ? (
+                <div className="text-gray-500 text-sm">Carregando...</div>
+              ) : mediaItems.length === 0 ? (
+                <div className="text-gray-500 text-sm">Nenhum arquivo encontrado.</div>
               ) : (
-                <div className="flex flex-col space-y-0 w-full">
-                  {elements.map((element) => (
-                    <div
-                      key={element.id}
-                      data-element="true"
-                      data-element-id={element.id}
-                      className={`relative cursor-move transition-all duration-200 ${
-                        selectedElement === element.id && element.type !== 'spacer' ? 'ring-4 ring-blue-400 ring-opacity-80 shadow-2xl shadow-blue-500/25' : ''
-                      } ${
-                        isDragging && draggedElementId === element.id ? 'z-50' : 'z-10'
-                      }`}
-                      style={{
-                        marginTop: `${element.spacing?.top || 0}px`,
-                        marginBottom: `${element.spacing?.bottom || 20}px`,
-                        marginLeft: `${element.spacing?.left || 0}px`,
-                        marginRight: `${element.spacing?.right || 0}px`,
-                        transform: isDragging && draggedElementId === element.id ? `translateY(${dragOffset}px)` : 'none'
-                      }}
-                      onClick={() => setSelectedElement(element.id)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        // Removido: duplicação automática no clique direito
-                      }}
-                      onMouseDown={(e) => handleElementMouseDown(e, element.id)}
-                      onMouseMove={handleElementMouseMove}
-                      onMouseUp={handleElementMouseUp}
-                    >
-                      {renderElement(element)}
-                      
-                      {selectedElement === element.id && (
-                        <div className="absolute -top-10 left-0 flex items-center space-x-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              duplicateElement(element.id);
-                            }}
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105"
-                            title="Duplicar elemento"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteElement(element.id);
-                            }}
-                            className="bg-gradient-to-r from-red-500 to-red-600 text-white p-2 rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-red-500/25 hover:scale-105"
-                            title="Excluir elemento"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      )}
-                      
-                      {/* Indicador de drag */}
-                      {isDragging && draggedElementId === element.id && (
-                        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-2 py-1 rounded text-xs z-50">
-                          Arrastando
-                        </div>
-                      )}
-                      
-                      {/* Linha de inserção */}
-                      {isDragging && draggedElementId !== element.id && (
-                        <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 opacity-0 transition-opacity duration-200 hover:opacity-100" />
-                      )}
-                    </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {mediaItems.map((it, idx) => (
+                    <button key={idx} onClick={()=>handlePickMedia(it.url)} className="group bg-gray-50 rounded border overflow-hidden text-left">
+                      <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
+                        {mediaPicker.kind==='image' ? (
+                          <img src={it.url} alt={it.name} className="w-full h-full object-cover group-hover:opacity-90" />
+                        ) : (
+                          <video src={it.url} className="w-full h-full object-cover group-hover:opacity-90" />
+                        )}
+                      </div>
+                      <div className="px-2 py-1 text-[11px] text-gray-700 truncate" title={it.name}>{it.name}</div>
+                    </button>
                   ))}
                 </div>
               )}
             </div>
           </div>
         </div>
-
-        {/* Structure Panel - Right Side */}
-        {showStructurePanel && (
-          <div className="w-80 bg-gray-900 border-l border-gray-700 p-4 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white text-lg font-semibold">Estrutura da Página</h3>
-              <button
-                onClick={() => setShowStructurePanel(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            {elements.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-gray-400 text-sm mb-2">Nenhum elemento adicionado</div>
-                <div className="text-gray-500 text-xs">Adicione elementos usando a barra lateral</div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {elements.map((element, index) => (
-                  <div
-                    key={element.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                      selectedElement === element.id 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-                    }`}
-                    onClick={() => setSelectedElement(element.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-xs font-mono bg-gray-700 px-2 py-1 rounded">
-                          #{index + 1}
-                        </span>
-                        <div>
-                          <div className="text-sm font-medium">
-                            {element.type === 'fbpixel' ? 'Facebook Pixel' : 
-                             element.type === 'heading' ? 'Título' :
-                             element.type === 'text' ? 'Texto' :
-                             element.type === 'button' ? 'Botão' :
-                             element.type === 'image' ? 'Imagem' :
-                             element.type === 'video' ? 'Vídeo' :
-                             element.type === 'spacer' ? 'Espaçador' :
-                             element.type === 'html' ? 'HTML' :
-                             element.type}
-                          </div>
-                          {element.content?.text && (
-                            <div className="text-xs text-gray-400 truncate max-w-48">
-                              {element.content.text}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            duplicateElement(element.id);
-                          }}
-                          className="p-1 hover:bg-gray-600 rounded"
-                          title="Duplicar"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteElement(element.id);
-                          }}
-                          className="p-1 hover:bg-red-600 rounded"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
+
+  function renderWidget(w: Widget) {
+    switch (w.type) {
+      case 'heading': return <h2 style={{ textAlign:'center', color:w.props.color, fontSize:getR(w, 'size', 36) }}>{w.props.text}</h2>;
+      case 'text': return <p style={{ textAlign:'center', color:w.props.color, fontSize:getR(w, 'size', 16) }}>{w.props.text}</p>;
+      case 'button': return (
+        <div className="flex justify-center">
+          <a
+            href={w.props.url}
+            style={{
+              background:w.props.bg,
+              color:w.props.color,
+              borderRadius:w.props.radius,
+              padding:`${getR(w,'padV', w.props.padV)}px ${getR(w,'padH', w.props.padH)}px`,
+              width: getR(w,'width', w.props.width),
+              height: getR(w,'height', w.props.height),
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {w.props.text}
+          </a>
+        </div>
+      );
+      case 'image': return (
+        <div className="flex justify-center">
+          {w.props.src ? <img src={w.props.src} alt={w.props.alt} style={{ maxWidth:getR(w,'width', w.props.width), width:'100%' }}/> : <div className="text-xs text-gray-400">Imagem sem fonte</div>}
+        </div>
+      );
+      case 'video': return (
+        <div className="flex justify-center">
+          {w.props.src ? <video src={w.props.src} controls style={{ maxWidth:getR(w,'width', w.props.width), width:'100%' }}/> : <div className="text-xs text-gray-400">Vídeo sem fonte</div>}
+        </div>
+      );
+      case 'spacer': return <div style={{ height:w.props.height }}/>; 
+      case 'divider': return <hr style={{ borderColor:w.props.color, borderWidth:w.props.thickness, borderStyle:'solid' }}/>; 
+      case 'html': return <div dangerouslySetInnerHTML={{ __html: w.props.html }} />;
+      case 'pixelhot': return <div className="text-[11px] text-pink-600 bg-pink-100 rounded px-2 py-1 inline-block">Pixel Hot (oculto)</div>;
+    }
+  }
 }
