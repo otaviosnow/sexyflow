@@ -112,6 +112,11 @@ export default function ProjectsPage() {
       icon: User,
       path: '/profile'
     },
+    ...(isAdmin ? [{
+      label: 'Admin',
+      icon: Shield,
+      path: '/admin'
+    }] : []),
     {
       label: 'Ajuda',
       icon: HelpCircle,
