@@ -47,21 +47,9 @@ export default function LoginPage() {
         // Login bem-sucedido - fazer refresh para atualizar sessão
         router.refresh();
         
-        // Buscar dados do usuário para verificar role
-        const response = await fetch('/api/me');
-        if (response.ok) {
-          const userData = await response.json();
-          
-          // Redirecionar baseado no role
-          if (userData.role === 'ADMIN') {
-            router.push('/admin');
-          } else {
-            router.push('/projects');
-          }
-        } else {
-          // Fallback para projects se não conseguir buscar dados
-      router.push('/projects');
-        }
+        // Redirecionar todos os usuários (incluindo admins) para /projects
+        // Admins podem acessar /admin através do menu se necessário
+        router.push('/projects');
       }
     } catch (error) {
       setError('Erro ao fazer login');

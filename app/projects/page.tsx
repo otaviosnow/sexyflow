@@ -36,12 +36,8 @@ export default function ProjectsPage() {
       return;
     }
     
-    // Redirecionar admins para painel admin
-    if (status === 'authenticated' && session?.user?.role === 'ADMIN') {
-      router.push('/admin');
-    }
-
-    if (status === 'authenticated' && session?.user?.role !== 'ADMIN') {
+    // Carregar projetos para todos os usuários autenticados (incluindo admins)
+    if (status === 'authenticated') {
       loadProjects();
     }
   }, [status, session, router]);
