@@ -43,6 +43,8 @@ interface UploadProgress {
   status: 'uploading' | 'completed' | 'error';
   error?: string;
   url?: string;
+  preview?: string; // URL de preview local (object URL)
+  type?: 'image' | 'video'; // Tipo de arquivo
 }
 
 // Cache removido - sempre buscar diretamente do Dropbox
@@ -117,13 +119,32 @@ export default function MediaLibrary() {
     
     const fileArray = Array.from(files);
     
-    // Inicializar barras de progresso
-    const initialProgress: UploadProgress[] = fileArray.map((file, index) => ({
-      id: `upload-${Date.now()}-${index}`,
-      fileName: file.name,
-      progress: 0,
-      status: 'uploading'
-    }));
+    // Inicializar barras de progresso com preview
+    const initialProgress: UploadProgress[] = await Promise.all(
+      fileArray.map(async (file, index) => {
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+        let preview: string | undefined = undefined;
+
+        // Criar preview local
+        if (isImage) {
+          preview = URL.createObjectURL(file);
+        } else if (isVideo) {
+          // Para vídeos, criar uma URL local e depois criar thumbnail
+          preview = URL.createObjectURL(file);
+        }
+
+        return {
+          id: `upload-${Date.now()}-${index}`,
+          fileName: file.name,
+          progress: 0,
+          status: 'uploading' as const,
+          preview: preview,
+          type: isImage ? 'image' as const : isVideo ? 'video' as const : undefined,
+          file: file
+        };
+      })
+    );
     setUploadProgress(initialProgress);
 
     try {
@@ -432,7 +453,7 @@ export default function MediaLibrary() {
       </div>
 
       <div className="relative" style={{ zIndex: 10, maxWidth: '1280px', margin: '0 auto', padding: '2.5rem 1rem' }}>
-        {/* Progress Bars Tech */}
+        {/* Progress Bars Tech com Preview */}
         {uploadProgress.length > 0 && (
         <div style={{ 
           background: 'rgba(30, 41, 59, 0.9)', 
@@ -453,51 +474,105 @@ export default function MediaLibrary() {
             <div className="space-y-4">
               {uploadProgress.map((progress) => (
                 <div key={progress.id} className="space-y-3 p-5 rounded-xl bg-slate-700/50 hover:bg-slate-700/70 transition-all border border-pink-500/20">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 flex-1 min-w-0">
-                      {progress.status === 'completed' ? (
-                        <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center ring-2 ring-green-400/50">
-                          <CheckCircle2 className="w-4 h-4 text-white" />
-                        </div>
-                      ) : progress.status === 'error' ? (
-                        <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center ring-2 ring-red-400/50">
-                          <XCircle className="w-4 h-4 text-white" />
-                        </div>
+                  <div className="flex items-start gap-4">
+                    {/* Preview da Mídia */}
+                    <div className="flex-shrink-0 w-32 h-24 rounded-xl overflow-hidden border border-pink-500/30 bg-slate-900/50 relative">
+                      {progress.preview ? (
+                        progress.type === 'image' ? (
+                          <img
+                            src={progress.preview}
+                            alt={progress.fileName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : progress.type === 'video' ? (
+                          <div className="relative w-full h-full">
+                            <video
+                              src={progress.preview}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="bg-black/50 rounded-full p-2">
+                                <Video className="h-6 w-6 text-pink-400" />
+                              </div>
+                            </div>
+                          </div>
+                        ) : null
                       ) : (
-                        <div className="flex-shrink-0 w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Loader2 className="h-8 w-8 text-pink-400 animate-spin" />
+                        </div>
                       )}
-                      <span className="text-sm font-medium text-pink-100 truncate flex-1">
-                        {progress.fileName}
-                      </span>
-                      <span className="text-sm font-bold text-pink-300 whitespace-nowrap ml-3 bg-pink-500/20 px-2.5 py-1 rounded-lg">
-                        {progress.status === 'completed' ? '100%' : progress.status === 'error' ? 'Erro' : `${progress.progress}%`}
-                      </span>
+                      {/* Overlay de status */}
+                      {progress.status === 'completed' && (
+                        <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                          <CheckCircle2 className="h-8 w-8 text-green-400" />
+                        </div>
+                      )}
+                      {progress.status === 'error' && (
+                        <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                          <XCircle className="h-8 w-8 text-red-400" />
+                        </div>
+                      )}
                     </div>
-                    {progress.status === 'error' && (
-                      <button
-                        onClick={() => setUploadProgress(prev => prev.filter(p => p.id !== progress.id))}
-                        className="ml-3 p-2 text-purple-300 hover:text-white rounded-lg hover:bg-red-500/20 transition-colors"
-                        title="Fechar"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    )}
+
+                    {/* Info e Progresso */}
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          {progress.status === 'completed' ? (
+                            <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center ring-2 ring-green-400/50">
+                              <CheckCircle2 className="w-4 h-4 text-white" />
+                            </div>
+                          ) : progress.status === 'error' ? (
+                            <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center ring-2 ring-red-400/50">
+                              <XCircle className="w-4 h-4 text-white" />
+                            </div>
+                          ) : (
+                            <div className="flex-shrink-0 w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                          )}
+                          <span className="text-sm font-medium text-pink-100 truncate flex-1">
+                            {progress.fileName}
+                          </span>
+                          <span className="text-sm font-bold text-pink-300 whitespace-nowrap ml-3 bg-pink-500/20 px-2.5 py-1 rounded-lg">
+                            {progress.status === 'completed' ? '100%' : progress.status === 'error' ? 'Erro' : `${progress.progress}%`}
+                          </span>
+                        </div>
+                        {(progress.status === 'error' || progress.status === 'completed') && (
+                          <button
+                            onClick={() => {
+                              // Limpar URL do preview se existir
+                              if (progress.preview) {
+                                URL.revokeObjectURL(progress.preview);
+                              }
+                              setUploadProgress(prev => prev.filter(p => p.id !== progress.id));
+                            }}
+                            className="ml-3 p-2 text-purple-300 hover:text-white rounded-lg hover:bg-red-500/20 transition-colors"
+                            title="Fechar"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      {/* Barra de Progresso */}
+                      <div className="w-full bg-slate-900/50 rounded-full h-3 overflow-hidden border border-pink-500/20">
+                        <div
+                          className={`h-full transition-all duration-500 ease-out rounded-full ${
+                            progress.status === 'completed' 
+                              ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg shadow-green-500/50' 
+                              : progress.status === 'error'
+                              ? 'bg-gradient-to-r from-red-500 to-red-600'
+                              : 'bg-gradient-to-r from-red-500 via-pink-500 to-red-500 shadow-lg shadow-pink-500/50 animate-pulse'
+                          }`}
+                          style={{ width: `${progress.progress}%` }}
+                        />
+                      </div>
+                      {progress.status === 'error' && progress.error && (
+                        <p className="text-xs text-red-400">{progress.error}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-900/50 rounded-full h-3 overflow-hidden border border-pink-500/20">
-                    <div
-                      className={`h-full transition-all duration-500 ease-out rounded-full ${
-                        progress.status === 'completed' 
-                          ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-lg shadow-green-500/50' 
-                          : progress.status === 'error'
-                          ? 'bg-gradient-to-r from-red-500 to-red-600'
-                          : 'bg-gradient-to-r from-red-500 via-pink-500 to-red-500 shadow-lg shadow-pink-500/50 animate-pulse'
-                      }`}
-                      style={{ width: `${progress.progress}%` }}
-                    />
-                  </div>
-                  {progress.status === 'error' && progress.error && (
-                    <p className="text-xs text-red-400 mt-1 ml-9">{progress.error}</p>
-                  )}
                 </div>
               ))}
             </div>

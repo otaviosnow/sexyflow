@@ -563,6 +563,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 ref={canvasRef}
                 className="rounded shadow w-full"
                 style={{
+                  minHeight: '800px', // Altura mínima para garantir que imagens de fundo não sejam cortadas
                   background: background.type==='color' ? background.value : `url(${background.value})`,
                   backgroundSize: background.type==='image' ? 'cover' : undefined,
                   backgroundPosition: background.type==='image' ? 'center' : undefined,
@@ -570,7 +571,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 }}
               >
             {sections.length === 0 && (
-              <div className="text-center text-gray-400 py-16">Adicione uma seção para começar</div>
+              <div className="text-center text-gray-400 py-16 min-h-[600px] flex items-center justify-center">Adicione uma seção para começar</div>
             )}
             {sections.map(sec => (
               <div key={sec.id} className="px-6 py-8 border-b border-gray-200">
