@@ -114,7 +114,11 @@ function renderWidget(w: Widget) {
         />
       );
     case 'html':
-      return <div dangerouslySetInnerHTML={{ __html: w.props.html }} />;
+      return (
+        <div style={{ textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
+          <div dangerouslySetInnerHTML={{ __html: w.props.html }} />
+        </div>
+      );
     case 'pixelpageview':
       // Renderizar pixel do Facebook/Meta
       return <PixelPageView pixelId={w.props.pixelId} />;

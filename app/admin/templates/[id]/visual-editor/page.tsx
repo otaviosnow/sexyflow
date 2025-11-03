@@ -727,7 +727,11 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       );
       case 'spacer': return <div style={{ height:w.props.height }}/>; 
       case 'divider': return <hr style={{ borderColor:w.props.color, borderWidth:w.props.thickness, borderStyle:'solid' }}/>; 
-      case 'html': return <div dangerouslySetInnerHTML={{ __html: w.props.html }} />;
+      case 'html': return (
+        <div className="flex justify-center" style={{ textAlign: 'center' }}>
+          <div dangerouslySetInnerHTML={{ __html: w.props.html }} />
+        </div>
+      );
       case 'pixelhot': return <div className="text-[11px] text-pink-600 bg-pink-100 rounded px-2 py-1 inline-block">Pixel Hot (oculto)</div>;
       case 'pixelpageview': return <div className="text-[11px] text-blue-600 bg-blue-100 rounded px-2 py-1 inline-block">Pixel PageView (oculto)</div>;
     }
