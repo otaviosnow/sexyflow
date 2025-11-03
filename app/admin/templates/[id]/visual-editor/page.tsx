@@ -577,7 +577,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             <div style={{ width: w, transform: `scale(${scale})`, transformOrigin: 'top center' }}>
               <div
                 ref={canvasRef}
-                className="rounded shadow w-full bg-responsive-cover"
+                className="rounded shadow w-full"
                 style={{
                   minHeight: '800px', // Altura mínima inicial para garantir que imagens de fundo não sejam cortadas
                   // Altura cresce automaticamente conforme elementos são adicionados
