@@ -212,6 +212,27 @@ a {
   }
 }
 
+/* Responsive background image */
+.responsive-bg-image {
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 768px) {
+  .responsive-bg-image {
+    background-size: contain;
+    background-position: center center;
+  }
+}
+
+@media (max-width: 480px) {
+  .responsive-bg-image {
+    background-size: contain;
+    background-position: center center;
+  }
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .dark-mode {

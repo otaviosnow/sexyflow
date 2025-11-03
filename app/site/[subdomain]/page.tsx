@@ -88,7 +88,7 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
   return (
     <div className="min-h-screen">
       <div 
-        className="min-h-screen w-full"
+        className={`min-h-screen w-full ${content?.background?.type === 'image' ? 'responsive-bg-image' : ''}`}
         style={{
           backgroundColor: content?.background?.type === 'color' 
             ? content.background.value 
@@ -102,9 +102,6 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
             : content?.background?.type === 'gradient'
             ? `linear-gradient(${content.background.value})`
             : 'none',
-          backgroundSize: content?.background?.type === 'image' ? 'cover' : undefined,
-          backgroundPosition: content?.background?.type === 'image' ? 'center center' : undefined,
-          backgroundRepeat: 'no-repeat',
           backgroundAttachment: 'scroll' // Evita problemas em mobile
         }}
       >
