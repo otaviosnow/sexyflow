@@ -83,14 +83,24 @@ export default async function SubdomainSlugPage({ params }: SubdomainSlugPagePro
   return (
     <div className="min-h-screen">
       <div 
+        className="min-h-screen w-full"
         style={{
-          background: content?.background?.type === 'color' 
+          backgroundColor: content?.background?.type === 'color' 
             ? content.background.value 
             : content?.background?.type === 'gradient'
-            ? `linear-gradient(${content.background.value})`
+            ? 'transparent'
             : content?.background?.type === 'image'
+            ? 'transparent'
+            : '#ffffff',
+          backgroundImage: content?.background?.type === 'image' && content.background.image
             ? `url(${content.background.image})`
-            : '#ffffff'
+            : content?.background?.type === 'gradient'
+            ? `linear-gradient(${content.background.value})`
+            : 'none',
+          backgroundSize: content?.background?.type === 'image' ? 'cover' : undefined,
+          backgroundPosition: content?.background?.type === 'image' ? 'center center' : undefined,
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'scroll' // Evita problemas em mobile
         }}
       >
         <div className="container mx-auto px-4 py-8">

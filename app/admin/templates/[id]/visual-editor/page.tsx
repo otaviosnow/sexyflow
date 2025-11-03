@@ -577,15 +577,15 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
             <div style={{ width: w, transform: `scale(${scale})`, transformOrigin: 'top center' }}>
               <div
                 ref={canvasRef}
-                className="rounded shadow w-full"
+                className="rounded shadow w-full bg-responsive-cover"
                 style={{
                   minHeight: '800px', // Altura mínima inicial para garantir que imagens de fundo não sejam cortadas
                   // Altura cresce automaticamente conforme elementos são adicionados
                   background: background.type==='color' ? background.value : `url(${background.value})`,
                   backgroundSize: background.type==='image' ? 'cover' : undefined,
-                  backgroundPosition: background.type==='image' ? 'center' : undefined,
+                  backgroundPosition: background.type==='image' ? 'center center' : undefined,
                   backgroundRepeat: 'no-repeat',
-                  backgroundAttachment: background.type==='image' ? 'fixed' : undefined // Mantém imagem fixa durante scroll
+                  // A imagem se adapta automaticamente ao tamanho da tela usando cover
                 }}
               >
                 {sections.length === 0 && (
