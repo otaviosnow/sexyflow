@@ -545,6 +545,20 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.currency} onChange={(e)=>updateWidget(selectedWidget.id,{currency:e.target.value})}/>
               </>
             )}
+            {selectedWidget.type==='pixelpageview' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">Pixel ID do Meta</label>
+                <input 
+                  className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" 
+                  placeholder="Digite o ID do seu pixel"
+                  value={selectedWidget.props.pixelId || ''} 
+                  onChange={(e)=>updateWidget(selectedWidget.id,{pixelId:e.target.value})}
+                />
+                <p className="text-[10px] text-gray-500 mt-2">
+                  O pixel será carregado e disparará automaticamente um evento PageView quando a página for visitada.
+                </p>
+              </>
+            )}
           </div>
         )}
       </aside>
