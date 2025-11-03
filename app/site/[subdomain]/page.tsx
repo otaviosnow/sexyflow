@@ -85,6 +85,9 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
   // Renderizar página usando template
   const { content } = homePage;
   
+  // Verificar se é estrutura v2 (sections) ou antiga (elements)
+  const isV2Structure = content?.sections && Array.isArray(content.sections);
+  
   return (
     <div className="min-h-screen">
       <div 
@@ -105,8 +108,13 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
           backgroundAttachment: 'scroll' // Evita problemas em mobile
         }}
       >
-        <div className="container mx-auto px-4 py-8">
-          {content?.elements?.map((element: any) => (
+        {isV2Structure ? (
+          // Estrutura v2 - usar PageRenderer
+          <PageRenderer content={content} />
+        ) : (
+          // Estrutura antiga - manter compatibilidade
+          <div className="container mx-auto px-4 py-8">
+            {content?.elements?.map((element: any) => (
             <div 
               key={element.id}
               className="mb-4"
