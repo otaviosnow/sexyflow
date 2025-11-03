@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Eye, Globe, Layout, Palette, Save, Settings, Trash2, Type, X, Heading, AlignLeft, MousePointerClick, Image, Video, Square, Minus, Code, Flame, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Eye, Globe, Layout, Palette, Save, Settings, Trash2, Type, X, Heading, AlignLeft, MousePointerClick, Image, Video, Square, Minus, Code, Flame, ChevronLeft, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // EDITOR V2 (simplificado) — Seções > Colunas > Widgets
-type WidgetType = 'heading' | 'text' | 'button' | 'image' | 'video' | 'spacer' | 'divider' | 'html' | 'pixelhot';
+type WidgetType = 'heading' | 'text' | 'button' | 'image' | 'video' | 'spacer' | 'divider' | 'html' | 'pixelhot' | 'pixelpageview';
 
 interface Widget { id: string; type: WidgetType; props: any; }
 interface Column { id: string; widgets: Widget[]; }
@@ -223,6 +223,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
       case 'divider': return { color: '#e5e7eb', thickness: 1 };
       case 'html': return { html: '<p>HTML</p>' };
       case 'pixelhot': return { pixelId: '', purchaseValue: 0, currency: 'BRL' };
+      case 'pixelpageview': return { pixelId: '' };
     }
   }
 
@@ -338,7 +339,8 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
             {t:'spacer',l:'Espaço', icon: Square},
             {t:'divider',l:'Divisor', icon: Minus},
             {t:'html',l:'HTML', icon: Code},
-            {t:'pixelhot',l:'Pixel Hot', icon: Flame}
+            {t:'pixelhot',l:'Pixel Hot', icon: Flame},
+            {t:'pixelpageview',l:'Pixel Pageview', icon: BarChart3}
           ].map(it => (
             <button
               key={it.t}
@@ -543,6 +545,20 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
                 <input className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" value={selectedWidget.props.currency} onChange={(e)=>updateWidget(selectedWidget.id,{currency:e.target.value})}/>
               </>
             )}
+            {selectedWidget.type==='pixelpageview' && (
+              <>
+                <label className="block text-gray-400 text-xs mb-1">Pixel ID do Meta</label>
+                <input 
+                  className="w-full px-3 py-2 rounded bg-gray-800 border border-gray-700" 
+                  placeholder="Digite o ID do seu pixel"
+                  value={selectedWidget.props.pixelId || ''} 
+                  onChange={(e)=>updateWidget(selectedWidget.id,{pixelId:e.target.value})}
+                />
+                <p className="text-[10px] text-gray-500 mt-2">
+                  O pixel será carregado e disparará automaticamente um evento PageView quando a página for visitada.
+                </p>
+              </>
+            )}
           </div>
         )}
       </aside>
@@ -721,6 +737,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
       case 'divider': return <hr style={{ borderColor:w.props.color, borderWidth:w.props.thickness, borderStyle:'solid' }}/>; 
       case 'html': return <div dangerouslySetInnerHTML={{ __html: w.props.html }} />;
       case 'pixelhot': return <div className="text-[11px] text-pink-600 bg-pink-100 rounded px-2 py-1 inline-block">Pixel Hot (oculto)</div>;
+      case 'pixelpageview': return <div className="text-[11px] text-blue-600 bg-blue-100 rounded px-2 py-1 inline-block">Pixel PageView (oculto)</div>;
     }
   }
 }
