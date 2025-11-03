@@ -117,10 +117,13 @@ export default function ProjectDashboard({ params }: { params: { id: string } })
   const loadTemplates = async () => {
     try {
       setTemplatesLoading(true);
-      const response = await fetch('/api/admin/templates');
+      // Usar API pública de templates (só retorna templates ativos)
+      const response = await fetch('/api/templates');
       if (response.ok) {
         const data = await response.json();
-        setTemplates(data.filter((template: Template) => template.isActive));
+        setTemplates(data);
+      } else {
+        console.error('Erro ao carregar templates:', response.status);
       }
     } catch (error) {
       console.error('Erro ao carregar templates:', error);
