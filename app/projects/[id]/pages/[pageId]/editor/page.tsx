@@ -36,6 +36,7 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
   const [activeTab, setActiveTab] = useState<'widgets' | 'props' | 'settings'>('widgets');
   const [saving, setSaving] = useState(false);
   const [hasUnsaved, setHasUnsaved] = useState(false);
+  const [loading, setLoading] = useState(true);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [draggingType, setDraggingType] = useState<WidgetType | null>(null);
   const [viewport, setViewport] = useState<'desktop'|'tablet'|'mobile'>('desktop');
@@ -57,11 +58,14 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
 
   async function load() {
     try {
-      const [pRes, pgRes] = await Promise.all([
-        fetch(`/api/projects/${params.id}`),
-        fetch(`/api/pages/${params.pageId}`)
-      ]);
-      if (pRes.ok) setProject(await pRes.json());
+      setLoading(true);
+      
+      // Carregar página primeiro (mais importante) e projeto em paralelo
+      const pagePromise = fetch(`/api/pages/${params.pageId}`);
+      const projectPromise = fetch(`/api/projects/${params.id}`);
+      
+      // Resolver página primeiro para mostrar conteúdo rapidamente
+      const pgRes = await pagePromise;
       if (pgRes.ok) {
         const data = await pgRes.json();
         setPage(data);
@@ -72,9 +76,18 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
         if (bg && (bg.type === 'color' || bg.type === 'image')) {
           setBackground({ type: bg.type, value: bg.value || bg.image || '#ffffff' });
         }
+        // Marcar como carregado assim que a página estiver pronta
+        setLoading(false);
+      }
+      
+      // Resolver projeto depois (menos crítico)
+      const pRes = await projectPromise;
+      if (pRes.ok) {
+        setProject(await pRes.json());
       }
     } catch (e) {
       console.error(e);
+      setLoading(false);
     }
   }
 
@@ -536,6 +549,15 @@ export default function EditorV2({ params }: { params: { id: string; pageId: str
 
       {/* Canvas */}
       <main className="flex-1 bg-gray-100 text-gray-900 overflow-auto">
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Carregando página...</p>
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="bg-gray-900 border-b border-gray-800 p-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <button onClick={() => router.push(`/projects/${params.id}`)} className="text-gray-300 hover:text-white flex items-center gap-1">
