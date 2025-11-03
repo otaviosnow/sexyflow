@@ -579,6 +579,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 ref={canvasRef}
                 className="rounded shadow w-full"
                 style={{
+                  minHeight: '800px', // Altura mínima para garantir que imagens de fundo não sejam cortadas
                   background: background.type==='color' ? background.value : `url(${background.value})`,
                   backgroundSize: background.type==='image' ? 'cover' : undefined,
                   backgroundPosition: background.type==='image' ? 'center' : undefined,
@@ -586,7 +587,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 }}
               >
                 {sections.length === 0 && (
-                  <div className="text-center text-gray-400 py-16">Adicione uma seção para começar</div>
+                  <div className="text-center text-gray-400 py-16 min-h-[600px] flex items-center justify-center">Adicione uma seção para começar</div>
                 )}
                 {sections.map(sec => (
                   <div key={sec.id} className="px-6 py-8 border-b border-gray-200">
@@ -604,7 +605,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                       {sec.columns.map(col => (
                         <div
                           key={col.id}
-                          className={`min-h-[80px] p-3 rounded border ${selected.columnId===col.id? 'border-pink-500':'border-gray-200'} ${draggingType? 'ring-2 ring-pink-300 ring-offset-2 ring-offset-gray-50':''} bg-gray-50`}
+                          className={`min-h-[80px] p-3 rounded border ${selected.columnId===col.id? 'border-pink-500':'border-gray-300 border-dashed'} ${draggingType? 'ring-2 ring-pink-300 ring-offset-2 ring-offset-transparent':''} bg-transparent hover:bg-gray-50/50 transition-colors`}
                           onClick={() => setSelected({ sectionId: sec.id, columnId: col.id })}
                           onDragOver={(e) => { if (draggingType) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } }}
                           onDrop={(e) => {
