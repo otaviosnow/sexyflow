@@ -339,7 +339,8 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 {t:'spacer',l:'Espaço', icon: Square},
                 {t:'divider',l:'Divisor', icon: Minus},
                 {t:'html',l:'HTML', icon: Code},
-                {t:'pixelhot',l:'Pixel Hot', icon: Flame}
+                {t:'pixelhot',l:'Pixel Hot', icon: Flame},
+                {t:'pixelpageview',l:'Pixel Pageview', icon: BarChart3}
               ].map(it => (
                 <button
                   key={it.t}
@@ -714,6 +715,7 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
       case 'divider': return <hr style={{ borderColor:w.props.color, borderWidth:w.props.thickness, borderStyle:'solid' }}/>; 
       case 'html': return <div dangerouslySetInnerHTML={{ __html: w.props.html }} />;
       case 'pixelhot': return <div className="text-[11px] text-pink-600 bg-pink-100 rounded px-2 py-1 inline-block">Pixel Hot (oculto)</div>;
+      case 'pixelpageview': return <div className="text-[11px] text-blue-600 bg-blue-100 rounded px-2 py-1 inline-block">Pixel PageView (oculto)</div>;
     }
   }
 }
