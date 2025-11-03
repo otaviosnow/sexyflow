@@ -87,6 +87,17 @@ export default function MediaLibrary() {
     };
   }, []);
 
+  // Limpar URLs de preview quando componente desmontar ou uploads terminarem
+  useEffect(() => {
+    return () => {
+      uploadProgress.forEach(progress => {
+        if (progress.preview) {
+          URL.revokeObjectURL(progress.preview);
+        }
+      });
+    };
+  }, [uploadProgress]);
+
   const loadMediaFiles = async () => {
     try {
       setLoading(true);
@@ -199,15 +210,26 @@ export default function MediaLibrary() {
               try {
                 const result = JSON.parse(xhr.responseText);
                 
-                if (result.success && result.url) {
-                  setUploadProgress(prev => prev.map(p => 
-                    p.id === uploadId 
-                      ? { ...p, progress: 100, status: 'completed' as const, url: result.url }
-                      : p
-                  ));
+                  if (result.success && result.url) {
+                  setUploadProgress(prev => prev.map(p => {
+                    if (p.id === uploadId) {
+                      // Limpar preview local após upload completar
+                      if (p.preview) {
+                        setTimeout(() => URL.revokeObjectURL(p.preview!), 1000);
+                      }
+                      return { ...p, progress: 100, status: 'completed' as const, url: result.url };
+                    }
+                    return p;
+                  }));
 
                   setTimeout(() => {
-                    setUploadProgress(prev => prev.filter(p => p.id !== uploadId));
+                    setUploadProgress(prev => {
+                      const progressToRemove = prev.find(p => p.id === uploadId);
+                      if (progressToRemove?.preview) {
+                        URL.revokeObjectURL(progressToRemove.preview);
+                      }
+                      return prev.filter(p => p.id !== uploadId);
+                    });
                   }, 3000);
 
                   resolve({
