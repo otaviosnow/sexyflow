@@ -19,6 +19,25 @@ const nextConfig = {
       },
     ];
   },
+  // Otimizações para reduzir erros de cache
+  generateBuildId: async () => {
+    // Usar hash baseado em timestamp para evitar conflitos
+    return `build-${Date.now()}`;
+  },
+  // Headers para melhor gerenciamento de cache
+  async headers() {
+    return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

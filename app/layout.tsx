@@ -6,11 +6,15 @@ import './globals.css';
 const inter = Inter({ 
   subsets: ['latin'],
   variable: '--font-inter',
+  display: 'swap', // Melhor performance de carregamento
+  preload: true,
 });
 
 const playfair = Playfair_Display({ 
   subsets: ['latin'],
   variable: '--font-playfair',
+  display: 'swap', // Melhor performance de carregamento
+  preload: false, // Desabilitar preload se não usado imediatamente
 });
 
 export const metadata: Metadata = {
