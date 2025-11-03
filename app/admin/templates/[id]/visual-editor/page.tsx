@@ -579,11 +579,13 @@ export default function VisualEditor({ params }: { params: { id: string } }) {
                 ref={canvasRef}
                 className="rounded shadow w-full"
                 style={{
-                  minHeight: '800px', // Altura mínima para garantir que imagens de fundo não sejam cortadas
+                  minHeight: '800px', // Altura mínima inicial para garantir que imagens de fundo não sejam cortadas
+                  // Altura cresce automaticamente conforme elementos são adicionados
                   background: background.type==='color' ? background.value : `url(${background.value})`,
                   backgroundSize: background.type==='image' ? 'cover' : undefined,
                   backgroundPosition: background.type==='image' ? 'center' : undefined,
-                  backgroundRepeat: 'no-repeat'
+                  backgroundRepeat: 'no-repeat',
+                  backgroundAttachment: background.type==='image' ? 'fixed' : undefined // Mantém imagem fixa durante scroll
                 }}
               >
                 {sections.length === 0 && (
