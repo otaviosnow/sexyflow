@@ -119,8 +119,8 @@ function renderWidget(w: Widget) {
       // Renderizar pixel do Facebook/Meta
       return <PixelPageView pixelId={w.props.pixelId} />;
     case 'pixelhot':
-      // Widget oculto - não renderiza visualmente
-      return null;
+      // Renderizar pixel Hot (Lead + Purchase)
+      return <PixelHot pixelId={w.props.pixelId} purchaseValue={w.props.purchaseValue} currency={w.props.currency} />;
     default:
       return null;
   }
@@ -129,12 +129,28 @@ function renderWidget(w: Widget) {
 // Componente para Pixel PageView
 function PixelPageView({ pixelId }: { pixelId?: string }) {
   useEffect(() => {
-    if (!pixelId) return;
+    if (!pixelId || typeof window === 'undefined') return;
 
-    // Verificar se fbq já existe
-    if (typeof window !== 'undefined' && (window as any).fbq) {
+    // Verificar se já foi disparado para este pixel (evitar duplicação)
+    const storageKey = `pixel_pageview_${pixelId}`;
+    const alreadyTracked = localStorage.getItem(storageKey);
+    
+    if (alreadyTracked) {
+      console.log('Pixel PageView já foi disparado para este visitante');
+      return;
+    }
+
+    // Marcar como já disparado
+    localStorage.setItem(storageKey, 'true');
+
+    // Verificar se fbq já existe (pixel já carregado)
+    if ((window as any).fbq) {
       // Pixel já carregado, apenas disparar PageView
-      (window as any).fbq('track', 'PageView');
+      try {
+        (window as any).fbq('track', 'PageView');
+      } catch (e) {
+        console.error('Erro ao disparar PageView:', e);
+      }
       return;
     }
 
@@ -169,6 +185,82 @@ function PixelPageView({ pixelId }: { pixelId?: string }) {
       }
     };
   }, [pixelId]);
+
+  // Widget oculto - não renderiza visualmente
+  return null;
+}
+
+// Componente para Pixel Hot (Lead + Purchase)
+function PixelHot({ pixelId, purchaseValue, currency }: { pixelId?: string; purchaseValue?: number; currency?: string }) {
+  useEffect(() => {
+    if (!pixelId || typeof window === 'undefined') return;
+
+    // Verificar se Lead já foi disparado para este pixel (evitar duplicação)
+    const leadKey = `pixel_lead_${pixelId}`;
+    const purchaseKey = `pixel_purchase_${pixelId}`;
+    
+    const leadAlreadyTracked = localStorage.getItem(leadKey);
+    const purchaseAlreadyTracked = localStorage.getItem(purchaseKey);
+
+    // Carregar pixel apenas uma vez
+    if (!(window as any).fbq) {
+      const script = document.createElement('script');
+      script.innerHTML = `
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '${pixelId}');
+      `;
+      document.head.appendChild(script);
+    }
+
+    // Disparar Lead apenas uma vez
+    if (!leadAlreadyTracked) {
+      try {
+        if ((window as any).fbq) {
+          (window as any).fbq('track', 'Lead');
+        } else {
+          // Aguardar pixel carregar
+          setTimeout(() => {
+            if ((window as any).fbq) {
+              (window as any).fbq('track', 'Lead');
+            }
+          }, 500);
+        }
+        localStorage.setItem(leadKey, 'true');
+      } catch (e) {
+        console.error('Erro ao disparar Lead:', e);
+      }
+    }
+
+    // Disparar Purchase apenas uma vez (após DOM carregar)
+    if (!purchaseAlreadyTracked && purchaseValue && purchaseValue > 0) {
+      const handlePurchase = () => {
+        try {
+          if ((window as any).fbq) {
+            (window as any).fbq('track', 'Purchase', {
+              value: purchaseValue,
+              currency: currency || 'BRL'
+            });
+            localStorage.setItem(purchaseKey, 'true');
+          }
+        } catch (e) {
+          console.error('Erro ao disparar Purchase:', e);
+        }
+      };
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', handlePurchase);
+      } else {
+        handlePurchase();
+      }
+    }
+  }, [pixelId, purchaseValue, currency]);
 
   // Widget oculto - não renderiza visualmente
   return null;

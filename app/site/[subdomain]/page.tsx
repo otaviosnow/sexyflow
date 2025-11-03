@@ -226,7 +226,12 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
               s.parentNode.insertBefore(t,s)}(window, document,'script',
               'https://connect.facebook.net/en_US/fbevents.js');
               fbq('init', '${project.settings.analytics.facebookPixel}');
-              fbq('track', 'PageView');
+              // Verificar se PageView já foi disparado para evitar duplicação
+              var pageviewKey = 'pixel_pageview_${project.settings.analytics.facebookPixel}';
+              if (!localStorage.getItem(pageviewKey)) {
+                fbq('track', 'PageView');
+                localStorage.setItem(pageviewKey, 'true');
+              }
             `
           }} />
           <noscript>

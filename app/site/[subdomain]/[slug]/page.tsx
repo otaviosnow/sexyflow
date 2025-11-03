@@ -158,12 +158,22 @@ export default async function SubdomainSlugPage({ params }: SubdomainSlugPagePro
                         if(!f._fbq) f._fbq=n; n.push=n; n.loaded=!0; n.version='2.0'; n.queue=[]; t=b.createElement(e); t.async=!0; t.src=v;
                         s=b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t,s);
                       })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
-                      try { fbq('init', '${element.content?.pixelId || ''}'); fbq('track', 'Lead'); } catch(e) { }
+                      try { 
+                        fbq('init', '${element.content?.pixelId || ''}');
+                        // Verificar se Lead já foi disparado para evitar duplicação
+                        var leadKey = 'pixel_lead_${element.content?.pixelId || ''}';
+                        if (!localStorage.getItem(leadKey)) {
+                          fbq('track', 'Lead');
+                          localStorage.setItem(leadKey, 'true');
+                        }
+                      } catch(e) { }
                       document.addEventListener('DOMContentLoaded', function(){
                         try {
-                          if (!localStorage.getItem('purchaseTracked')) {
+                          // Verificar se Purchase já foi disparado para evitar duplicação
+                          var purchaseKey = 'pixel_purchase_${element.content?.pixelId || ''}';
+                          if (!localStorage.getItem(purchaseKey)) {
                             fbq('track', 'Purchase', { value: ${Number(element.content?.purchaseValue || 0)}, currency: '${element.content?.currency || 'BRL'}' });
-                            localStorage.setItem('purchaseTracked', 'true');
+                            localStorage.setItem(purchaseKey, 'true');
                           }
                         } catch(e) { }
                       });
@@ -251,7 +261,12 @@ export default async function SubdomainSlugPage({ params }: SubdomainSlugPagePro
               s.parentNode.insertBefore(t,s)}(window, document,'script',
               'https://connect.facebook.net/en_US/fbevents.js');
               fbq('init', '${project.settings.analytics.facebookPixel}');
-              fbq('track', 'PageView');
+              // Verificar se PageView já foi disparado para evitar duplicação
+              var pageviewKey = 'pixel_pageview_${project.settings.analytics.facebookPixel}';
+              if (!localStorage.getItem(pageviewKey)) {
+                fbq('track', 'PageView');
+                localStorage.setItem(pageviewKey, 'true');
+              }
             `
           }} />
           <noscript>
