@@ -513,7 +513,7 @@ export async function GET() {
   return NextResponse.json({
     message: 'Webhook da Cakto funcionando',
     timestamp: new Date().toISOString(),
-    webhookUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/api/webhooks/cakto`,
+    webhookUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.com.br'}/api/webhooks/cakto`,
     eventsSupported: [
       'purchase_approved',      // Compra aprovada (formato real da Cakto)
       'purchase_refused',      // Compra recusada (formato real da Cakto)

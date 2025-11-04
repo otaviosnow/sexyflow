@@ -120,9 +120,9 @@ class CaktoService {
       description: `Assinatura ${checkoutData.planName} - SexyFlow`,
       customer: checkoutData.customer,
       metadata: checkoutData.metadata,
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/payment/success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/payment/cancel`,
-      webhook_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.onrender.com'}/api/webhooks/cakto`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.com.br'}/payment/success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.com.br'}/payment/cancel`,
+      webhook_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.com.br'}/api/webhooks/cakto`,
       // Para assinaturas recorrentes
       recurring: checkoutData.interval === 'month' || checkoutData.interval === 'year',
       interval: checkoutData.interval,
