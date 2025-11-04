@@ -81,7 +81,7 @@ ProjectSchema.index({ subdomain: 1 });
 
 // Método para obter a URL completa do projeto
 ProjectSchema.methods.getFullUrl = function() {
-  const baseDomain = process.env.BASE_DOMAIN || 'sexyflow.onrender.com';
+  const baseDomain = process.env.BASE_DOMAIN || 'sexyflow.com.br';
   return `https://${this.subdomain}.${baseDomain}`;
 };
 

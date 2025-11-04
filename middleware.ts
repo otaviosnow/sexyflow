@@ -24,7 +24,7 @@ export function middleware(request: NextRequest) {
   }
   
   // Extrair subdomínio
-  const baseDomain = process.env.BASE_DOMAIN || 'sexyflow.onrender.com';
+  const baseDomain = process.env.BASE_DOMAIN || 'sexyflow.com.br';
   const parts = hostname.split('.');
   
   console.log('🔍 Parts:', parts);

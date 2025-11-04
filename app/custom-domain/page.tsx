@@ -274,7 +274,7 @@ export default function CustomDomainPage() {
               <p className="font-medium mb-1">Como conectar:</p>
               <ol className="list-decimal list-inside space-y-1 text-blue-800">
                 <li>Adicione seu domínio acima</li>
-                <li>Configure um registro CNAME apontando www.{'{'}domínio{'}'} para sexyflow.onrender.com</li>
+                <li>Configure um registro CNAME apontando www.{'{'}domínio{'}'} para seu-dominio.com.br</li>
                 <li>Clique em "Verificar" após a configuração</li>
               </ol>
             </div>
@@ -334,10 +334,10 @@ export default function CustomDomainPage() {
                             <div className="flex items-center justify-between bg-white rounded p-2">
                               <div>
                                 <span className="text-gray-500 text-xs">Valor:</span>
-                                <span className="text-gray-900 font-mono ml-2">sexyflow.onrender.com</span>
+                                <span className="text-gray-900 font-mono ml-2">seu-dominio.com.br</span>
                               </div>
                               <button
-                                onClick={() => copyToClipboard('sexyflow.onrender.com')}
+                                onClick={() => copyToClipboard('seu-dominio.com.br')}
                                 className="text-gray-600 hover:text-gray-900 transition-colors"
                               >
                                 <Copy className="h-4 w-4" />

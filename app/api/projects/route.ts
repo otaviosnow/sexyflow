@@ -5,6 +5,8 @@ import connectDB from '@/lib/db';
 import User from '@/models/User';
 import Project from '@/models/Project';
 import Subscription from '@/models/Subscription';
+import PageViewDaily from '@/models/PageViewDaily';
+import Page from '@/models/Page';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +40,29 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Projetos ativos encontrados: ${projects.length}`);
 
-    return NextResponse.json(projects);
+    // Buscar visualizações totais para cada projeto
+    const projectsWithViews = await Promise.all(
+      projects.map(async (project: any) => {
+        // Buscar todas as páginas do projeto
+        const pages = await Page.find({ projectId: project._id }).select('_id').lean();
+        const pageIds = pages.map((p: any) => p._id);
+        
+        // Calcular total de visualizações
+        const viewsAgg = await PageViewDaily.aggregate([
+          { $match: { pageId: { $in: pageIds } } },
+          { $group: { _id: null, total: { $sum: '$count' } } }
+        ]);
+        
+        const totalViews = viewsAgg[0]?.total || 0;
+        
+        return {
+          ...project.toObject(),
+          totalViews
+        };
+      })
+    );
+
+    return NextResponse.json(projectsWithViews);
   } catch (error) {
     console.error('❌ Erro ao buscar projetos:', error);
     return NextResponse.json(
@@ -64,13 +88,51 @@ export async function POST(request: NextRequest) {
     console.log('✅ Conectado ao MongoDB');
 
     const body = await request.json();
-    const { name, subdomain, description } = body;
+    const { name, subdomain, description, customDomainId } = body;
 
-    console.log('📦 Dados recebidos:', { name, subdomain, description });
+    console.log('📦 Dados recebidos:', { name, subdomain, description, customDomainId });
 
-    if (!name || !subdomain) {
+    if (!name) {
       console.log('❌ Dados obrigatórios faltando');
-      return NextResponse.json({ error: 'Nome e subdomínio são obrigatórios' }, { status: 400 });
+      return NextResponse.json({ error: 'Nome do projeto é obrigatório' }, { status: 400 });
+    }
+
+    if (!subdomain && !customDomainId) {
+      console.log('❌ Dados obrigatórios faltando');
+      return NextResponse.json({ error: 'Subdomínio ou domínio próprio é obrigatório' }, { status: 400 });
+    }
+
+    // Se usar domínio próprio, buscar o CustomDomain
+    let customDomain = null;
+    let finalSubdomain = subdomain;
+
+    if (customDomainId) {
+      const CustomDomain = require('@/models/CustomDomain').default;
+      customDomain = await CustomDomain.findById(customDomainId);
+
+      if (!customDomain) {
+        console.log('❌ Domínio próprio não encontrado');
+        return NextResponse.json({ error: 'Domínio próprio não encontrado' }, { status: 404 });
+      }
+
+      if (customDomain.userId.toString() !== session.user.id) {
+        console.log('❌ Domínio próprio não pertence ao usuário');
+        return NextResponse.json({ error: 'Domínio próprio não pertence a você' }, { status: 403 });
+      }
+
+      if (customDomain.status !== 'verified') {
+        console.log('❌ Domínio próprio não está verificado');
+        return NextResponse.json({ error: 'Domínio próprio deve estar verificado para ser usado' }, { status: 400 });
+      }
+
+      if (customDomain.projectId) {
+        console.log('❌ Domínio próprio já está associado a um projeto');
+        return NextResponse.json({ error: 'Domínio próprio já está associado a outro projeto' }, { status: 400 });
+      }
+
+      // Usar o domínio como identificador único (sem pontos, apenas para subdomain interno)
+      finalSubdomain = customDomain.domain.replace(/\./g, '-').toLowerCase();
+      console.log('✅ Domínio próprio validado:', customDomain.domain, '-> subdomain interno:', finalSubdomain);
     }
 
     // Buscar usuário autenticado via NextAuth session
@@ -108,9 +170,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se existe QUALQUER projeto com esse subdomínio (independente do isActive)
-    console.log('🔍 Verificando QUALQUER projeto com subdomínio:', subdomain.toLowerCase());
+    console.log('🔍 Verificando QUALQUER projeto com subdomínio:', finalSubdomain.toLowerCase());
     const anyExistingProject = await Project.findOne({ 
-      subdomain: subdomain.toLowerCase()
+      subdomain: finalSubdomain.toLowerCase()
     });
     
     if (anyExistingProject) {
@@ -124,7 +186,7 @@ export async function POST(request: NextRequest) {
       
       // Se o projeto está ativo, retornar erro
       if (anyExistingProject.isActive === true) {
-        console.log('❌ Subdomínio já existe (projeto ativo):', subdomain);
+        console.log('❌ Subdomínio já existe (projeto ativo):', finalSubdomain);
         return NextResponse.json({ error: 'Este subdomínio já está em uso' }, { status: 400 });
       }
       
@@ -142,22 +204,31 @@ export async function POST(request: NextRequest) {
       await anyExistingProject.save();
       console.log('✅ Projeto reutilizado com sucesso:', anyExistingProject.name);
 
+      // Se foi usado domínio próprio, associar ao projeto
+      if (customDomain) {
+        customDomain.projectId = anyExistingProject._id;
+        await customDomain.save();
+        console.log('✅ Domínio próprio associado ao projeto reutilizado');
+      }
+
       return NextResponse.json({
         success: true,
         project: anyExistingProject,
         message: 'Projeto criado com sucesso! (reutilizando subdomínio)',
-        url: `https://${anyExistingProject.subdomain}.sexyflow.onrender.com`
+        url: customDomain ? `https://${customDomain.domain}` : `https://${anyExistingProject.subdomain}.${process.env.BASE_DOMAIN || 'sexyflow.com.br'}`
       });
     }
     console.log('✅ Nenhum projeto encontrado com esse subdomínio');
 
-    // Validar subdomínio
-    const subdomainRegex = /^[a-z0-9-]+$/;
-    if (!subdomainRegex.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
-      console.log('❌ Subdomínio inválido:', subdomain);
-      return NextResponse.json({ 
-        error: 'Subdomínio inválido. Use apenas letras minúsculas, números e hífens (3-50 caracteres)' 
-      }, { status: 400 });
+    // Validar subdomínio apenas se não for domínio próprio
+    if (!customDomainId) {
+      const subdomainRegex = /^[a-z0-9-]+$/;
+      if (!subdomainRegex.test(subdomain) || subdomain.length < 3 || subdomain.length > 50) {
+        console.log('❌ Subdomínio inválido:', subdomain);
+        return NextResponse.json({ 
+          error: 'Subdomínio inválido. Use apenas letras minúsculas, números e hífens (3-50 caracteres)' 
+        }, { status: 400 });
+      }
     }
 
     // Verificar limite de projetos baseado no plano
@@ -202,11 +273,18 @@ export async function POST(request: NextRequest) {
     const project = new Project({
       userId: user._id,
       name,
-      subdomain: subdomain.toLowerCase(),
+      subdomain: finalSubdomain.toLowerCase(),
       description,
       isActive: true,
       pages: []
     });
+
+    // Se for domínio próprio, salvar nas settings
+    if (customDomain) {
+      project.settings = {
+        customDomain: customDomain.domain
+      };
+    }
 
     await project.save();
     console.log('✅ Projeto criado com sucesso:', {
@@ -214,8 +292,16 @@ export async function POST(request: NextRequest) {
       name: project.name,
       subdomain: project.subdomain,
       isActive: project.isActive,
-      userId: project.userId
+      userId: project.userId,
+      customDomain: customDomain?.domain
     });
+
+    // Se foi usado domínio próprio, associar ao projeto
+    if (customDomain) {
+      customDomain.projectId = project._id;
+      await customDomain.save();
+      console.log('✅ Domínio próprio associado ao projeto:', customDomain.domain);
+    }
 
     // Verificar se o projeto foi salvo corretamente
     const savedProject = await Project.findById(project._id);
@@ -229,12 +315,18 @@ export async function POST(request: NextRequest) {
     console.log('✅ Projeto salvo, gerando URL...');
     
     let projectUrl = '';
-    try {
-      projectUrl = project.getFullUrl();
-      console.log('✅ URL gerada:', projectUrl);
-    } catch (urlError) {
-      console.error('❌ Erro ao gerar URL:', urlError);
-      projectUrl = `https://${project.subdomain}.sexyflow.onrender.com`;
+    if (customDomain) {
+      projectUrl = `https://${customDomain.domain}`;
+      console.log('✅ URL gerada (domínio próprio):', projectUrl);
+    } else {
+      try {
+        projectUrl = project.getFullUrl();
+        console.log('✅ URL gerada:', projectUrl);
+      } catch (urlError) {
+        console.error('❌ Erro ao gerar URL:', urlError);
+        const baseDomain = process.env.BASE_DOMAIN || 'seu-dominio.com.br';
+        projectUrl = `https://${project.subdomain}.${baseDomain}`;
+      }
     }
 
     return NextResponse.json({

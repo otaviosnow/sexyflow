@@ -5,7 +5,7 @@ import PageViewDaily from '@/models/PageViewDaily';
 export async function POST(req: NextRequest) {
   try {
     const { pageId, projectId, subdomain, slug } = await req.json();
-    if (!subdomain || !slug) {
+    if (!subdomain || !pageId) {
       return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 });
     }
 

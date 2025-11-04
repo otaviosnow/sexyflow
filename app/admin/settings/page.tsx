@@ -37,7 +37,7 @@ export default function AdminSettingsPage() {
     smtpPassword: '',
     
     // Configurações de Domínio
-    baseDomain: 'sexyflow.onrender.com',
+    baseDomain: 'sexyflow.com.br',
     allowCustomDomains: true,
     
     // Configurações de Planos

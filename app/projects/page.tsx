@@ -348,11 +348,11 @@ export default function ProjectsPage() {
                       <h3 className="font-medium text-gray-900 mb-1">{project.name}</h3>
                       <p className="text-sm text-gray-600 mb-2">{project.description || 'Sem descrição'}</p>
                       <p className="text-xs text-gray-500 mb-3">
-                        {project.subdomain}.sexyflow.onrender.com
+                        {project.subdomain}.{typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_BASE_URL?.replace('https://', '').replace('http://', '') || 'sexyflow.com.br') : 'sexyflow.com.br'}
                       </p>
                       <div className="flex items-center gap-1 text-xs text-gray-500">
                         <BarChart3 className="h-3 w-3" />
-                        <span>0 visualizações</span>
+                        <span>{project.totalViews || 0} visualizações</span>
                       </div>
               </div>
             ))}

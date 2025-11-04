@@ -57,6 +57,24 @@ export default async function SubdomainPage({ params }: SubdomainPageProps) {
   
   const homePage = await getHomePage(project._id.toString());
   
+  // Registrar pageview para a página inicial
+  if (homePage) {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.com.br'}/api/analytics/pageview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pageId: homePage._id,
+          projectId: project._id,
+          subdomain: params.subdomain,
+          slug: '', // Página inicial não tem slug
+        })
+      });
+    } catch (e) {
+      console.warn('Falha ao registrar pageview');
+    }
+  }
+  
   if (!homePage) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">

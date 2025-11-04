@@ -30,7 +30,7 @@ export default function NotFound() {
         </div>
         
         <a
-          href="https://sexyflow.onrender.com"
+          href={process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.com.br'}
           className="inline-block bg-gradient-to-r from-pink-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all shadow-lg font-semibold"
         >
           Ir para SexyFlow

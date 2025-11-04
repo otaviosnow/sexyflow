@@ -558,7 +558,7 @@ export default function AdminUserDetailsPage({ params }: { params: { id: string 
                             <div>
                               <h3 className="text-lg font-semibold text-white">{project.name}</h3>
                               <p className="text-sm text-gray-400">
-                                {project.subdomain}.sexyflow.onrender.com
+                                {project.subdomain}.sexyflow.com.br
                               </p>
                             </div>
                           </div>

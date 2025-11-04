@@ -8,7 +8,7 @@ import { promises as dns } from 'dns';
 // Função para verificar DNS CNAME
 async function verifyDNSCNAME(domain: string): Promise<boolean> {
   try {
-    const targetHost = process.env.BASE_DOMAIN || 'sexyflow.onrender.com';
+    const targetHost = process.env.BASE_DOMAIN || 'sexyflow.com.br';
     
     // Verificar www.{domain}
     const wwwDomain = `www.${domain}`;
@@ -132,10 +132,10 @@ export async function POST(
       console.log(`❌ Falha na verificação DNS para ${domain.domain}`);
       
       return NextResponse.json({ 
-        error: 'Verificação falhou. Verifique se configurou o registro CNAME apontando www.{seu-dominio} para sexyflow.onrender.com nas configurações DNS do seu domínio.',
+        error: 'Verificação falhou. Verifique se configurou o registro CNAME apontando www.{seu-dominio} para sexyflow.com.br nas configurações DNS do seu domínio.',
         details: {
           requiredCNAME: `www.${domain.domain}`,
-          targetValue: process.env.BASE_DOMAIN || 'sexyflow.onrender.com'
+          targetValue: process.env.BASE_DOMAIN || 'sexyflow.com.br'
         }
       }, { status: 400 });
     }

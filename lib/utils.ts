@@ -119,3 +119,13 @@ export function calculatePlanPrice(planType: PlanType): number {
       return 0;
   }
 }
+
+export function getBaseDomain(): string {
+  if (typeof window !== 'undefined') {
+    // Client-side: usar variável de ambiente pública
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://sexyflow.com.br';
+    return baseUrl.replace('https://', '').replace('http://', '');
+  }
+  // Server-side: usar BASE_DOMAIN ou fallback
+  return process.env.BASE_DOMAIN || 'sexyflow.com.br';
+}
