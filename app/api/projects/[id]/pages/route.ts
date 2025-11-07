@@ -104,6 +104,36 @@ export async function POST(
 
     console.log('✅ Projeto encontrado:', project.name);
 
+    // Verificar se o usuário tem assinatura ativa (exceto admins)
+    if (user.role !== 'ADMIN') {
+      const Subscription = require('@/models/Subscription').default;
+      const subscription = await Subscription.findOne({
+        userId: user._id,
+        status: 'active'
+      });
+
+      if (!subscription) {
+        console.log('❌ Usuário sem assinatura ativa');
+        return NextResponse.json({ 
+          error: 'Você precisa de uma assinatura ativa para criar páginas. Acesse /choose-plan para assinar um plano.',
+          requiresSubscription: true
+        }, { status: 402 });
+      }
+
+      // Verificar se a assinatura está realmente ativa
+      const now = new Date();
+      const isSubscriptionActive = subscription.status === 'active' && 
+                                    subscription.currentPeriodEnd > now;
+      
+      if (!isSubscriptionActive) {
+        console.log('❌ Assinatura não está ativa');
+        return NextResponse.json({ 
+          error: 'Sua assinatura não está ativa. Renove sua assinatura para continuar criando páginas.',
+          requiresSubscription: true
+        }, { status: 402 });
+      }
+    }
+
     const body = await request.json();
     const { title, slug, type, templateId, content } = body;
 

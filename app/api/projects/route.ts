@@ -157,13 +157,30 @@ export async function POST(request: NextRequest) {
 
       console.log('📋 Subscription encontrada:', subscription ? 'Sim' : 'Não');
 
-      // TEMPORÁRIO: Permitir criação sem assinatura para debug
+      // Verificar se o usuário tem assinatura ativa
       if (!subscription) {
-        console.log('⚠️ Usuário sem assinatura - permitindo criar projeto (DEBUG MODE)');
-        // return NextResponse.json({ 
-        //   error: 'Você precisa de uma assinatura ativa para criar projetos',
-        //   requiresSubscription: true
-        // }, { status: 402 });
+        console.log('❌ Usuário sem assinatura ativa');
+        return NextResponse.json({ 
+          error: 'Você precisa de uma assinatura ativa para criar projetos. Acesse /choose-plan para assinar um plano.',
+          requiresSubscription: true
+        }, { status: 402 });
+      }
+
+      // Verificar se a assinatura está realmente ativa (usando método do modelo)
+      const now = new Date();
+      const isSubscriptionActive = subscription.status === 'active' && 
+                                    subscription.currentPeriodEnd > now;
+      
+      if (!isSubscriptionActive) {
+        console.log('❌ Assinatura não está ativa:', {
+          status: subscription.status,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          now: now
+        });
+        return NextResponse.json({ 
+          error: 'Sua assinatura não está ativa. Renove sua assinatura para continuar criando projetos.',
+          requiresSubscription: true
+        }, { status: 402 });
       }
     } else {
       console.log('✅ Admin - pulando verificação de assinatura');

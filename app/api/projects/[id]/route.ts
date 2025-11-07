@@ -80,9 +80,9 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description } = body;
+    const { name, description, settings } = body;
 
-    console.log('📦 Dados recebidos:', { name, description });
+    console.log('📦 Dados recebidos:', { name, description, settings });
 
     // Buscar projeto
     const project = await Project.findOne({
@@ -98,13 +98,21 @@ export async function PUT(
 
     console.log('✅ Projeto encontrado:', project.name);
 
+    // Preparar dados de atualização
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (settings) {
+      updateData.settings = {
+        ...(project.settings || {}),
+        ...settings
+      };
+    }
+
     // Atualizar projeto
     const updatedProject: any = await Project.findByIdAndUpdate(
       params.id,
-      {
-        ...(name && { name }),
-        ...(description !== undefined && { description }),
-      },
+      updateData,
       { new: true }
     ).lean();
 
@@ -158,15 +166,26 @@ export async function DELETE(
 
     console.log('✅ Projeto encontrado:', project.name);
 
-    // Desativar projeto (soft delete)
-    await Project.findByIdAndUpdate(params.id, { isActive: false });
+    // Buscar e excluir todas as páginas do projeto
+    const Page = require('@/models/Page').default;
+    const pages = await Page.find({ projectId: params.id });
+    
+    if (pages.length > 0) {
+      console.log(`🗑️ Excluindo ${pages.length} página(s) do projeto...`);
+      await Page.deleteMany({ projectId: params.id });
+      console.log('✅ Páginas excluídas com sucesso!');
+    }
 
-    console.log('✅ Projeto desativado com sucesso!');
+    // Excluir projeto do sistema (hard delete)
+    await Project.findByIdAndDelete(params.id);
+
+    console.log('✅ Projeto excluído com sucesso!');
 
     return NextResponse.json({ 
-      message: 'Projeto excluído com sucesso',
+      message: 'Projeto e todas as suas páginas foram excluídos com sucesso',
       deletedId: params.id,
-      deletedName: project.name
+      deletedName: project.name,
+      deletedPages: pages.length
     });
   } catch (error) {
     console.error('❌ Erro ao excluir projeto:', error);

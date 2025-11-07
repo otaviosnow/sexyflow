@@ -91,13 +91,56 @@ export default function PageEditor({ params }: { params: { id: string } }) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateData | null>(null);
 
   const templateId = searchParams.get('template');
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
 
   useEffect(() => {
-    if (templateId && templateData[templateId]) {
-      setSelectedTemplate(templateData[templateId]);
-      setPageTitle(templateData[templateId].name);
-      setPageSlug(templateData[templateId].id);
-    }
+    const loadTemplate = async () => {
+      if (!templateId) return;
+
+      // Se for um template local (blank), usar diretamente
+      if (templateData[templateId]) {
+        setSelectedTemplate(templateData[templateId]);
+        setPageTitle(templateData[templateId].name);
+        setPageSlug(templateData[templateId].id);
+        return;
+      }
+
+      // Se for um ID de template do admin, buscar da API
+      try {
+        setLoadingTemplate(true);
+        const response = await fetch(`/api/templates`);
+        if (response.ok) {
+          const templates = await response.json();
+          const adminTemplate = templates.find((t: any) => t._id === templateId);
+          
+          if (adminTemplate) {
+            setSelectedTemplate({
+              id: adminTemplate._id,
+              name: adminTemplate.name,
+              content: adminTemplate.content || {
+                background: {
+                  type: 'color',
+                  value: '#ffffff'
+                },
+                sections: []
+              }
+            });
+            setPageTitle(adminTemplate.name);
+            setPageSlug(adminTemplate.name.toLowerCase().replace(/[^a-z0-9-]/g, '-'));
+          } else {
+            console.error('Template não encontrado:', templateId);
+          }
+        } else {
+          console.error('Erro ao buscar templates:', response.status);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar template:', error);
+      } finally {
+        setLoadingTemplate(false);
+      }
+    };
+
+    loadTemplate();
   }, [templateId]);
 
   if (status === 'loading') {
@@ -111,6 +154,17 @@ export default function PageEditor({ params }: { params: { id: string } }) {
   if (!session) {
     router.push('/login');
     return null;
+  }
+
+  if (loadingTemplate) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando template...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!selectedTemplate) {
@@ -146,7 +200,9 @@ export default function PageEditor({ params }: { params: { id: string } }) {
         body: JSON.stringify({
           title: pageTitle,
           slug: pageSlug,
+          type: 'presell',
           content: selectedTemplate.content,
+          templateId: templateId !== 'blank' ? templateId : undefined,
           isPublished: false
         }),
       });

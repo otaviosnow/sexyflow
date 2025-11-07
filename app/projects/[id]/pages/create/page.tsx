@@ -1,11 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, Plus, Palette, FileText, Sparkles, Zap, Star, Crown } from 'lucide-react';
 
 interface Template {
+  _id: string;
+  name: string;
+  description: string;
+  content: any;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface TemplateOption {
   id: string;
   name: string;
   description: string;
@@ -14,35 +23,39 @@ interface Template {
   icon: any;
   color: string;
   isPremium: boolean;
+  templateData?: Template; // Para templates do admin
 }
-
-const templates: Template[] = [
-  {
-    id: 'admin-template',
-    name: 'Template do Admin',
-    description: 'Use um template profissional criado por nossos especialistas',
-    category: 'Profissional',
-    preview: '/templates/admin-preview.jpg',
-    icon: Palette,
-    color: 'bg-pink-500',
-    isPremium: false
-  },
-  {
-    id: 'blank',
-    name: 'Criar Página em Branco',
-    description: 'Comece do zero com total liberdade criativa no editor',
-    category: 'Personalizado',
-    preview: '/templates/blank-preview.jpg',
-    icon: FileText,
-    color: 'bg-gray-500',
-    isPremium: false
-  }
-];
 
 export default function CreatePage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [adminTemplates, setAdminTemplates] = useState<Template[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+
+  // Carregar templates do admin quando o componente montar
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      loadAdminTemplates();
+    }
+  }, [status, session]);
+
+  const loadAdminTemplates = async () => {
+    try {
+      setTemplatesLoading(true);
+      const response = await fetch('/api/templates');
+      if (response.ok) {
+        const data = await response.json();
+        setAdminTemplates(data);
+      } else {
+        console.error('Erro ao carregar templates:', response.status);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar templates:', error);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
 
   if (status === 'loading') {
     return (
@@ -67,11 +80,37 @@ export default function CreatePage({ params }: { params: { id: string } }) {
     if (selectedTemplate === 'blank') {
       // Para página em branco, redirecionar diretamente para o editor
       router.push(`/projects/${params.id}/pages/create/editor?template=blank`);
-    } else if (selectedTemplate === 'admin-template') {
-      // Para template do admin, redirecionar para o editor com template do admin
-      router.push(`/projects/${params.id}/pages/create/editor?template=admin-template`);
+    } else {
+      // Para template do admin, redirecionar para o editor com o ID do template
+      router.push(`/projects/${params.id}/pages/create/editor?template=${selectedTemplate}`);
     }
   };
+
+  // Construir lista de templates disponíveis
+  const availableTemplates: TemplateOption[] = [
+    {
+      id: 'blank',
+      name: 'Criar Página em Branco',
+      description: 'Comece do zero com total liberdade criativa no editor',
+      category: 'Personalizado',
+      preview: '/templates/blank-preview.jpg',
+      icon: FileText,
+      color: 'bg-gray-500',
+      isPremium: false
+    },
+    // Adicionar templates do admin
+    ...adminTemplates.map((template) => ({
+      id: template._id,
+      name: template.name,
+      description: template.description || 'Template profissional criado por nossos especialistas',
+      category: 'Profissional',
+      preview: '/templates/admin-preview.jpg',
+      icon: Palette,
+      color: 'bg-pink-500',
+      isPremium: false,
+      templateData: template
+    }))
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -107,7 +146,12 @@ export default function CreatePage({ params }: { params: { id: string } }) {
 
         {/* Templates Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 max-w-4xl mx-auto">
-          {templates.map((template) => (
+          {templatesLoading ? (
+            <div className="col-span-2 flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+            </div>
+          ) : (
+            availableTemplates.map((template) => (
             <div
               key={template.id}
               onClick={() => handleTemplateSelect(template.id)}
@@ -155,7 +199,8 @@ export default function CreatePage({ params }: { params: { id: string } }) {
                 )}
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Action Buttons */}
